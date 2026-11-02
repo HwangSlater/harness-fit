@@ -1,4 +1,4 @@
-// CLAUDE.md 에 넣을 약속 문장 만들기.
+// CLAUDE.md 에 넣을 규칙 문장 만들기.
 // 규칙 조각(rules/<id>.<lang>.md)의 줄 끝 표시로, 실제로 켠 훅과 문장이 어긋나지 않게 한다.
 //   `… {{hook:commit-msg}}`  그 훅이 켜졌을 때만 넣는다
 //   `… {{!hook:commit-msg}}` 그 훅이 꺼졌을 때만 넣는다
@@ -23,7 +23,7 @@ export const renderRule = (id, lang, hooks) => {
   return out.join('\n').trim();
 };
 
-// 고른 것 → { 약속 id: 들어갈 문장 }. 브랜치 방식도 약속 하나로 친다.
+// 고른 것 → { 규칙 id: 들어갈 문장 }. 브랜치 방식도 규칙 하나로 친다.
 export const ruleTexts = (sel) => {
   const ids = [sel.flow !== 'none' ? sel.flow : null, ...sel.rules].filter(Boolean);
   return Object.fromEntries(ids.map((id) => [id, renderRule(id, sel.lang, sel.hooks)]).filter(([, text]) => text));

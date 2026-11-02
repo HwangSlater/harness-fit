@@ -1,7 +1,7 @@
 // 고르기 화면의 구역들(시안 2차 a). 상태는 app.js 가 갖고, 여기는 그리기만 한다.
 // c = { S, sel, ui, t, act } — S: 서버 상태, sel: 고른 것, ui: 화면 상태, t: 문구, act: 동작
 import { h, s, icon } from './dom.js';
-import { stars, skillBadges, hookItem, ruleCard, switchEl } from './parts.js';
+import { stars, skillBadges, hookItem, ruleCard, switchEl, changeGroups } from './parts.js';
 
 // 개발 단계 ↔ 카탈로그 단계. 순서대로 처음 맞는 칸에 놓는다.
 export const STAGES = [
@@ -29,8 +29,11 @@ export const pct = (S, n) => ((n / S.contextTokens) * 100).toFixed(1);
 const word = (t, n) => t(n < WORD_LIGHT ? 'word1' : n < WORD_MID ? 'word2' : 'word3');
 const ruleCount = (sel) => sel.rules.size + (sel.flow !== 'none' ? 1 : 0);
 
-const section = (n, title, sub, ...body) =>
-  h('section.sec', { id: `s${n}` }, h('div.sec-head', {}, h('span.num', {}, String(n)), h('h2', {}, title), sub ? h('p', {}, sub) : null), ...body);
+// kinds: 이 구역에서 고른 것이 무엇으로(스킬·훅·규칙) 어디에 들어가는지 제목 옆에 붙이는 표시
+const section = (n, title, sub, ...body) => sectionK(n, [], title, sub, ...body);
+const sectionK = (n, kinds, title, sub, ...body) =>
+  h('section.sec', { id: `s${n}` }, h('div.sec-head', {}, h('span.num', {}, String(n)), h('h2', {}, title), kinds, sub ? h('p', {}, sub) : null), ...body);
+const kind = (t, k) => h(`span.kind.${k}`, {}, t(`kind${k[0].toUpperCase()}${k.slice(1)}`));
 
 export function header({ S, t, act }) {
   const chips = [h('span.chip', {}, S.recommended.why[0])];
@@ -116,7 +119,7 @@ function stageColumn(c, [id, , path]) {
 export function journey(c) {
   const { S, sel, t, act } = c;
   const more = S.skills.filter((k) => listable(S, k) && !sel.skills.has(k.id)).length;
-  return section(2, t('s2'), t('s2p'),
+  return sectionK(2, [kind(t, 'skill')], t('s2'), t('s2p'),
     h('div.card.journey', {}, MAIN.map((st) => stageColumn(c, st))),
     h('div.card.journey.other', {}, stageColumn(c, STAGES[6])),
     h('button.browse-all', { 'aria-haspopup': 'dialog', on: { click: () => act.openAdd('all') } }, t('browseAll', { n: more })));
@@ -124,7 +127,7 @@ export function journey(c) {
 
 export function guards(c) {
   const { S, t } = c;
-  return section(3, t('s3'), t('s3p'),
+  return sectionK(3, [kind(t, 'hook')], t('s3'), t('s3p'),
     h('div.guards', {}, S.hooks.map((x) => hookItem(c, x))));
 }
 
@@ -155,7 +158,7 @@ function flowNote({ S, sel, t }) {
 
 export function flows(c) {
   const { S, sel, t, act } = c;
-  return section(4, t('s4'), t('s4p'),
+  return sectionK(4, [kind(t, 'hook'), kind(t, 'rule')], t('s4'), t('s4p'),
     h('div.flows', { role: 'radiogroup' }, S.flows.map((f) =>
       h(`button.flow${f.id === sel.flow ? '.on' : ''}`, { role: 'radio', 'aria-checked': String(f.id === sel.flow), on: { click: () => act.pickFlow(f.id) } },
         h('span.name', {}, f.name), branchSvg(f.id), h('span.for', {}, f.for), h('span.d', {}, f.desc)))),
@@ -165,7 +168,7 @@ export function flows(c) {
 export function rules(c) {
   const { S, sel, t } = c;
   const flow = S.flows.find((f) => f.id === sel.flow);
-  return section(5, t('s5'), t('s5p'),
+  return sectionK(5, [kind(t, 'rule')], t('s5'), t('s5p'),
     h('div.rules', {},
       S.rules.map((r) => ruleCard(c, r, false)),
       sel.flow !== 'none' ? ruleCard(c, { id: sel.flow, name: t('flowRule', { name: flow.name }), desc: flow.desc }, true) : null));
@@ -192,7 +195,7 @@ export function outcome({ S, sel, ui, t, act }) {
   if (p && !p.error) {
     const n = (kind) => p.changes.filter((x) => x.kind === kind).length;
     if (n('skill')) items.push(['skill', t('wSkills', { n: n('skill') }), t('wSkillsD')]);
-    items.push(['hook', t('wConfig'), t('wConfigD')]);
+    items.push(['hook', t('wConfig', { n: sel.hooks.size }), t('wConfigD')]);
     if (n('claude-md')) items.push(['rule', t('wMd', { n: ruleCount(sel) }), t('wMdD')]);
     if (n('share')) items.push(['share', t('wShare'), t('wShareD')]);
     if (n('request')) items.push(['memo', t('wRequest'), t('wRequestD')]);
@@ -234,8 +237,11 @@ export function bar({ S, sel, ui, t, act }) {
   ];
 }
 
-export function finished({ S, t }, result, hasNote) {
+export function finished(c, result, hasNote) {
+  const { S, ui, t } = c;
   if (!result) return h('div.done.card', {}, h('h2', {}, t('cancelled')));
+  // 무엇이 스킬·훅·규칙으로 들어갔는지 확인 창과 같은 묶음으로. 정확한 경로는 접어 둔다.
+  const p = ui.preview && !ui.preview.error ? ui.preview : null;
   return h('div.done.card', {},
     h('div.check', {}, icon('M5 13l4 4L19 7', 28)),
     h('h2', {}, t('doneTitle')),
@@ -244,9 +250,9 @@ export function finished({ S, t }, result, hasNote) {
     result.failed?.length ? h('p.err', {}, t('doneFailed', { list: result.failed.map((x) => skillBy(S, x.skill)?.title || x.skill).join(', ') })) : null,
     result.manual?.length ? h('p', {}, t('doneManual', { list: result.manual.map((m) => skillBy(S, m.skill)?.title || m.skill).join(', ') })) : null,
     h('p.undo', {}, t('doneUndo', { cmd: result.undo || S.undoCommand })),
-    h('pre', {}, result.changed.map((line) => {
+    p ? h('div.cgs', {}, changeGroups(c, p, result.failed)) : null,
+    h('details.paths', {}, h('summary', {}, t('paths')), h('pre', {}, result.changed.map((line) => {
       const id = line.match(/\.claude\/skills\/([^/\s]+)/)?.[1];
       return id ? `${line}  — ${skillBy(S, id)?.title || ''}` : line;
-    }).join('\n')));
+    }).join('\n'))));
 }
-

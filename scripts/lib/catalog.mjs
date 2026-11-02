@@ -60,6 +60,19 @@ export const recommend = (all, det, lang) => {
   return { ...sel, lang, why };
 };
 
+// 사용자에게 보여 줄 이름(id 대신). 터미널 보고에서 스킬·훅·규칙을 나눠 보여 주려고 종류별로 묶는다.
+export const labelsFor = (all, sel, lang) => {
+  const name = (list, id) => list.find((x) => x.id === id)?.name[lang] || id;
+  const titles = readJson('catalog/titles.json');
+  return {
+    combo: name(all.combos.combos, sel.combo),
+    flow: name(all.packs.flows, sel.flow),
+    skills: sel.skills.map((id) => titles[id]?.title?.[lang] || id),
+    hooks: sel.hooks.map((id) => name(all.packs.hooks, id)),
+    rules: sel.rules.map((id) => name(all.packs.rules, id)),
+  };
+};
+
 // 브랜치 방식을 바꾸면 거기에 딸린 훅도 켜고 끈다(정하지 않음 → 보호 브랜치·이름 규칙 끔 등).
 // 화면(picker/app.js)도 같은 packs.json 의 hooksOn/hooksOff 로 똑같이 한다.
 export const applyFlow = (all, sel, flowId) => {

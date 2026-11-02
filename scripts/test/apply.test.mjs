@@ -92,6 +92,14 @@ test('팀원 설치 안내: 기존 설정은 두고 두 항목만 더한다', as
   assert.equal(buildSettings('{ 깨진', src), null, '깨진 파일은 건드리지 않는다');
 });
 
+test('보고용 이름은 스킬·훅·규칙으로 나뉘고 id 대신 이름이다', async () => {
+  const { labelsFor } = await import('../lib/catalog.mjs');
+  const l = labelsFor(all, { ...base, skills: ['handoff'], rules: ['collab'] }, 'ko');
+  assert.deepEqual(Object.keys(l).sort(), ['combo', 'flow', 'hooks', 'rules', 'skills']);
+  assert.equal(l.hooks.length, base.hooks.length);
+  assert.ok(!l.hooks.includes('secrets') && !l.rules.includes('collab') && !l.skills.includes('handoff'), '이름이 있으면 id 를 보이지 않는다');
+});
+
 test('요청 칸과 팀 공유는 파일 목록에 들어간다', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-plan-'));
   const kinds = plan(dir, { ...base, note: '커밋은 한국어로', share: true }, all).changes.map((c) => c.kind);

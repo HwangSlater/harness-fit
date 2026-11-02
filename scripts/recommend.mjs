@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { detect } from './detect.mjs';
-import { loadAll, recommend } from './lib/catalog.mjs';
+import { loadAll, recommend, labelsFor } from './lib/catalog.mjs';
 
 export const pickLang = (arg) => {
   if (arg === 'ko' || arg === 'en') return arg;
@@ -19,13 +19,5 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const det = detect(dir);
   const all = loadAll();
   const selection = recommend(all, det, lang);
-  // 사용자에게 보여 줄 이름(id 대신)
-  const name = (list, id) => list.find((x) => x.id === id)?.name[lang] || id;
-  const labels = {
-    combo: name(all.combos.combos, selection.combo),
-    flow: name(all.packs.flows, selection.flow),
-    hooks: selection.hooks.map((id) => name(all.packs.hooks, id)),
-    rules: selection.rules.map((id) => name(all.packs.rules, id)),
-  };
-  process.stdout.write(JSON.stringify({ detected: det, selection, labels }, null, 2) + '\n');
+  process.stdout.write(JSON.stringify({ detected: det, selection, labels: labelsFor(all, selection, lang) }, null, 2) + '\n');
 }

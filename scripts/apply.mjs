@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadAll } from './lib/catalog.mjs';
+import { loadAll, labelsFor } from './lib/catalog.mjs';
 import { installSkill } from './lib/install-skill.mjs';
 import { buildClaudeMd, ruleTexts } from './lib/claude-md.mjs';
 
@@ -128,6 +128,8 @@ export const apply = async (root, sel, onProgress = () => {}) => {
   return {
     stamp: manifest.stamp,
     changed: changes.map((c) => `${c.action === 'create' ? '+' : '~'} ${rel(root, c.path)}`),
+    // 보고할 때 무엇이 스킬·훅·CLAUDE.md 규칙으로 들어갔는지 나눠 말하려고(SKILL.md).
+    labels: labelsFor(all, sel, sel.lang),
     manual,
     failed,
     undo: UNDO_COMMAND,

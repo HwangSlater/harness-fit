@@ -58,7 +58,7 @@
 "handoff": {"title":{"ko":"인수인계 문서 만들기","en":"Handoff note"},"when":{"ko":"지금 대화를 다른 에이전트에게 넘기려고 요약할 때","en":"To summarize this conversation for another agent"}},
 "ci-cd-and-automation": {"title":{"ko":"CI/CD 자동화 구성","en":"CI/CD setup"},"when":{"ko":"자동 테스트와 배포 흐름을 처음 구성할 때","en":"To set up automated tests and deployment pipelines"}},
 "shipping-and-launch": {"title":{"ko":"출시 전 점검","en":"Launch checklist"},"when":{"ko":"출시 전 점검, 단계별 공개, 되돌릴 계획을 세울 때","en":"To plan pre-launch checks, staged rollout and rollback"}},
-"setup-pre-commit": {"title":{"ko":"커밋 전 자동 검사","en":"Pre-commit checks"},"when":{"ko":"커밋할 때 서식·타입·테스트가 자동으로 돌게 할 때","en":"To run formatting, type checks and tests automatically on commit"}},
+"setup-pre-commit": {"title":{"ko":"커밋 전 검사 도구 설치","en":"Set up pre-commit checks"},"when":{"ko":"커밋할 때 서식·타입·테스트가 자동으로 돌게 할 때","en":"To run formatting, type checks and tests automatically on commit"}},
 "deploy-to-vercel": {"title":{"ko":"Vercel에 배포","en":"Deploy to Vercel"},"when":{"ko":"만든 웹사이트를 Vercel에 올리고 링크를 받을 때","en":"To deploy a site to Vercel and get a link"}},
 "eas-app-stores": {"title":{"ko":"앱스토어 빌드·제출","en":"App store release"},"when":{"ko":"앱을 빌드해 TestFlight나 스토어에 제출할 때","en":"To build an app and submit it to TestFlight or the stores"}},
 "performance-optimization": {"title":{"ko":"측정 먼저 하는 최적화","en":"Measure then optimize"},"when":{"ko":"느린 곳을 먼저 측정하고 근거에 따라 빠르게 만들 때","en":"To measure what is slow first, then speed it up with evidence"}},
