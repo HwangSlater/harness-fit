@@ -1,5 +1,5 @@
 {
-  "secrets.write": "Not written: it looks like a secret ({hits}). Read it from an environment variable or a secret store instead. If it is not a secret, add `fys:allow secret <reason>` at the end of the line.",
+  "secrets.write": "Not written: it looks like a secret ({hits}). Read it from an environment variable or a secret store instead. If it is not a secret, add `harness:allow secret <reason>` at the end of the line.",
   "secrets.commit": "The staged changes contain what looks like a secret: {hits}. Remove it and commit again.",
   "secrets.commitFile": "These files must not be committed: {files}. Unstage them and add them to .gitignore.",
   "protected.write": "Not writing to {why} ({file}). Let the user fill in secrets; for an example, create a value-less file such as .env.example.",

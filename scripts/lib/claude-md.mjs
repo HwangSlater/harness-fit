@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PLUGIN_ROOT } from './catalog.mjs';
 
-export const START = '<!-- fys:start -->';
-export const END = '<!-- fys:end -->';
+export const START = '<!-- harness-fit:start -->';
+export const END = '<!-- harness-fit:end -->';
 const TAG = /\s*\{\{(!?)hook:([\w-]+)\}\}\s*$/;
 
 export const renderRule = (id, lang, hooks) => {

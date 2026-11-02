@@ -76,7 +76,7 @@ export const detect = (dir) => {
     defaultBranch: git(root, ['symbolic-ref', '--short', 'HEAD']) || 'main',
     hasDevelop: !!git(root, ['rev-parse', '--verify', '--quiet', 'develop']),
     hasTests: ['test', 'tests', '__tests__', 'spec'].some(has) || !!(deps.vitest || deps.jest || deps['@playwright/test']),
-    existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), fys: has('.claude/fys.json') },
+    existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') },
   };
 };
 

@@ -1,5 +1,5 @@
 {
-  "description": "find-your-skill 규칙 훅. 프로젝트에 .claude/fys.json 이 있을 때만 동작한다",
+  "description": "harness-fit 규칙 훅. 프로젝트에 .claude/harness.json 이 있을 때만 동작한다",
   "hooks": {
     "PreToolUse": [
       {

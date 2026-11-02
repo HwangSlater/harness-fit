@@ -90,7 +90,7 @@ const server = http.createServer(async (req, res) => {
       const f = path.join(PLUGIN_ROOT, 'picker', STATIC[url.pathname]);
       return send(200, fs.readFileSync(f, 'utf8'), TYPES[path.extname(f)]);
     }
-    if (req.headers['x-fys-token'] !== token) return send(403, { error: 'forbidden' });
+    if (req.headers['x-harness-token'] !== token) return send(403, { error: 'forbidden' });
     const route = routes[`${req.method} ${url.pathname}`];
     if (route) return send(200, await route(url, req));
     if (req.method === 'POST' && url.pathname === '/api/apply') {

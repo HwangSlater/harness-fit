@@ -14,7 +14,7 @@ export const SECRET_PATTERNS = [
 
 const ASSIGNED = /\b(?:password|passwd|pwd|secret|api_?key|access_?token|auth_?token|private_?key|client_?secret)\b["']?\s*[:=]\s*["']([^"'\s]{8,})["']/i;
 const PLACEHOLDER = /your|example|sample|changeme|placeholder|dummy|xxx|\*\*\*|<|\$\{|\$\(|process\.env|os\.environ|getenv|import\.meta\.env|secrets\./i;
-export const ALLOW = /fys:allow\s+secret\s+\S/;
+export const ALLOW = /harness:allow\s+secret\s+\S/;
 
 export const isTestFile = (p) =>
   /(^|[\\/])(tests?|__tests__|spec|fixtures?)[\\/]|\.(test|spec)\.[a-z]+$|_test\.(py|go)$|(^|[\\/])test_[^\\/]+\.py$/i.test(p);

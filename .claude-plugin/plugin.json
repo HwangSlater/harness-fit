@@ -1,6 +1,6 @@
 {
-  "name": "find-your-skill",
-  "version": "0.1.0",
+  "name": "harness-fit",
+  "version": "0.2.0",
   "description": "Find the skills, hooks and rules your project actually needs. 프로젝트에 맞는 스킬·훅·규칙을 골라 설치합니다.",
   "author": {
     "name": "HwangSlater",
@@ -14,6 +14,6 @@
     "git-flow",
     "security"
   ],
-  "homepage": "https://github.com/HwangSlater/find-your-skill",
-  "repository": "https://github.com/HwangSlater/find-your-skill"
+  "homepage": "https://github.com/HwangSlater/harness-fit",
+  "repository": "https://github.com/HwangSlater/harness-fit"
 }

@@ -36,7 +36,7 @@ export const fresh = async ({ force = false } = {}) => {
   const since = catalog.checkedAt;
   const known = new Set(catalog.repos.map((r) => r.repo.toLowerCase()));
 
-  const cacheFile = path.join(os.tmpdir(), `fys-fresh-${since}.json`);
+  const cacheFile = path.join(os.tmpdir(), `harness-fit-fresh-${since}.json`);
   try {
     const st = fs.statSync(cacheFile);
     if (!force && Date.now() - st.mtimeMs < src.freshCacheHours * 3600e3) return JSON.parse(fs.readFileSync(cacheFile, 'utf8'));

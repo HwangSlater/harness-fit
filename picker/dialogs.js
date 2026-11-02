@@ -104,12 +104,12 @@ function confirmDialog(c) {
   const groups = [
     copied.length ? group('skill', t('cSkills', { n: copied.length }), '.claude/skills/', t('cSkillsWhat'), copied) : null,
     p.manual.length ? group('manual', t('cManual', { n: p.manual.length }), t('cManualWhere'), t('cManualWhat'), p.manual.map((m) => skillBy(S, m.skill)?.title || m.skill)) : null,
-    group('hook', t('cHooks', { n: sel.hooks.size }), '.claude/fys.json', t('cHooksWhat'), hookNames),
+    group('hook', t('cHooks', { n: sel.hooks.size }), '.claude/harness.json', t('cHooksWhat'), hookNames),
     n('claude-md') ? group('rule', t('cRules', { n: ruleNames.length }), 'CLAUDE.md', t('cRulesWhat'), ruleNames) : null,
     n('share') ? group('share', t('cShare'), '.claude/settings.json', t('cShareWhat', { repo: S.pluginRepo, ref: S.pluginRef }), null) : null,
-    n('request') ? group('memo', t('cNote'), '.claude/fys-request.md', t('cNoteWhat'), [sel.note.trim().split('\n')[0] + (sel.note.trim().includes('\n') ? ' …' : '')]) : null,
+    n('request') ? group('memo', t('cNote'), '.claude/harness-request.md', t('cNoteWhat'), [sel.note.trim().split('\n')[0] + (sel.note.trim().includes('\n') ? ' …' : '')]) : null,
     sel.explore.size ? group('plain', t('cExplore', { n: sel.explore.size }), t('cExploreWhere'), t('cExploreWhat'), [...sel.explore]) : null,
-    group('plain', t('cBackup'), '.claude/fys-backup/', t('cBackupWhat'), null),
+    group('plain', t('cBackup'), '.claude/harness-backup/', t('cBackupWhat'), null),
   ];
   const steps = [t('step1'), t('step2'), t('step3', { n: copied.length }), t('step4')];
   return modal(c, {

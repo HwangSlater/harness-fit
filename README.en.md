@@ -1,11 +1,12 @@
 <div align="center">
 
-# find-your-skill
+# harness-fit
 
 ### Find the skills, hooks and rules your project actually needs.
 
 Just started with Claude Code and not sure what to install?<br>
-It reads your repo and lets you pick the skills, hooks and rules that fit — on one screen.
+It reads your repo and lets you pick the skills, hooks and rules that fit — on one screen.<br>
+<sub>A harness is the set of skills, hooks and rules Claude works within. This fits one to your project.</sub>
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg)](https://nodejs.org)
@@ -16,7 +17,7 @@ It reads your repo and lets you pick the skills, hooks and rules that fit — on
 
 [한국어](README.md) · **English**
 
-<img src="docs/images/overview-en.png" alt="find-your-skill picker" width="760">
+<img src="docs/images/overview-en.png" alt="harness-fit picker" width="760">
 
 </div>
 
@@ -30,12 +31,12 @@ Right after installing Claude Code, the questions pile up.
 - More sounds better, until you learn **they cost tokens in every conversation.**
 - "Don't `git add .`", "don't commit to main"… **do I have to say this every time?**
 
-**find-your-skill** reads your repo (stack, team size, branches) and preselects a combo. Press "Apply" and you're done, or click to change only what you want.
+**harness-fit** reads your repo (stack, team size, branches) and preselects a combo. Press "Apply" and you're done, or click to change only what you want.
 
 ## Quick start
 
 ```bash
-npx github:HwangSlater/find-your-skill
+npx github:HwangSlater/harness-fit
 ```
 
 It reads the repo in the current folder and opens the picker in your browser.
@@ -45,23 +46,23 @@ It reads the repo in the current folder and opens the picker in your browser.
 Install once.
 
 ```
-/plugin marketplace add HwangSlater/find-your-skill
-/plugin install find-your-skill@find-your-skill
+/plugin marketplace add HwangSlater/harness-fit
+/plugin install harness-fit@harness-fit
 ```
 
 Then, in your project:
 
 ```
-/find-your-skill:start
+/harness-fit:setup
 ```
 
 When it's applied, Claude summarizes the result and continues with what's left (skills to install yourself, requests you typed on the screen).
 
 | Command | What it does |
 | --- | --- |
-| `/find-your-skill:start` | Open the picker |
-| `/find-your-skill:start auto` | No browser: review the recommendation and apply (remote/SSH) |
-| `/find-your-skill:start undo` | Undo the last apply |
+| `/harness-fit:setup` | Open the picker |
+| `/harness-fit:setup auto` | No browser: review the recommendation and apply (remote/SSH) |
+| `/harness-fit:setup undo` | Undo the last apply |
 
 ## What you do on the screen
 
@@ -82,11 +83,11 @@ When it's applied, Claude summarizes the result and continues with what's left (
 | What | Where | What it does |
 | --- | --- | --- |
 | Skills | `.claude/skills/<name>/` | Ways of working Claude reads only when needed, downloaded at a pinned version. |
-| Automatic checks (hooks) | `.claude/fys.json` | The checker is this plugin; the file only lists which checks are on. It checks right before Claude runs a command or writes a file. |
+| Automatic checks (hooks) | `.claude/harness.json` | The checker is this plugin; the file only lists which checks are on. It checks right before Claude runs a command or writes a file. |
 | Rules | marked block in `CLAUDE.md` | Read every conversation. Existing text stays. |
 | Teammate install prompt | `.claude/settings.json` | Teammates who open the repo are prompted to install this plugin (pinned version). |
-| Request note | `.claude/fys-request.md` | What you typed on the screen; Claude reads and applies it. |
-| Backup | `.claude/fys-backup/` | The original of every changed file, used for undo. |
+| Request note | `.claude/harness-request.md` | What you typed on the screen; Claude reads and applies it. |
+| Backup | `.claude/harness-backup/` | The original of every changed file, used for undo. |
 
 ## Mistakes it blocks (11 hooks)
 
@@ -106,7 +107,7 @@ Rules that need no judgment are enforced by checks, not prose. They cost no toke
 | Limit new file size | New files over 400 lines |
 | Read GitHub with gh | Scraping GitHub pages instead of using `gh` |
 
-Installing the plugin blocks nothing in projects without `.claude/fys.json`.
+Installing the plugin blocks nothing in projects without `.claude/harness.json`.
 
 ## How many tokens?
 
@@ -128,15 +129,15 @@ The percentage is the share of what Claude can hold at once (200k tokens).
 - "Details" shows each skill's source, license, pinned commit and any executable files it contains.
 - Only permissively licensed skills (MIT, Apache-2.0, …) are copied; others link to their own install instructions.
 
-Skills belong to their authors. The source is recorded in `.fys-source.json` inside each installed folder.
+Skills belong to their authors. The source is recorded in `.harness-source.json` inside each installed folder.
 
 ## Undo
 
 ```
-/find-your-skill:start undo
+/harness-fit:setup undo
 ```
 
-Or `npx github:HwangSlater/find-your-skill --undo`. Restores the state before the last apply.
+Or `npx github:HwangSlater/harness-fit --undo`. Restores the state before the last apply.
 
 ## Your data stays on your machine
 

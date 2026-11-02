@@ -1,5 +1,5 @@
 // 카탈로그의 스킬 하나를 고정된 커밋에서 받아 프로젝트 .claude/skills/<id>/ 에 넣는다.
-// 받은 파일은 실행하지 않는다. 내용만 쓴다. 출처는 .fys-source.json 에 남긴다(라이선스 표시·업데이트 확인용).
+// 받은 파일은 실행하지 않는다. 내용만 쓴다. 출처는 .harness-source.json 에 남긴다(라이선스 표시·업데이트 확인용).
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -43,7 +43,7 @@ export const installSkill = async ({ sources, skill, repo, dest }) => {
   const total = files.reduce((s, f) => s + (f.size || 0), 0);
   if (total > MAX_BYTES) throw new Error(`너무 큼(${Math.round(total / 1024)}KB): ${skill.id}`);
 
-  const tmp = `${dest}.fys-tmp`;
+  const tmp = `${dest}.harness-tmp`;
   fs.rmSync(tmp, { recursive: true, force: true });
   for (const f of files) {
     const rel = f.path.slice(dir.length + 1);
@@ -53,7 +53,7 @@ export const installSkill = async ({ sources, skill, repo, dest }) => {
     fs.writeFileSync(out, await getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${f.path}`));
   }
   fs.writeFileSync(
-    path.join(tmp, '.fys-source.json'),
+    path.join(tmp, '.harness-source.json'),
     JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: repo.license, installedAt: new Date().toISOString().slice(0, 10) }, null, 2) + '\n',
   );
   // 다 받은 뒤에만 바꿔 넣는다(중간에 실패하면 원래 폴더가 그대로 남게).

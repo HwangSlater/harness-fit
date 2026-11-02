@@ -1,4 +1,4 @@
-// PreToolUse 디스패처. 프로젝트 .claude/fys.json 의 rules 에서 켜진 규칙만 돌린다.
+// PreToolUse 디스패처. 프로젝트 .claude/harness.json 의 rules 에서 켜진 규칙만 돌린다.
 // 설정 파일이 없는 프로젝트에서는 바로 통과한다(플러그인을 깔아도 고르기 전에는 아무것도 막지 않음).
 // rules 값: true(기본 옵션으로 켬) · false(끔) · { ...옵션 }(켬).
 import { loadConfig, pickLang, translator, commandCwd, repoRoot } from './core.mjs';

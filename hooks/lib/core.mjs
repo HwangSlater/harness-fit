@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const CONFIG_FILE = path.join('.claude', 'fys.json');
+export const CONFIG_FILE = path.join('.claude', 'harness.json');
 
 export const readInput = () => {
   try {
@@ -40,7 +40,7 @@ export const repoRoot = (dir) => {
   return out ? path.resolve(out.trim()) : null;
 };
 
-// 프로젝트 설정. cwd 에서 위로 올라가며 .claude/fys.json 을 찾되, 저장소 맨 위(.git 이 있는 폴더)에서 멈춘다.
+// 프로젝트 설정. cwd 에서 위로 올라가며 .claude/harness.json 을 찾되, 저장소 맨 위(.git 이 있는 폴더)에서 멈춘다.
 // 없으면 null — 이 프로젝트에서는 아무것도 하지 않는다.
 // 이 훅은 플러그인을 켠 모든 프로젝트의 도구 호출마다 돌므로 git 프로세스를 띄우지 않고 파일만 본다.
 export const loadConfig = (cwd) => {

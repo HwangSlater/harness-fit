@@ -1,10 +1,10 @@
 {
-  "name": "find-your-skill",
-  "version": "0.1.0",
+  "name": "harness-fit",
+  "version": "0.2.0",
   "description": "Find the skills, hooks and rules your project actually needs — a visual picker for Claude Code.",
   "type": "module",
   "bin": {
-    "find-your-skill": "bin/find-your-skill.js"
+    "harness-fit": "bin/harness-fit.js"
   },
   "files": [
     "bin",
@@ -21,7 +21,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node bin/find-your-skill.js",
+    "start": "node bin/harness-fit.js",
     "test": "node --test hooks/test/*.test.mjs scripts/test/*.test.mjs"
   },
   "engines": {
@@ -29,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HwangSlater/find-your-skill.git"
+    "url": "git+https://github.com/HwangSlater/harness-fit.git"
   },
   "keywords": [
     "claude-code",
@@ -42,8 +42,8 @@
   ],
   "license": "MIT",
   "author": "HwangSlater (https://github.com/HwangSlater)",
-  "homepage": "https://github.com/HwangSlater/find-your-skill#readme",
+  "homepage": "https://github.com/HwangSlater/harness-fit#readme",
   "bugs": {
-    "url": "https://github.com/HwangSlater/find-your-skill/issues"
+    "url": "https://github.com/HwangSlater/harness-fit/issues"
   }
 }

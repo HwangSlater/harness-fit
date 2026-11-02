@@ -14,17 +14,17 @@ test('CLAUDE.md: 사용자 글은 남기고 관리 구역만 넣고·바꾸고·
   const mine = '# 내 프로젝트\n\n내 규칙.\n';
   const once = buildClaudeMd(mine, base);
   assert.ok(once.startsWith(mine.trim()));
-  assert.match(once, /<!-- fys:start -->[\s\S]*Git Flow[\s\S]*<!-- fys:end -->/);
+  assert.match(once, /<!-- harness-fit:start -->[\s\S]*Git Flow[\s\S]*<!-- harness-fit:end -->/);
   assert.equal(buildClaudeMd(once, base), once, '같은 선택을 두 번 적용해도 그대로');
   const changed = buildClaudeMd(once, { ...base, flow: 'trunk' });
   assert.match(changed, /트렁크/);
   assert.doesNotMatch(changed, /Git Flow/);
   const removed = buildClaudeMd(once, { ...base, flow: 'none', rules: [] });
-  assert.doesNotMatch(removed, /fys:start/);
+  assert.doesNotMatch(removed, /harness-fit:start/);
   assert.match(removed, /내 규칙/);
 });
 
-test('fys.json: Git 전략이 보호 브랜치·브랜치 이름 옵션을 정한다', () => {
+test('harness.json: Git 전략이 보호 브랜치·브랜치 이름 옵션을 정한다', () => {
   const cfg = buildConfig(all, base);
   assert.deepEqual(cfg.rules['protect-branch'].branches, ['main', 'master', 'develop']);
   assert.match(cfg.rules['branch-name'].pattern, /release/);
@@ -54,7 +54,7 @@ test('조합에 적힌 스킬·훅은 모두 카탈로그에 있다', () => {
 });
 
 test('미리보기는 파일을 바꾸지 않고, 되돌릴 것이 없으면 알린다', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fys-apply-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-apply-'));
   const { changes } = plan(dir, { ...base, skills: ['handoff'] }, all);
   assert.ok(changes.some((c) => c.skill === 'handoff'));
   assert.deepEqual(fs.readdirSync(dir), []);
@@ -93,7 +93,7 @@ test('팀원 설치 안내: 기존 설정은 두고 두 항목만 더한다', as
 });
 
 test('요청 칸과 팀 공유는 파일 목록에 들어간다', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fys-plan-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-plan-'));
   const kinds = plan(dir, { ...base, note: '커밋은 한국어로', share: true }, all).changes.map((c) => c.kind);
   assert.ok(kinds.includes('request') && kinds.includes('share') && kinds.includes('claude-md'));
   assert.ok(!plan(dir, { ...base, note: '  ', share: false }, all).changes.some((c) => c.kind === 'request' || c.kind === 'share'));

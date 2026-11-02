@@ -12,9 +12,9 @@ import { buildClaudeMd, ruleTexts } from './lib/claude-md.mjs';
 
 export { buildClaudeMd, ruleTexts };
 
-const BACKUP_DIR = path.join('.claude', 'fys-backup');
-const GITIGNORE_LINE = '.claude/fys-backup/';
-export const UNDO_COMMAND = '/find-your-skill:start undo';
+const BACKUP_DIR = path.join('.claude', 'harness-backup');
+const GITIGNORE_LINE = '.claude/harness-backup/';
+export const UNDO_COMMAND = '/harness-fit:setup undo';
 
 const read = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
 const rel = (root, p) => path.relative(root, p).split(path.sep).join('/');
@@ -50,14 +50,14 @@ export const buildSettings = (current, src) => {
 
 // 요청 칸에 쓴 내용은 파일로도 남긴다(Claude 가 이어받지 못해도 사라지지 않게).
 export const requestFile = (note, date) =>
-  `# 적용할 때 남긴 요청 / Requests left at setup\n\n> ${date} · find-your-skill. Claude 가 반영한 뒤 지워도 됩니다.\n\n${note.trim()}\n`;
+  `# 적용할 때 남긴 요청 / Requests left at setup\n\n> ${date} · harness-fit. Claude 가 반영한 뒤 지워도 됩니다.\n\n${note.trim()}\n`;
 
 // 바뀔 것 목록. kind 는 화면에서 무엇인지 설명하는 데 쓴다.
 export const plan = (root, sel, all = loadAll()) => {
   const changes = [];
   const add = (p, kind, content) => changes.push({ path: p, kind, action: fs.existsSync(p) ? 'change' : 'create', content });
 
-  add(path.join(root, '.claude', 'fys.json'), 'config', JSON.stringify(buildConfig(all, sel), null, 2) + '\n');
+  add(path.join(root, '.claude', 'harness.json'), 'config', JSON.stringify(buildConfig(all, sel), null, 2) + '\n');
   const mdPath = path.join(root, 'CLAUDE.md');
   const md = read(mdPath);
   const nextMd = buildClaudeMd(md, sel);
@@ -67,7 +67,7 @@ export const plan = (root, sel, all = loadAll()) => {
     const next = buildSettings(read(stPath), all.sources);
     if (next) add(stPath, 'share', next);
   }
-  if (sel.note?.trim()) add(path.join(root, '.claude', 'fys-request.md'), 'request', requestFile(sel.note, new Date().toISOString().slice(0, 10)));
+  if (sel.note?.trim()) add(path.join(root, '.claude', 'harness-request.md'), 'request', requestFile(sel.note, new Date().toISOString().slice(0, 10)));
   const gi = path.join(root, '.gitignore');
   const giText = read(gi);
   if (!giText || !giText.split(/\r?\n/).includes(GITIGNORE_LINE)) add(gi, 'gitignore', `${giText ? giText.replace(/\s*$/, '\n') : ''}${GITIGNORE_LINE}\n`);

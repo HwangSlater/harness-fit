@@ -11,12 +11,12 @@ import { commitMessage } from '../rules/git.mjs';
 let repo;
 const sh = (...args) => execFileSync('git', ['-C', repo, ...args], { stdio: 'ignore' });
 const setRules = (rules, lang = 'en') =>
-  fs.writeFileSync(path.join(repo, '.claude', 'fys.json'), JSON.stringify({ lang, rules }));
+  fs.writeFileSync(path.join(repo, '.claude', 'harness.json'), JSON.stringify({ lang, rules }));
 const bash = (command) => evaluate({ tool_name: 'Bash', cwd: repo, tool_input: { command } });
 const write = (file_path, content) => evaluate({ tool_name: 'Write', cwd: repo, tool_input: { file_path, content } });
 
 before(() => {
-  repo = fs.mkdtempSync(path.join(os.tmpdir(), 'fys-test-'));
+  repo = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-test-'));
   execFileSync('git', ['init', '-q', '-b', 'main', repo]);
   sh('config', 'user.email', 'test@example.com');
   sh('config', 'user.name', 'test');
@@ -28,7 +28,7 @@ before(() => {
 after(() => fs.rmSync(repo, { recursive: true, force: true }));
 
 test('설정 파일이 없으면 아무것도 막지 않는다', () => {
-  const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'fys-bare-'));
+  const bare = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-bare-'));
   assert.deepEqual(evaluate({ tool_name: 'Bash', cwd: bare, tool_input: { command: 'rm -rf /' } }), []);
   fs.rmSync(bare, { recursive: true, force: true });
 });

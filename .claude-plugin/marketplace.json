@@ -1,12 +1,12 @@
 {
-  "name": "find-your-skill",
+  "name": "harness-fit",
   "owner": {
     "name": "HwangSlater"
   },
   "description": "프로젝트 맞춤 스킬·훅·규칙 고르기 / Project-fit skills, hooks and rules picker",
   "plugins": [
     {
-      "name": "find-your-skill",
+      "name": "harness-fit",
       "source": "./",
       "description": "프로젝트에 맞는 스킬·훅·규칙을 골라 설치합니다 / Pick and install skills, hooks and rules that fit your project"
     }

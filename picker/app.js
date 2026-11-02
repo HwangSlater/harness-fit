@@ -19,7 +19,7 @@ const ui = {
 const api = async (p, body) => {
   const res = await fetch(p, {
     method: body ? 'POST' : 'GET',
-    headers: { 'X-FYS-Token': TOKEN, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    headers: { 'X-Harness-Token': TOKEN, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();

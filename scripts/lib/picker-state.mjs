@@ -49,7 +49,7 @@ export const cleanSelection = ({ all, cfg }, sel, fallbackLang) => {
     flow: all.packs.flows.some((f) => f.id === sel.flow) ? sel.flow : 'none',
     explore: (Array.isArray(sel.explore) ? sel.explore : []).filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r)).slice(0, 10),
     share: sel.share === true,
-    // 사용자가 직접 쓴 수정 요청. .claude/fys-request.md 에 남기고, 적용 뒤 Claude 가 읽고 반영한다.
+    // 사용자가 직접 쓴 수정 요청. .claude/harness-request.md 에 남기고, 적용 뒤 Claude 가 읽고 반영한다.
     note: typeof sel.note === 'string' ? sel.note.trim().slice(0, cfg.noteMaxChars) : '',
   };
 };

@@ -1,5 +1,5 @@
 {
-  "secrets.write": "비밀값으로 보이는 글자가 있어 쓰지 않았습니다: {hits}. 환경 변수나 시크릿 저장소에서 읽도록 바꾸세요. 비밀값이 아니면 그 줄 끝에 `fys:allow secret <이유>` 를 다세요.",
+  "secrets.write": "비밀값으로 보이는 글자가 있어 쓰지 않았습니다: {hits}. 환경 변수나 시크릿 저장소에서 읽도록 바꾸세요. 비밀값이 아니면 그 줄 끝에 `harness:allow secret <이유>` 를 다세요.",
   "secrets.commit": "커밋할 변경에 비밀값으로 보이는 것이 있습니다: {hits}. 빼고 다시 커밋하세요.",
   "secrets.commitFile": "커밋에 넣으면 안 되는 파일이 있습니다: {files}. unstage 하고 .gitignore 에 추가하세요.",
   "protected.write": "{why}({file})에는 쓰지 않습니다. 비밀값은 사용자가 직접 넣고, 예시가 필요하면 .env.example 처럼 값 없는 파일을 만드세요.",
