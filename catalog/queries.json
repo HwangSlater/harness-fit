@@ -1,0 +1,5 @@
+{
+  "_설명": "카탈로그를 만들 때 쓴 검색어. 고르기 화면을 열 때 같은 검색을 기준일 이후 push 된 것으로 다시 돌려 새 저장소를 찾는다.",
+  "queries": ["claude code skills", "claude skills", "agent skills", "SKILL.md", "claude code hooks", "claude code subagents", "claude code plugin", "awesome claude code"],
+  "topics": ["claude-skills", "claude-code", "agent-skills"]
+}

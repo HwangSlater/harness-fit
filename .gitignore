@@ -1,0 +1,5 @@
+node_modules/
+.claude/
+*.log
+# 로컬 전용 계획 문서(공개하지 않음)
+docs/plan.md

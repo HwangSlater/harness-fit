@@ -1,0 +1,2379 @@
+{
+ "checkedAt": "2026-11-02",
+ "criteria": {
+  "minStars": 1000,
+  "pushedAfter": "2026-05-02",
+  "linesNote": "lines = SKILL.md 본문 줄 수(참조 파일·스크립트 제외). 대략 1줄 ≈ 10~15 토큰."
+ },
+ "repos": [
+  {
+   "repo": "anthropics/skills",
+   "stars": 186360,
+   "pushedAt": "2026-10-28",
+   "license": null,
+   "kind": "skills",
+   "install": "/plugin marketplace add anthropics/skills → /plugin install document-skills@anthropic-agent-skills (또는 example-skills)",
+   "sha": "ca45fc496a3436251f191354091d557da31c15b5"
+  },
+  {
+   "repo": "anthropics/claude-plugins-official",
+   "stars": 45717,
+   "pushedAt": "2026-11-01",
+   "license": null,
+   "kind": "plugin",
+   "install": "기본 등록된 마켓 claude-plugins-official → /plugin install <이름>@claude-plugins-official (315개)",
+   "sha": "a7ba5b93db0c7c8d17f3f1d25853adca79598a1a"
+  },
+  {
+   "repo": "obra/superpowers",
+   "stars": 310628,
+   "pushedAt": "2026-10-29",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add obra/superpowers-marketplace → /plugin install superpowers@superpowers-marketplace",
+   "sha": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b"
+  },
+  {
+   "repo": "addyosmani/agent-skills",
+   "stars": 112553,
+   "pushedAt": "2026-11-01",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add addyosmani/agent-skills → /plugin install agent-skills@addy-agent-skills",
+   "sha": "301b02b12bff98e4688e6984af6556802322bbde"
+  },
+  {
+   "repo": "mattpocock/skills",
+   "stars": 309229,
+   "pushedAt": "2026-11-01",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add mattpocock/skills → /plugin install mattpocock-skills@mattpocock",
+   "sha": "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+  },
+  {
+   "repo": "affaan-m/ECC",
+   "stars": 294798,
+   "pushedAt": "2026-10-30",
+   "license": "MIT",
+   "kind": "plugin",
+   "install": "/plugin marketplace add affaan-m/ECC → /plugin install ecc@ecc (스킬 1000+·훅 27개, 무거움)",
+   "sha": "b38be6a7f6350964d59328b52f0624e1d1d552d1"
+  },
+  {
+   "repo": "trailofbits/skills",
+   "stars": 7937,
+   "pushedAt": "2026-10-28",
+   "license": "CC-BY-SA-4.0",
+   "kind": "plugin",
+   "install": "/plugin marketplace add trailofbits/skills → /plugin install <플러그인>@trailofbits",
+   "sha": "2be6433b39e009cd2b6fd3be1895f6b1faa5af9a"
+  },
+  {
+   "repo": "getsentry/skills",
+   "stars": 1107,
+   "pushedAt": "2026-10-26",
+   "license": "Apache-2.0",
+   "kind": "skills",
+   "install": "/plugin marketplace add getsentry/skills → /plugin install sentry-skills@sentry-skills",
+   "sha": "d12f250460ffd961f549dbebf7eeb0cf4afd4c2e"
+  },
+  {
+   "repo": "vercel-labs/agent-skills",
+   "stars": 33354,
+   "pushedAt": "2026-10-28",
+   "license": null,
+   "kind": "skills",
+   "install": "npx skills add vercel-labs/agent-skills",
+   "sha": "1a2c79d4e6c4a2283dc2c614b6538cbe1ed5ca62"
+  },
+  {
+   "repo": "garrytan/gstack",
+   "stars": 138594,
+   "pushedAt": "2026-11-02",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && ./setup (Bun 필요, 사용 기록을 로컬에 남김)",
+   "sha": "35a676ff68b88619308591727ace7ac733650841"
+  },
+  {
+   "repo": "pbakaus/impeccable",
+   "stars": 99308,
+   "pushedAt": "2026-11-01",
+   "license": "Apache-2.0",
+   "kind": "plugin",
+   "install": "/plugin marketplace add pbakaus/impeccable → /plugin install impeccable@impeccable",
+   "sha": "e89e3ada3e875a89ac2c5d33d11e65ebef6fe285"
+  },
+  {
+   "repo": "Leonxlnx/taste-skill",
+   "stars": 107771,
+   "pushedAt": "2026-10-31",
+   "license": null,
+   "kind": "skills",
+   "install": "/plugin marketplace add Leonxlnx/taste-skill → /plugin install taste-skill@taste-skill",
+   "sha": "12af471f627f866411b4bd785b19646d3672784c"
+  },
+  {
+   "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+   "stars": 143819,
+   "pushedAt": "2026-11-01",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill → /plugin install ui-ux-pro-max@ui-ux-pro-max-skill",
+   "sha": "3a13158ff1f32156cbe144108de48eda2ecaed9a"
+  },
+  {
+   "repo": "OthmanAdi/planning-with-files",
+   "stars": 27811,
+   "pushedAt": "2026-10-30",
+   "license": null,
+   "kind": "plugin",
+   "install": "/plugin marketplace add OthmanAdi/planning-with-files → /plugin install planning-with-files@planning-with-files",
+   "sha": "b6580cd24af1d8a95ab268794456e05608a1afd3"
+  },
+  {
+   "repo": "cloudflare/security-audit-skill",
+   "stars": 56356,
+   "pushedAt": "2026-09-14",
+   "license": null,
+   "kind": "skills",
+   "install": "npx skills add https://github.com/cloudflare/security-audit-skill",
+   "sha": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8"
+  },
+  {
+   "repo": "blader/humanizer",
+   "stars": 63470,
+   "pushedAt": "2026-10-28",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add blader/humanizer → /plugin install humanizer@humanizer",
+   "sha": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0"
+  },
+  {
+   "repo": "JuliusBrussee/caveman",
+   "stars": 116700,
+   "pushedAt": "2026-11-01",
+   "license": "Apache-2.0",
+   "kind": "plugin",
+   "install": "/plugin marketplace add JuliusBrussee/caveman → /plugin install caveman@caveman",
+   "sha": "9b68f7ed12b05e7efaff18e65c5a3fc2849fd0a4"
+  },
+  {
+   "repo": "DietrichGebert/ponytail",
+   "stars": 182105,
+   "pushedAt": "2026-10-29",
+   "license": "MIT",
+   "kind": "plugin",
+   "install": "/plugin marketplace add DietrichGebert/ponytail → /plugin install ponytail@ponytail",
+   "sha": "96608e078b2d5ea607c5c3b8b5a54d1c1fba6846"
+  },
+  {
+   "repo": "muratcankoylan/Agent-Skills-for-Context-Engineering",
+   "stars": 18275,
+   "pushedAt": "2026-10-12",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add muratcankoylan/Agent-Skills-for-Context-Engineering → /plugin install context-engineering@context-engineering-marketplace",
+   "sha": "9ff0c99108b36d3b886defd825d8ac1f47dba374"
+  },
+  {
+   "repo": "phuryn/pm-skills",
+   "stars": 27601,
+   "pushedAt": "2026-10-29",
+   "license": "MIT",
+   "kind": "plugin",
+   "install": "/plugin marketplace add phuryn/pm-skills → /plugin install pm-execution@pm-skills (9개 플러그인)",
+   "sha": "2a12295a7717569baa7be181b4cfebe3ca38a6bb"
+  },
+  {
+   "repo": "Jeffallan/claude-skills",
+   "stars": 12165,
+   "pushedAt": "2026-10-30",
+   "license": null,
+   "kind": "skills",
+   "install": "/plugin marketplace add Jeffallan/claude-skills → /plugin install fullstack-dev-skills@fullstack-dev-skills (66개 언어·프레임워크 스킬 묶음)",
+   "sha": "078a25cc5bfd8011459be7b91d004e900c1d02d3"
+  },
+  {
+   "repo": "wshobson/agents",
+   "stars": 42081,
+   "pushedAt": "2026-10-30",
+   "license": "MIT",
+   "kind": "agents",
+   "install": "/plugin marketplace add wshobson/agents → /plugin install <플러그인>@claude-code-workflows (94개 플러그인)",
+   "sha": "7e2fb559cf4b824b27f1fec49fe88f7511066d26"
+  },
+  {
+   "repo": "VoltAgent/awesome-claude-code-subagents",
+   "stars": 26257,
+   "pushedAt": "2026-10-30",
+   "license": "MIT",
+   "kind": "agents",
+   "install": "필요한 에이전트 .md 를 ~/.claude/agents/ 에 복사",
+   "sha": "f2e2ea7e0202cc05fa2d469fcb2c57fe08603450"
+  },
+  {
+   "repo": "expo/skills",
+   "stars": 4008,
+   "pushedAt": "2026-11-01",
+   "license": "MIT",
+   "kind": "plugin",
+   "install": "/plugin marketplace add expo/skills → /plugin install expo@expo-plugins",
+   "sha": "a9e5bd3fa00b4e61f632e43f85da73aee1942582"
+  },
+  {
+   "repo": "callstackincubator/agent-skills",
+   "stars": 1694,
+   "pushedAt": "2026-10-08",
+   "license": "MIT",
+   "kind": "plugin",
+   "install": "/plugin marketplace add callstackincubator/agent-skills → /plugin install building-react-native-apps@callstack-agent-skills",
+   "sha": "59e9d17446a248b21d86f078fcd0bd2d36db1ca4"
+  },
+  {
+   "repo": "supabase/agent-skills",
+   "stars": 2980,
+   "pushedAt": "2026-10-02",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add supabase/agent-skills → /plugin install postgres-best-practices@supabase-agent-skills",
+   "sha": "c9be0e931b7930f7d02126d04774d904c381e7d7"
+  },
+  {
+   "repo": "twostraws/SwiftUI-Agent-Skill",
+   "stars": 6437,
+   "pushedAt": "2026-10-26",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add twostraws/SwiftUI-Agent-Skill → /plugin install swiftui-pro@swiftui-agent-skill",
+   "sha": "f2920b63995263f57b3e198674e89a602efba6d2"
+  },
+  {
+   "repo": "AvdLee/SwiftUI-Agent-Skill",
+   "stars": 3804,
+   "pushedAt": "2026-10-06",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add AvdLee/SwiftUI-Agent-Skill → /plugin install swiftui-expert@swiftui-expert-skill",
+   "sha": "204dba7c67256a8b707ee3fbc5759a824191974f"
+  },
+  {
+   "repo": "conorluddy/ios-simulator-skill",
+   "stars": 1307,
+   "pushedAt": "2026-10-19",
+   "license": "MIT",
+   "kind": "skills",
+   "install": "/plugin marketplace add conorluddy/ios-simulator-skill → /plugin install ios-simulator-skill@conorluddy",
+   "sha": "e38b3ad5cc2585140c91b9c0f974124c3add31dc"
+  },
+  {
+   "repo": "SuperClaude-Org/SuperClaude_Framework",
+   "stars": 23922,
+   "pushedAt": "2026-09-27",
+   "license": "MIT",
+   "kind": "rules",
+   "install": "pipx install superclaude && superclaude install (파이썬 설치기)",
+   "sha": "fe68862c8ed9e2afb8120c2d9e27d0c3a7ce73a2"
+  },
+  {
+   "repo": "hesreallyhim/awesome-claude-code",
+   "stars": 57048,
+   "pushedAt": "2026-11-01",
+   "license": null,
+   "kind": "awesome-list",
+   "install": "목록(설치 없음) — 스킬·훅·명령 후보 발굴용",
+   "sha": "610c2b0dbc59b5ab241b20fcd7dbf057464168de"
+  },
+  {
+   "repo": "ComposioHQ/awesome-claude-skills",
+   "stars": 78520,
+   "pushedAt": "2026-09-18",
+   "license": null,
+   "kind": "awesome-list",
+   "install": "목록(설치 없음)",
+   "sha": "be2a406907dbc61b73e6827ded415c96139d13a2"
+  },
+  {
+   "repo": "VoltAgent/awesome-agent-skills",
+   "stars": 36724,
+   "pushedAt": "2026-10-30",
+   "license": "MIT",
+   "kind": "awesome-list",
+   "install": "목록(설치 없음) — 공식 팀 스킬 모음",
+   "sha": "464dd87e30278a6f4ad0da21f0bd2ee1c2122f5d"
+  }
+ ],
+ "skills": [
+  {
+   "id": "spec-driven-development",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/spec-driven-development/SKILL.md",
+   "stages": [
+    "plan"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "코딩 전에 목표·범위·수용 기준을 담은 스펙(PRD)부터 쓰게 한다",
+    "en": "Writes a spec with goals, scope and acceptance criteria before coding"
+   },
+   "always": 114,
+   "onUse": 3288,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "brainstorming",
+   "repo": "obra/superpowers",
+   "path": "skills/brainstorming/SKILL.md",
+   "stages": [
+    "plan",
+    "design"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "기능을 만들기 전 한 번에 한 질문씩 요구를 캐물어 설계 문서로 정리한다",
+    "en": "Asks one question at a time to pin down requirements, then writes a design doc"
+   },
+   "always": 57,
+   "onUse": 3401,
+   "install": "copy",
+   "files": 8,
+   "scripts": [
+    "scripts/helper.js",
+    "scripts/server.cjs",
+    "scripts/start-server.sh",
+    "scripts/stop-server.sh"
+   ]
+  },
+  {
+   "id": "grilling",
+   "repo": "mattpocock/skills",
+   "path": "skills/productivity/grilling/SKILL.md",
+   "stages": [
+    "plan"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "계획·결정을 집요하게 질문해 빈틈을 찾는 스트레스 테스트(30줄로 가벼움)",
+    "en": "Questions a plan or decision relentlessly to expose gaps (30 lines, lightweight)"
+   },
+   "always": 41,
+   "onUse": 521,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "create-prd",
+   "repo": "phuryn/pm-skills",
+   "path": "pm-execution/skills/create-prd/SKILL.md",
+   "stages": [
+    "plan"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "8개 절(배경·목표·세그먼트·가치제안·해결책·출시)로 된 간결한 PRD를 만든다",
+    "en": "Writes a lean 8-section PRD: background, goals, segments, value proposition, solution, release"
+   },
+   "always": 103,
+   "onUse": 1826,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "to-tickets",
+   "repo": "mattpocock/skills",
+   "path": "skills/engineering/to-tickets/SKILL.md",
+   "stages": [
+    "plan",
+    "git"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "gh(선택)"
+   ],
+   "summary": {
+    "ko": "계획·대화를 선후관계가 적힌 얇은 티켓 묶음으로 나눠 이슈 트래커에 올린다",
+    "en": "Splits a plan or conversation into thin tickets with dependencies and files them in your tracker"
+   },
+   "always": 65,
+   "onUse": 1454,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "writing-plans",
+   "repo": "obra/superpowers",
+   "path": "skills/writing-plans/SKILL.md",
+   "stages": [
+    "plan",
+    "design"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "스펙을 파일·테스트 단위의 작은 단계로 나눈 구현 계획서로 바꾼다",
+    "en": "Turns a spec into an implementation plan of small file- and test-level steps"
+   },
+   "always": 25,
+   "onUse": 2586,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "planning-with-files",
+   "repo": "OthmanAdi/planning-with-files",
+   "path": "skills/planning-with-files/SKILL.md",
+   "stages": [
+    "plan",
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "hooks",
+    "python(선택)"
+   ],
+   "summary": {
+    "ko": "task_plan·findings·progress.md 를 디스크에 두고 훅으로 다시 주입해 긴 작업·압축 후에도 이어 간다",
+    "en": "Keeps task_plan, findings and progress.md on disk and re-injects them via hooks to resume long work"
+   },
+   "always": 157,
+   "onUse": 10351,
+   "install": "plugin",
+   "files": 34,
+   "scripts": [
+    "scripts/attest-plan.ps1",
+    "scripts/attest-plan.sh",
+    "scripts/check-complete.ps1",
+    "scripts/check-complete.sh",
+    "scripts/gate-stop.sh",
+    "scripts/init-session.ps1",
+    "scripts/init-session.sh",
+    "scripts/inject-plan.py",
+    "scripts/inject-plan.sh",
+    "scripts/ledger-append.ps1",
+    "scripts/ledger-append.sh",
+    "scripts/ledger-summary.ps1",
+    "scripts/ledger-summary.sh",
+    "scripts/phase-status.ps1",
+    "scripts/phase-status.sh",
+    "scripts/plan-doctor.sh",
+    "scripts/resolve-plan-dir.ps1",
+    "scripts/resolve-plan-dir.sh",
+    "scripts/session-catchup.py",
+    "scripts/set-active-plan.ps1",
+    "scripts/set-active-plan.sh",
+    "scripts/skill-hook.sh"
+   ]
+  },
+  {
+   "id": "api-and-interface-design",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/api-and-interface-design/SKILL.md",
+   "stages": [
+    "design"
+   ],
+   "stacks": [
+    "any",
+    "web"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "REST/GraphQL·모듈 경계·타입 계약을 안정적으로 설계하는 기준",
+    "en": "Applies criteria for stable REST/GraphQL APIs, module boundaries and type contracts"
+   },
+   "always": 70,
+   "onUse": 3745,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "domain-modeling",
+   "repo": "mattpocock/skills",
+   "path": "skills/engineering/domain-modeling/SKILL.md",
+   "stages": [
+    "design",
+    "docs"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "도메인 용어를 GLOSSARY.md 로 정리하고 결정은 ADR 로 남긴다",
+    "en": "Records domain terms in GLOSSARY.md and decisions as ADRs"
+   },
+   "always": 42,
+   "onUse": 852,
+   "install": "copy",
+   "files": 4,
+   "scripts": []
+  },
+  {
+   "id": "improve-codebase-architecture",
+   "repo": "mattpocock/skills",
+   "path": "skills/engineering/improve-codebase-architecture/SKILL.md",
+   "stages": [
+    "design",
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "코드베이스에서 모듈을 깊게 만들 기회를 찾아 HTML 보고서로 보여 주고 하나씩 따진다",
+    "en": "Finds chances to deepen modules, shows them in an HTML report, and debates each one"
+   },
+   "always": 39,
+   "onUse": 1508,
+   "install": "copy",
+   "files": 3,
+   "scripts": []
+  },
+  {
+   "id": "frontend-design",
+   "repo": "anthropics/skills",
+   "path": "skills/frontend-design/SKILL.md",
+   "stages": [
+    "ui"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "템플릿 티 나지 않는 시각 방향·타이포를 고르게 하는 Anthropic 공식 디자인 지침",
+    "en": "Steers Claude to a distinctive visual direction and typography, not a template look (Anthropic)"
+   },
+   "always": 56,
+   "onUse": 2352,
+   "install": "plugin",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "impeccable",
+   "repo": "pbakaus/impeccable",
+   "path": "plugin/skills/impeccable/SKILL.md",
+   "stages": [
+    "ui",
+    "review"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "node"
+   ],
+   "summary": {
+    "ko": "디자인 어휘(polish·bolder·critique·audit 등)로 UI를 다듬고 검토하는 명령 모음",
+    "en": "Provides design commands (polish, bolder, critique, audit) to refine and review UI"
+   },
+   "always": 151,
+   "onUse": 3015,
+   "install": "copy",
+   "files": 58,
+   "scripts": [
+    "scripts/impeccable.cmd",
+    "scripts/live-browser-dom.js",
+    "scripts/live-browser-ignores.js",
+    "scripts/live-browser-session.js",
+    "scripts/live-browser.js",
+    "scripts/modern-screenshot.umd.js"
+   ]
+  },
+  {
+   "id": "taste-skill",
+   "repo": "Leonxlnx/taste-skill",
+   "path": "skills/taste-skill/SKILL.md",
+   "stages": [
+    "ui"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "node",
+    "browser"
+   ],
+   "summary": {
+    "ko": "247개 수상 사이트에서 뽑은 아트 디렉션으로 'AI가 만든 듯한' 랜딩·화면을 막고 스크린샷 루프로 고친다",
+    "en": "Avoids AI-looking pages using art direction from 247 award sites, fixing via a screenshot loop"
+   },
+   "always": 244,
+   "onUse": 9892,
+   "install": "plugin",
+   "files": 39,
+   "scripts": [
+    "assets/base.js",
+    "assets/charts.js",
+    "assets/scenes/stage.js",
+    "scripts/assets.mjs",
+    "scripts/draw.mjs",
+    "scripts/inspect.mjs",
+    "scripts/lib/app-draw.mjs",
+    "scripts/lib/cdp.mjs",
+    "scripts/lib/inspection-files.mjs",
+    "scripts/lib/probe.mjs",
+    "scripts/lib/rules.mjs",
+    "scripts/lint.mjs",
+    "scripts/scenes.mjs"
+   ]
+  },
+  {
+   "id": "ui-ux-pro-max",
+   "repo": "nextlevelbuilder/ui-ux-pro-max-skill",
+   "path": ".claude/skills/ui-ux-pro-max/SKILL.md",
+   "stages": [
+    "ui"
+   ],
+   "stacks": [
+    "web",
+    "ios",
+    "android"
+   ],
+   "needs": [
+    "python"
+   ],
+   "summary": {
+    "ko": "스타일·팔레트·폰트 조합 DB를 검색해 디자인 시스템을 추천한다(웹·모바일·데스크톱)",
+    "en": "Searches a database of styles, palettes and fonts to recommend a design system"
+   },
+   "always": 128,
+   "onUse": 4001,
+   "install": "copy",
+   "files": 73,
+   "scripts": [
+    "scripts/core.py",
+    "scripts/design_system.py",
+    "scripts/reasoning_contract.py",
+    "scripts/search.py",
+    "scripts/tests/test_catalog_refresh.py",
+    "scripts/tests/test_catalog_summary_line_endings.py",
+    "scripts/tests/test_core.py",
+    "scripts/tests/test_core_data_quality.py",
+    "scripts/tests/test_data_contracts.py",
+    "scripts/tests/test_design_system_mode.py",
+    "scripts/tests/test_design_system_stack.py",
+    "scripts/tests/test_native_desktop_stack_freshness.py",
+    "scripts/tests/test_relevance_evaluator.py",
+    "scripts/tests/test_skill_script_paths.py",
+    "scripts/tests/test_style_taxonomy.py",
+    "scripts/tests/test_text_layout_resilience.py",
+    "scripts/tests/test_web_stack_freshness.py",
+    "scripts/validate_data.py"
+   ]
+  },
+  {
+   "id": "web-design-guidelines",
+   "repo": "vercel-labs/agent-skills",
+   "path": "skills/web-design-guidelines/SKILL.md",
+   "stages": [
+    "ui",
+    "review"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "network"
+   ],
+   "summary": {
+    "ko": "Vercel 웹 인터페이스 지침으로 UI 코드의 접근성·UX를 점검한다(39줄)",
+    "en": "Checks UI code for accessibility and UX against Vercel's Web Interface Guidelines (39 lines)"
+   },
+   "always": 52,
+   "onUse": 308,
+   "install": "plugin",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "frontend-ui-engineering",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/frontend-ui-engineering/SKILL.md",
+   "stages": [
+    "ui",
+    "impl"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "접근성(WCAG)·반응형·상태 관리를 갖춘 실서비스 수준 UI 구현 기준",
+    "en": "Builds production-grade UI with accessibility (WCAG), responsiveness and state handling"
+   },
+   "always": 83,
+   "onUse": 2992,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "incremental-implementation",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/incremental-implementation/SKILL.md",
+   "stages": [
+    "impl"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "여러 파일에 걸친 변경을 검증 가능한 얇은 조각으로 나눠 차례로 넣는다",
+    "en": "Splits multi-file changes into thin verifiable slices and lands them one by one"
+   },
+   "always": 93,
+   "onUse": 2445,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "subagent-driven-development",
+   "repo": "obra/superpowers",
+   "path": "skills/subagent-driven-development/SKILL.md",
+   "stages": [
+    "impl",
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "계획의 작업마다 새 서브에이전트에 맡기고 사이사이 리뷰를 끼워 넣는 실행 방식",
+    "en": "Hands each plan task to a fresh subagent with reviews between tasks"
+   },
+   "always": 29,
+   "onUse": 4892,
+   "install": "copy",
+   "files": 14,
+   "scripts": []
+  },
+  {
+   "id": "ponytail",
+   "repo": "DietrichGebert/ponytail",
+   "path": "skills/ponytail/SKILL.md",
+   "stages": [
+    "impl",
+    "refactor",
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "과설계를 막고 가장 작은 변경으로 끝내며 답도 짧게 하는 '게으른 시니어' 모드",
+    "en": "Makes the smallest change that solves the task and keeps replies short, like a lazy senior dev"
+   },
+   "always": 94,
+   "onUse": 874,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "react-best-practices",
+   "repo": "vercel-labs/agent-skills",
+   "path": "skills/react-best-practices/SKILL.md",
+   "stages": [
+    "impl",
+    "perf"
+   ],
+   "stacks": [
+    "web",
+    "react",
+    "nextjs"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Vercel 엔지니어링의 React/Next.js 성능 규칙(워터폴·번들·리렌더)",
+    "en": "Applies Vercel's React/Next.js performance rules for waterfalls, bundle size and re-renders"
+   },
+   "always": 90,
+   "onUse": 1813,
+   "install": "plugin",
+   "files": 76,
+   "scripts": []
+  },
+  {
+   "id": "swiftui-pro",
+   "repo": "twostraws/SwiftUI-Agent-Skill",
+   "path": "swiftui-pro/SKILL.md",
+   "stages": [
+    "impl",
+    "review"
+   ],
+   "stacks": [
+    "ios",
+    "swift"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Paul Hudson 의 SwiftUI 최신 API·유지보수·성능 리뷰 기준",
+    "en": "Reviews SwiftUI code for modern APIs, maintainability and performance (Paul Hudson)"
+   },
+   "always": 44,
+   "onUse": 1506,
+   "install": "copy",
+   "files": 16,
+   "scripts": []
+  },
+  {
+   "id": "ios-simulator",
+   "repo": "conorluddy/ios-simulator-skill",
+   "path": "ios-simulator-skill/skills/ios-simulator-skill/SKILL.md",
+   "stages": [
+    "impl",
+    "test"
+   ],
+   "stacks": [
+    "ios"
+   ],
+   "needs": [
+    "python",
+    "xcode",
+    "macos"
+   ],
+   "summary": {
+    "ko": "토큰 절약형 스크립트 30개로 Xcode 빌드·시뮬레이터 실행·접근성 라벨로 탭·스크린샷",
+    "en": "Builds, launches and drives iOS apps in the Simulator with 30 token-saving scripts"
+   },
+   "always": 111,
+   "onUse": 7204,
+   "install": "copy",
+   "files": 46,
+   "scripts": [
+    "scripts/accessibility_audit.py",
+    "scripts/app_launcher.py",
+    "scripts/app_state_capture.py",
+    "scripts/appearance.py",
+    "scripts/build_and_test.py",
+    "scripts/clipboard.py",
+    "scripts/common/__init__.py",
+    "scripts/common/cache_utils.py",
+    "scripts/common/device_utils.py",
+    "scripts/common/env_config.py",
+    "scripts/common/hang_pipeline.py",
+    "scripts/common/hang_sessions.py",
+    "scripts/common/idb_utils.py",
+    "scripts/common/screenshot_utils.py",
+    "scripts/container.py",
+    "scripts/gesture.py",
+    "scripts/hang_watcher.py",
+    "scripts/keyboard.py",
+    "scripts/localization_audit.py",
+    "scripts/location.py",
+    "scripts/log_monitor.py",
+    "scripts/media.py",
+    "scripts/model_inspector.py",
+    "scripts/navigator.py",
+    "scripts/privacy_manager.py",
+    "scripts/push_notification.py",
+    "scripts/screen_mapper.py",
+    "scripts/sim_health_check.sh",
+    "scripts/sim_list.py",
+    "scripts/simctl_boot.py",
+    "scripts/simctl_create.py",
+    "scripts/simctl_delete.py",
+    "scripts/simctl_erase.py",
+    "scripts/simctl_shutdown.py",
+    "scripts/simulator_selector.py",
+    "scripts/status_bar.py",
+    "scripts/test_recorder.py",
+    "scripts/visual_diff.py",
+    "scripts/xcode/__init__.py",
+    "scripts/xcode/builder.py",
+    "scripts/xcode/cache.py",
+    "scripts/xcode/config.py",
+    "scripts/xcode/reporter.py",
+    "scripts/xcode/xcresult.py"
+   ]
+  },
+  {
+   "id": "expo-router",
+   "repo": "expo/skills",
+   "path": "plugins/expo/skills/expo-router/SKILL.md",
+   "stages": [
+    "impl"
+   ],
+   "stacks": [
+    "react-native",
+    "expo"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Expo Router 파일 기반 라우팅·탭·모달·헤더 작성법(Expo 공식)",
+    "en": "Explains Expo Router file-based routing, tabs, modals and headers (official Expo)"
+   },
+   "always": 69,
+   "onUse": 1764,
+   "install": "copy",
+   "files": 8,
+   "scripts": []
+  },
+  {
+   "id": "react-native-best-practices",
+   "repo": "callstackincubator/agent-skills",
+   "path": "skills/react-native-best-practices/SKILL.md",
+   "stages": [
+    "impl",
+    "perf"
+   ],
+   "stacks": [
+    "react-native"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Callstack 의 RN 성능 지침(FPS·TTI·번들·메모리 누수·FlashList)",
+    "en": "Applies Callstack's React Native performance guidance: FPS, TTI, bundle, leaks, FlashList"
+   },
+   "always": 76,
+   "onUse": 3091,
+   "install": "copy",
+   "files": 44,
+   "scripts": []
+  },
+  {
+   "id": "supabase-postgres",
+   "repo": "supabase/agent-skills",
+   "path": "skills/supabase-postgres-best-practices/SKILL.md",
+   "stages": [
+    "impl",
+    "design",
+    "perf"
+   ],
+   "stacks": [
+    "postgres",
+    "supabase"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "테이블·인덱스·RLS 등 Postgres 를 건드리기 전에 읽는 Supabase 공식 규칙",
+    "en": "Gives Supabase's official Postgres rules to read before touching tables, indexes or RLS"
+   },
+   "always": 218,
+   "onUse": 808,
+   "install": "copy",
+   "files": 36,
+   "scripts": []
+  },
+  {
+   "id": "modern-python",
+   "repo": "trailofbits/skills",
+   "path": "plugins/modern-python/skills/modern-python/SKILL.md",
+   "stages": [
+    "impl"
+   ],
+   "stacks": [
+    "python"
+   ],
+   "needs": [
+    "python",
+    "uv"
+   ],
+   "summary": {
+    "ko": "uv·ruff·ty 로 파이썬 프로젝트를 세팅하고 pip/poetry/black 에서 옮긴다",
+    "en": "Sets up Python projects with uv, ruff and ty and migrates from pip, poetry and black"
+   },
+   "always": 44,
+   "onUse": 2515,
+   "install": "copy",
+   "files": 14,
+   "scripts": []
+  },
+  {
+   "id": "mcp-builder",
+   "repo": "anthropics/skills",
+   "path": "skills/mcp-builder/SKILL.md",
+   "stages": [
+    "impl"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python 또는 node"
+   ],
+   "summary": {
+    "ko": "외부 API 를 감싸는 MCP 서버를 TS/파이썬으로 설계·구현·평가한다",
+    "en": "Designs, builds and evaluates MCP servers in TypeScript or Python that wrap external APIs"
+   },
+   "always": 73,
+   "onUse": 2792,
+   "install": "plugin",
+   "files": 11,
+   "scripts": [
+    "scripts/connections.py",
+    "scripts/evaluation.py"
+   ]
+  },
+  {
+   "id": "test-driven-development",
+   "repo": "obra/superpowers",
+   "path": "skills/test-driven-development/SKILL.md",
+   "stages": [
+    "test"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "실패하는 테스트를 먼저 보고 나서 구현하게 강제하는 RED-GREEN-REFACTOR",
+    "en": "Enforces RED-GREEN-REFACTOR: watch a test fail before writing the implementation"
+   },
+   "always": 26,
+   "onUse": 2398,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "tdd-lite",
+   "repo": "mattpocock/skills",
+   "path": "skills/engineering/tdd/SKILL.md",
+   "stages": [
+    "test"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "통합 테스트 위주의 짧은 TDD 지침(38줄, 토큰 부담 적음)",
+    "en": "Gives short TDD guidance favoring integration tests (38 lines, low token cost)"
+   },
+   "always": 39,
+   "onUse": 909,
+   "install": "copy",
+   "files": 4,
+   "scripts": []
+  },
+  {
+   "id": "webapp-testing",
+   "repo": "anthropics/skills",
+   "path": "skills/webapp-testing/SKILL.md",
+   "stages": [
+    "test",
+    "debug"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "python",
+    "playwright"
+   ],
+   "summary": {
+    "ko": "Playwright 로 로컬 웹앱을 띄워 기능 확인·스크린샷·콘솔 로그를 본다",
+    "en": "Runs a local web app with Playwright to check features, screenshots and console logs"
+   },
+   "always": 55,
+   "onUse": 985,
+   "install": "plugin",
+   "files": 6,
+   "scripts": [
+    "examples/console_logging.py",
+    "examples/element_discovery.py",
+    "examples/static_html_automation.py",
+    "scripts/with_server.py"
+   ]
+  },
+  {
+   "id": "browser-testing-devtools",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/browser-testing-with-devtools/SKILL.md",
+   "stages": [
+    "test",
+    "debug",
+    "perf"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "mcp:chrome-devtools"
+   ],
+   "summary": {
+    "ko": "Chrome DevTools MCP 로 DOM·콘솔·네트워크·성능을 실제 브라우저에서 확인한다",
+    "en": "Checks DOM, console, network and performance in a real browser via Chrome DevTools MCP"
+   },
+   "always": 90,
+   "onUse": 3736,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "property-based-testing",
+   "repo": "trailofbits/skills",
+   "path": "plugins/property-based-testing/skills/property-based-testing/SKILL.md",
+   "stages": [
+    "test"
+   ],
+   "stacks": [
+    "python",
+    "js",
+    "rust",
+    "go"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Hypothesis·fast-check·proptest 로 입력 영역 전체를 덮는 속성 기반 테스트",
+    "en": "Writes property-based tests with Hypothesis, fast-check or proptest to cover whole input spaces"
+   },
+   "always": 218,
+   "onUse": 1080,
+   "install": "copy",
+   "files": 9,
+   "scripts": []
+  },
+  {
+   "id": "systematic-debugging",
+   "repo": "obra/superpowers",
+   "path": "skills/systematic-debugging/SKILL.md",
+   "stages": [
+    "debug"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "고치기 전에 원인 조사→가설→검증 4단계를 밟게 하는 디버깅 절차",
+    "en": "Follows four debugging phases (investigate, hypothesize, verify, then fix) before changing code"
+   },
+   "always": 29,
+   "onUse": 2386,
+   "install": "copy",
+   "files": 11,
+   "scripts": [
+    "condition-based-waiting-example.ts",
+    "find-polluter.sh"
+   ]
+  },
+  {
+   "id": "diagnosing-bugs",
+   "repo": "mattpocock/skills",
+   "path": "skills/engineering/diagnosing-bugs/SKILL.md",
+   "stages": [
+    "debug",
+    "perf"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "재현 루프를 먼저 만들고 좁혀 가는 어려운 버그·성능 회귀 진단",
+    "en": "Builds a reproduction loop first, then narrows down hard bugs and performance regressions"
+   },
+   "always": 44,
+   "onUse": 2167,
+   "install": "copy",
+   "files": 3,
+   "scripts": [
+    "scripts/hitl-loop.template.sh"
+   ]
+  },
+  {
+   "id": "verification-before-completion",
+   "repo": "obra/superpowers",
+   "path": "skills/verification-before-completion/SKILL.md",
+   "stages": [
+    "test",
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "'됐다'고 말하기 전에 검증 명령을 실제로 돌리고 출력을 확인하게 한다",
+    "en": "Runs verification commands and checks the output before claiming work is done"
+   },
+   "always": 65,
+   "onUse": 918,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "code-review-and-quality",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/code-review-and-quality/SKILL.md",
+   "stages": [
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "정확성·가독성·설계·보안·성능 다섯 축으로 머지 전 리뷰",
+    "en": "Reviews code before merge on five axes: correctness, readability, design, security, performance"
+   },
+   "always": 88,
+   "onUse": 5326,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "receiving-code-review",
+   "repo": "obra/superpowers",
+   "path": "skills/receiving-code-review/SKILL.md",
+   "stages": [
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "리뷰 지적을 무조건 따르지 않고 기술적으로 검증한 뒤 반영한다",
+    "en": "Verifies review feedback technically before applying it instead of following it blindly"
+   },
+   "always": 65,
+   "onUse": 1556,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "find-bugs",
+   "repo": "getsentry/skills",
+   "path": "skills/find-bugs/SKILL.md",
+   "stages": [
+    "review",
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "git"
+   ],
+   "summary": {
+    "ko": "현재 브랜치 변경분에서 버그·취약점·품질 문제를 찾는다(75줄)",
+    "en": "Finds bugs, vulnerabilities and quality issues in the current branch's changes (75 lines)"
+   },
+   "always": 49,
+   "onUse": 708,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "second-opinion",
+   "repo": "trailofbits/skills",
+   "path": "plugins/second-opinion/skills/second-opinion/SKILL.md",
+   "stages": [
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "codex 또는 gemini CLI"
+   ],
+   "summary": {
+    "ko": "Codex·Gemini 등 다른 모델에게 diff 를 넘겨 독립 리뷰를 받는다",
+    "en": "Sends a diff to another model such as Codex or Gemini for an independent review"
+   },
+   "always": 68,
+   "onUse": 1262,
+   "install": "copy",
+   "files": 8,
+   "scripts": []
+  },
+  {
+   "id": "code-simplification",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/code-simplification/SKILL.md",
+   "stages": [
+    "refactor"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "동작은 그대로 두고 읽기 어려워진 코드를 단순하게 정리한다",
+    "en": "Simplifies hard-to-read code while keeping its behavior unchanged"
+   },
+   "always": 110,
+   "onUse": 3436,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "security-and-hardening",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/security-and-hardening/SKILL.md",
+   "stages": [
+    "security"
+   ],
+   "stacks": [
+    "any",
+    "web"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "입력 처리·인증·저장·외부 연동을 OWASP 기준으로 굳힌다",
+    "en": "Hardens input handling, auth, storage and integrations against OWASP risks"
+   },
+   "always": 156,
+   "onUse": 4399,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "security-audit",
+   "repo": "cloudflare/security-audit-skill",
+   "path": "skills/security-audit/SKILL.md",
+   "stages": [
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "Cloudflare 의 다단계 보안 감사: 공격면 정리→가설→독립 검증된 발견만 보고",
+    "en": "Runs Cloudflare's multi-stage audit: map attack surface, form hypotheses, report only verified findings"
+   },
+   "always": 94,
+   "onUse": 5512,
+   "install": "plugin",
+   "files": 20,
+   "scripts": [
+    "validate-coverage-ledger.cjs",
+    "validate-coverage-ledger.test.cjs",
+    "validate-findings.cjs",
+    "validate-findings.test.cjs"
+   ]
+  },
+  {
+   "id": "sentry-security-review",
+   "repo": "getsentry/skills",
+   "path": "skills/security-review/SKILL.md",
+   "stages": [
+    "security",
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "인젝션·XSS·인증·인가 등 근거 있는 취약점만 골라내는 보안 코드 리뷰",
+    "en": "Reviews code for evidence-backed vulnerabilities such as injection, XSS, authn and authz flaws"
+   },
+   "always": 83,
+   "onUse": 2953,
+   "install": "copy",
+   "files": 23,
+   "scripts": []
+  },
+  {
+   "id": "differential-review",
+   "repo": "trailofbits/skills",
+   "path": "plugins/differential-review/skills/differential-review/SKILL.md",
+   "stages": [
+    "security",
+    "review"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "git"
+   ],
+   "summary": {
+    "ko": "변경분을 git blame·호출처 수(영향 반경)·테스트 커버리지로 보안 관점 리뷰",
+    "en": "Reviews changes for security using git blame, caller counts (blast radius) and test coverage"
+   },
+   "always": 125,
+   "onUse": 1873,
+   "install": "copy",
+   "files": 7,
+   "scripts": []
+  },
+  {
+   "id": "semgrep-scan",
+   "repo": "trailofbits/skills",
+   "path": "plugins/static-analysis/skills/semgrep/SKILL.md",
+   "stages": [
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "semgrep",
+    "python"
+   ],
+   "summary": {
+    "ko": "언어를 감지해 Semgrep 룰셋을 고르고 승인 후 스캔, SARIF 로 합친다",
+    "en": "Detects languages, picks Semgrep rulesets, scans after approval and merges results as SARIF"
+   },
+   "always": 179,
+   "onUse": 4017,
+   "install": "copy",
+   "files": 9,
+   "scripts": [
+    "scripts/merge_sarif.py",
+    "scripts/run-scans.sh",
+    "scripts/test_merge_sarif.py"
+   ]
+  },
+  {
+   "id": "supply-chain-risk-auditor",
+   "repo": "trailofbits/skills",
+   "path": "plugins/supply-chain-risk-auditor/skills/supply-chain-risk-auditor/SKILL.md",
+   "stages": [
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "network"
+   ],
+   "summary": {
+    "ko": "의존성의 취약 공지·방치된 업스트림·설치 스크립트 위험을 점검한다",
+    "en": "Audits dependencies for known advisories, abandoned upstreams and risky install scripts"
+   },
+   "always": 99,
+   "onUse": 1752,
+   "install": "copy",
+   "files": 13,
+   "scripts": [
+    "scripts/collect.py",
+    "scripts/model.py",
+    "scripts/render.py",
+    "scripts/sources.py",
+    "scripts/test_collect.py",
+    "scripts/test_model.py",
+    "scripts/test_render.py",
+    "scripts/test_sources.py"
+   ]
+  },
+  {
+   "id": "gha-security-review",
+   "repo": "getsentry/skills",
+   "path": "skills/gha-security-review/SKILL.md",
+   "stages": [
+    "security",
+    "ci"
+   ],
+   "stacks": [
+    "github-actions"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "GitHub Actions 워크플로의 pull_request_target·주입 등 악용 경로를 찾는다",
+    "en": "Finds exploitable paths in GitHub Actions workflows, such as pull_request_target and injection"
+   },
+   "always": 96,
+   "onUse": 2248,
+   "install": "copy",
+   "files": 10,
+   "scripts": []
+  },
+  {
+   "id": "agentic-actions-auditor",
+   "repo": "trailofbits/skills",
+   "path": "plugins/agentic-actions-auditor/skills/agentic-actions-auditor/SKILL.md",
+   "stages": [
+    "security",
+    "ci"
+   ],
+   "stacks": [
+    "github-actions"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "CI 에 붙인 Claude Code Action·Codex 등에 공격자 입력이 닿는 경로를 감사한다",
+    "en": "Audits CI-hosted AI agents (Claude Code Action, Codex) for paths reachable by attacker input"
+   },
+   "always": 149,
+   "onUse": 5436,
+   "install": "copy",
+   "files": 15,
+   "scripts": []
+  },
+  {
+   "id": "documentation-and-adrs",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/documentation-and-adrs/SKILL.md",
+   "stages": [
+    "docs",
+    "design"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "설계 결정을 ADR 로, 공개 API 변경을 문서로 남겨 미래의 맥락을 지킨다",
+    "en": "Records design decisions as ADRs and public API changes as docs to preserve context"
+   },
+   "always": 79,
+   "onUse": 2754,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "doc-coauthoring",
+   "repo": "anthropics/skills",
+   "path": "skills/doc-coauthoring/SKILL.md",
+   "stages": [
+    "docs"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "기술 스펙·제안서·결정 문서를 맥락 수집→초안→검토 단계로 함께 쓴다",
+    "en": "Co-writes specs, proposals and decision docs through context gathering, drafting and review"
+   },
+   "always": 112,
+   "onUse": 3954,
+   "install": "plugin",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "humanizer",
+   "repo": "blader/humanizer",
+   "path": "SKILL.md",
+   "stages": [
+    "docs"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "위키백과 'AI 글쓰기 징후' 기준으로 AI 티 나는 문장을 고친다(영어 기준)",
+    "en": "Rewrites AI-sounding text using Wikipedia's AI-writing signs (English-focused)"
+   },
+   "always": 88,
+   "onUse": 8099,
+   "install": "copy",
+   "files": 0,
+   "scripts": []
+  },
+  {
+   "id": "git-workflow-and-versioning",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/git-workflow-and-versioning/SKILL.md",
+   "stages": [
+    "git"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "원자적 커밋·브랜치·충돌 해결·지저분한 작업 트리 쪼개기·PR 규칙",
+    "en": "Sets rules for atomic commits, branches, conflict resolution, splitting messy trees and PRs"
+   },
+   "always": 162,
+   "onUse": 3636,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "using-git-worktrees",
+   "repo": "obra/superpowers",
+   "path": "skills/using-git-worktrees/SKILL.md",
+   "stages": [
+    "git",
+    "impl"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "git"
+   ],
+   "summary": {
+    "ko": "기능 작업 전에 격리된 워크트리를 만들어 현재 작업 공간과 분리한다",
+    "en": "Creates an isolated git worktree before feature work to separate it from the current workspace"
+   },
+   "always": 55,
+   "onUse": 1705,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "finishing-a-development-branch",
+   "repo": "obra/superpowers",
+   "path": "skills/finishing-a-development-branch/SKILL.md",
+   "stages": [
+    "git"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "git"
+   ],
+   "summary": {
+    "ko": "테스트 통과 후 머지/PR/보류/폐기 중 고르고 워크트리를 정리한다",
+    "en": "After tests pass, picks merge, PR, keep or discard, and cleans up the worktree"
+   },
+   "always": 34,
+   "onUse": 1952,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "pr-writer",
+   "repo": "getsentry/skills",
+   "path": "skills/pr-writer/SKILL.md",
+   "stages": [
+    "git"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "gh"
+   ],
+   "summary": {
+    "ko": "리뷰어가 읽기 좋은 PR 제목·본문을 만들거나 갱신한다",
+    "en": "Writes or refreshes PR titles and descriptions that are easy for reviewers to read"
+   },
+   "always": 41,
+   "onUse": 1326,
+   "install": "copy",
+   "files": 5,
+   "scripts": []
+  },
+  {
+   "id": "iterate-pr",
+   "repo": "getsentry/skills",
+   "path": "skills/iterate-pr/SKILL.md",
+   "stages": [
+    "git",
+    "ci"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "gh",
+    "python"
+   ],
+   "summary": {
+    "ko": "CI 가 초록이 되고 중요 리뷰 지적이 해결될 때까지 PR 을 반복 수정한다",
+    "en": "Revises a PR repeatedly until CI is green and important review comments are resolved"
+   },
+   "always": 57,
+   "onUse": 1259,
+   "install": "copy",
+   "files": 7,
+   "scripts": [
+    "scripts/fetch_pr_checks.py",
+    "scripts/fetch_pr_feedback.py",
+    "scripts/monitor_pr_checks.py",
+    "scripts/reply_to_thread.py"
+   ]
+  },
+  {
+   "id": "handoff",
+   "repo": "mattpocock/skills",
+   "path": "skills/productivity/handoff/SKILL.md",
+   "stages": [
+    "git",
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "현재 대화를 다른 에이전트가 이어받을 인계 문서로 압축한다(16줄)",
+    "en": "Compacts the current conversation into a handoff document for another agent (16 lines)"
+   },
+   "always": 24,
+   "onUse": 235,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "ci-cd-and-automation",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/ci-cd-and-automation/SKILL.md",
+   "stages": [
+    "ci"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "CI 품질 게이트·테스트 러너·배포 전략을 세운다",
+    "en": "Sets up CI quality gates, test runners and deployment strategies"
+   },
+   "always": 58,
+   "onUse": 2919,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "shipping-and-launch",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/shipping-and-launch/SKILL.md",
+   "stages": [
+    "ci",
+    "deploy"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "출시 전 점검표·모니터링·단계적 롤아웃·롤백 계획",
+    "en": "Provides pre-launch checklists, monitoring, staged rollout and rollback plans"
+   },
+   "always": 73,
+   "onUse": 2911,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "setup-pre-commit",
+   "repo": "mattpocock/skills",
+   "path": "skills/misc/setup-pre-commit/SKILL.md",
+   "stages": [
+    "ci",
+    "git"
+   ],
+   "stacks": [
+    "js",
+    "ts"
+   ],
+   "needs": [
+    "node"
+   ],
+   "summary": {
+    "ko": "Husky + lint-staged 로 커밋 시 포맷·타입체크·테스트를 건다",
+    "en": "Sets up Husky and lint-staged to run formatting, type checks and tests on commit"
+   },
+   "always": 64,
+   "onUse": 565,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "deploy-to-vercel",
+   "repo": "vercel-labs/agent-skills",
+   "path": "skills/deploy-to-vercel/SKILL.md",
+   "stages": [
+    "deploy"
+   ],
+   "stacks": [
+    "web"
+   ],
+   "needs": [
+    "node",
+    "vercel CLI"
+   ],
+   "summary": {
+    "ko": "Vercel 에 프리뷰/프로덕션 배포하고 링크를 돌려준다",
+    "en": "Deploys to Vercel as preview or production and returns the link"
+   },
+   "always": 53,
+   "onUse": 2435,
+   "install": "plugin",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "eas-app-stores",
+   "repo": "expo/skills",
+   "path": "plugins/expo/skills/eas-app-stores/SKILL.md",
+   "stages": [
+    "deploy"
+   ],
+   "stacks": [
+    "react-native",
+    "expo",
+    "ios",
+    "android"
+   ],
+   "needs": [
+    "node",
+    "eas CLI"
+   ],
+   "summary": {
+    "ko": "EAS 로 iOS/Android 를 빌드해 TestFlight·App Store·Google Play 에 제출(서명·버전 포함)",
+    "en": "Builds iOS/Android with EAS and submits to TestFlight, App Store or Google Play, incl. signing and versions"
+   },
+   "always": 107,
+   "onUse": 1867,
+   "install": "copy",
+   "files": 8,
+   "scripts": []
+  },
+  {
+   "id": "performance-optimization",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/performance-optimization/SKILL.md",
+   "stages": [
+    "perf"
+   ],
+   "stacks": [
+    "any",
+    "web"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "측정 먼저: Core Web Vitals·N+1·번들·쿼리를 근거로 최적화",
+    "en": "Measures first, then optimizes using Core Web Vitals, N+1 queries, bundle size and query evidence"
+   },
+   "always": 81,
+   "onUse": 4220,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "observability-and-instrumentation",
+   "repo": "addyosmani/agent-skills",
+   "path": "skills/observability-and-instrumentation/SKILL.md",
+   "stages": [
+    "perf",
+    "deploy",
+    "debug"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "로그·지표·트레이스·알림을 넣어 운영 중 동작을 진단 가능하게 만든다",
+    "en": "Adds logs, metrics, traces and alerts so production behavior can be diagnosed"
+   },
+   "always": 86,
+   "onUse": 3495,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "docx",
+   "repo": "anthropics/skills",
+   "path": "skills/docx/SKILL.md",
+   "stages": [
+    "files"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python",
+    "node(docx 라이브러리)",
+    "libreoffice(선택)"
+   ],
+   "summary": {
+    "ko": "Word(.docx) 생성·편집·변경 추적·템플릿 채우기",
+    "en": "Creates and edits Word (.docx) files, tracked changes and templates"
+   },
+   "always": 211,
+   "onUse": 1735,
+   "install": "plugin",
+   "files": 61,
+   "scripts": [
+    "scripts/__init__.py",
+    "scripts/accept_changes.py",
+    "scripts/comment.py",
+    "scripts/merge_runs.py",
+    "scripts/office/helpers/__init__.py",
+    "scripts/office/helpers/pptx_chart.py",
+    "scripts/office/helpers/pptx_slide.py",
+    "scripts/office/helpers/pptx_theme.py",
+    "scripts/office/soffice.py",
+    "scripts/office/validate.py",
+    "scripts/office/validators/__init__.py",
+    "scripts/office/validators/base.py",
+    "scripts/office/validators/docx.py",
+    "scripts/office/validators/pptx.py",
+    "scripts/office/validators/redlining.py"
+   ]
+  },
+  {
+   "id": "pdf",
+   "repo": "anthropics/skills",
+   "path": "skills/pdf/SKILL.md",
+   "stages": [
+    "files"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python"
+   ],
+   "summary": {
+    "ko": "PDF 텍스트·표 추출, 병합·분할, 양식 채우기, OCR",
+    "en": "Extracts PDF text and tables, merges and splits files, fills forms, runs OCR"
+   },
+   "always": 111,
+   "onUse": 2024,
+   "install": "plugin",
+   "files": 12,
+   "scripts": [
+    "scripts/check_bounding_boxes.py",
+    "scripts/check_fillable_fields.py",
+    "scripts/convert_pdf_to_images.py",
+    "scripts/create_validation_image.py",
+    "scripts/extract_form_field_info.py",
+    "scripts/extract_form_structure.py",
+    "scripts/fill_fillable_fields.py",
+    "scripts/fill_pdf_form_with_annotations.py"
+   ]
+  },
+  {
+   "id": "xlsx",
+   "repo": "anthropics/skills",
+   "path": "skills/xlsx/SKILL.md",
+   "stages": [
+    "files"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python",
+    "libreoffice(재계산)"
+   ],
+   "summary": {
+    "ko": "엑셀·CSV 읽기·수식·서식·차트, 수식 재계산 검증",
+    "en": "Reads Excel and CSV files, handles formulas, formatting and charts, and verifies recalculation"
+   },
+   "always": 241,
+   "onUse": 2161,
+   "install": "plugin",
+   "files": 53,
+   "scripts": [
+    "scripts/office/helpers/__init__.py",
+    "scripts/office/helpers/pptx_chart.py",
+    "scripts/office/helpers/pptx_slide.py",
+    "scripts/office/helpers/pptx_theme.py",
+    "scripts/office/soffice.py",
+    "scripts/office/validate.py",
+    "scripts/office/validators/__init__.py",
+    "scripts/office/validators/base.py",
+    "scripts/office/validators/docx.py",
+    "scripts/office/validators/pptx.py",
+    "scripts/office/validators/redlining.py",
+    "scripts/recalc.py"
+   ]
+  },
+  {
+   "id": "pptx",
+   "repo": "anthropics/skills",
+   "path": "skills/pptx/SKILL.md",
+   "stages": [
+    "files"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python",
+    "node"
+   ],
+   "summary": {
+    "ko": "PowerPoint 생성·편집·템플릿·발표자 노트",
+    "en": "Creates and edits PowerPoint files, templates and speaker notes"
+   },
+   "always": 187,
+   "onUse": 5220,
+   "install": "plugin",
+   "files": 56,
+   "scripts": [
+    "scripts/__init__.py",
+    "scripts/add_slide.py",
+    "scripts/clean.py",
+    "scripts/office/helpers/__init__.py",
+    "scripts/office/helpers/pptx_chart.py",
+    "scripts/office/helpers/pptx_slide.py",
+    "scripts/office/helpers/pptx_theme.py",
+    "scripts/office/soffice.py",
+    "scripts/office/validate.py",
+    "scripts/office/validators/__init__.py",
+    "scripts/office/validators/base.py",
+    "scripts/office/validators/docx.py",
+    "scripts/office/validators/pptx.py",
+    "scripts/office/validators/redlining.py",
+    "scripts/thumbnail.py"
+   ]
+  },
+  {
+   "id": "skill-creator",
+   "repo": "anthropics/skills",
+   "path": "skills/skill-creator/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python"
+   ],
+   "summary": {
+    "ko": "스킬을 새로 만들고 평가(eval)·벤치마크로 트리거 설명까지 다듬는 공식 도구",
+    "en": "Creates skills and refines them with evals, benchmarks and trigger-description tuning (official)"
+   },
+   "always": 84,
+   "onUse": 8315,
+   "install": "plugin",
+   "files": 18,
+   "scripts": [
+    "eval-viewer/generate_review.py",
+    "scripts/__init__.py",
+    "scripts/aggregate_benchmark.py",
+    "scripts/generate_report.py",
+    "scripts/improve_description.py",
+    "scripts/package_skill.py",
+    "scripts/quick_validate.py",
+    "scripts/run_eval.py",
+    "scripts/run_loop.py",
+    "scripts/utils.py"
+   ]
+  },
+  {
+   "id": "writing-for-agents",
+   "repo": "mattpocock/skills",
+   "path": "skills/productivity/writing-for-agents/SKILL.md",
+   "stages": [
+    "meta",
+    "docs"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "스킬·CLAUDE.md·AGENTS.md 를 에이전트가 잘 따르도록 쓰는 법",
+    "en": "Explains how to write skills, CLAUDE.md and AGENTS.md so agents follow them"
+   },
+   "always": 31,
+   "onUse": 2722,
+   "install": "copy",
+   "files": 3,
+   "scripts": []
+  },
+  {
+   "id": "claude-md-improver",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/claude-md-management/skills/claude-md-improver/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "저장소의 CLAUDE.md 들을 찾아 품질 점수를 매기고 고친다",
+    "en": "Finds CLAUDE.md files in a repo, scores their quality and fixes them"
+   },
+   "always": 90,
+   "onUse": 1507,
+   "install": "plugin",
+   "files": 4,
+   "scripts": []
+  },
+  {
+   "id": "claude-automation-recommender",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/claude-code-setup/skills/claude-automation-recommender/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "코드베이스를 보고 맞는 훅·서브에이전트·스킬·MCP 를 추천한다(find-your-skill 과 가장 비슷)",
+    "en": "Analyzes a codebase and recommends hooks, subagents, skills and MCP servers"
+   },
+   "always": 97,
+   "onUse": 2753,
+   "install": "plugin",
+   "files": 6,
+   "scripts": []
+  },
+  {
+   "id": "claude-settings-audit",
+   "repo": "getsentry/skills",
+   "path": "skills/claude-settings-audit/SKILL.md",
+   "stages": [
+    "meta",
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "기술 스택을 감지해 읽기 전용 명령 위주의 settings.json 권한 허용 목록을 만든다",
+    "en": "Detects the tech stack and builds a settings.json allowlist of mostly read-only commands"
+   },
+   "always": 71,
+   "onUse": 3003,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "skill-scanner",
+   "repo": "getsentry/skills",
+   "path": "skills/skill-scanner/SKILL.md",
+   "stages": [
+    "meta",
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python"
+   ],
+   "summary": {
+    "ko": "설치할 스킬에 프롬프트 주입·위험 스크립트·데이터 유출이 있는지 검사한다",
+    "en": "Scans a skill before install for prompt injection, risky scripts and data exfiltration"
+   },
+   "always": 86,
+   "onUse": 2486,
+   "install": "copy",
+   "files": 5,
+   "scripts": [
+    "scripts/scan_skill.py"
+   ]
+  },
+  {
+   "id": "hookify-writing-rules",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/hookify/skills/writing-rules/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "python"
+   ],
+   "summary": {
+    "ko": "마크다운 규칙 파일만으로 금지 패턴 경고·차단 훅을 만든다(hookify)",
+    "en": "Creates warn or block hooks for forbidden patterns from markdown rule files (hookify)"
+   },
+   "always": 54,
+   "onUse": 2107,
+   "install": "plugin",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "dispatching-parallel-agents",
+   "repo": "obra/superpowers",
+   "path": "skills/dispatching-parallel-agents/SKILL.md",
+   "stages": [
+    "meta",
+    "debug"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "공유 상태 없는 작업 2개 이상을 서브에이전트에 병렬로 나눠 맡긴다",
+    "en": "Splits 2+ independent tasks with no shared state across subagents to run in parallel"
+   },
+   "always": 34,
+   "onUse": 1523,
+   "install": "copy",
+   "files": 1,
+   "scripts": []
+  },
+  {
+   "id": "context-optimization",
+   "repo": "muratcankoylan/Agent-Skills-for-Context-Engineering",
+   "path": "skills/context-optimization/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "관찰 마스킹·캐시 친화 프리픽스·분할로 컨텍스트 예산과 토큰 비용을 줄인다",
+    "en": "Cuts context budget and token cost via observation masking, cache-friendly prefixes and partitioning"
+   },
+   "always": 70,
+   "onUse": 4019,
+   "install": "copy",
+   "files": 3,
+   "scripts": [
+    "scripts/compaction.py"
+   ]
+  },
+  {
+   "id": "caveman",
+   "repo": "JuliusBrussee/caveman",
+   "path": "skills/caveman/SKILL.md",
+   "stages": [
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [],
+   "summary": {
+    "ko": "기술 내용은 남기고 군더더기를 뺀 초압축 답변 모드로 출력 토큰 절약",
+    "en": "Answers in an ultra-terse style that keeps technical content to save output tokens"
+   },
+   "always": 53,
+   "onUse": 1170,
+   "install": "copy",
+   "files": 2,
+   "scripts": []
+  },
+  {
+   "id": "session-report",
+   "repo": "anthropics/claude-plugins-official",
+   "path": "plugins/session-report/skills/session-report/SKILL.md",
+   "stages": [
+    "meta",
+    "perf"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "node"
+   ],
+   "summary": {
+    "ko": "~/.claude/projects 기록으로 토큰·캐시·비싼 프롬프트를 HTML 보고서로 본다",
+    "en": "Builds an HTML report of tokens, cache and costly prompts from ~/.claude/projects transcripts"
+   },
+   "always": 43,
+   "onUse": 790,
+   "install": "plugin",
+   "files": 3,
+   "scripts": [
+    "analyze-sessions.mjs"
+   ]
+  },
+  {
+   "id": "careful",
+   "repo": "garrytan/gstack",
+   "path": "careful/SKILL.md",
+   "stages": [
+    "security",
+    "meta"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "gstack 설치",
+    "bash"
+   ],
+   "summary": {
+    "ko": "켜 두면 Bash/PowerShell 의 파괴적 명령(rm -rf·DROP·force push)을 실행 전에 경고한다(스킬 내장 훅)",
+    "en": "Warns before destructive Bash/PowerShell commands (rm -rf, DROP, force push) via a built-in hook"
+   },
+   "always": 16,
+   "onUse": 1187,
+   "install": "copy",
+   "files": 5,
+   "scripts": [
+    "bin/check-careful.sh",
+    "bin/hook-extract.sh"
+   ],
+   "overlapsHook": "danger-cmd"
+  },
+  {
+   "id": "git-guardrails",
+   "repo": "mattpocock/skills",
+   "path": "skills/misc/git-guardrails-claude-code/SKILL.md",
+   "stages": [
+    "git",
+    "security"
+   ],
+   "stacks": [
+    "any"
+   ],
+   "needs": [
+    "bash",
+    "jq"
+   ],
+   "summary": {
+    "ko": "push·reset --hard·clean·branch -D 를 막는 PreToolUse 훅을 프로젝트/전역에 설치한다",
+    "en": "Installs a PreToolUse hook that blocks push, reset --hard, clean and branch -D"
+   },
+   "always": 68,
+   "onUse": 579,
+   "install": "copy",
+   "files": 3,
+   "scripts": [
+    "scripts/block-dangerous-git.sh"
+   ],
+   "overlapsHook": "danger-cmd"
+  }
+ ]
+}

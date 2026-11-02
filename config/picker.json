@@ -1,0 +1,10 @@
+{
+  "_설명": "고르기 화면 서버의 동작 값",
+  "idleMinutes": 30,
+  "exitDelayMs": 300,
+  "maxBodyBytes": 1048576,
+  "contextTokens": 200000,
+  "noteMaxChars": 2000,
+  "skillPreviewChars": 12000,
+  "progressPollMs": 400
+}

@@ -1,0 +1,11 @@
+{
+  "description": "find-your-skill 규칙 훅. 프로젝트에 .claude/fys.json 이 있을 때만 동작한다",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit|WebFetch",
+        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run.mjs\"", "timeout": 15 }]
+      }
+    ]
+  }
+}

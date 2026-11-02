@@ -1,0 +1,13 @@
+{
+  "_설명": "외부 주소와 검색 기준. 코드에는 주소를 직접 쓰지 않는다.",
+  "githubApi": "https://api.github.com",
+  "rawBase": "https://raw.githubusercontent.com",
+  "minStars": 1000,
+  "freshCacheHours": 24,
+  "freshLimitPerQuery": 30,
+  "pluginRepo": "HwangSlater/find-your-skill",
+  "marketplace": "find-your-skill",
+  "pluginId": "find-your-skill@find-your-skill",
+  "pluginRef": "v0.1.0",
+  "_pluginRef": "팀원이 받는 플러그인 버전(태그). 배포할 때 이 태그를 만들어야 한다. 마켓 소스는 커밋 sha 고정을 지원하지 않아 태그로 고정한다."
+}

@@ -1,0 +1,479 @@
+{
+  "_설명": "훅·규칙 조각·Git 전략의 이름과 설명(한/영). 고르기 화면과 적용 스크립트가 읽는다. 훅 id 는 hooks/rules/*.mjs 의 id 와 같다.",
+  "hooks": [
+    {
+      "id": "secrets",
+      "name": {
+        "ko": "비밀값 차단",
+        "en": "Block secrets"
+      },
+      "desc": {
+        "ko": "키·토큰을 파일에 쓰거나 커밋하면 막는다",
+        "en": "Blocks writing or committing keys and tokens"
+      },
+      "example": {
+        "bad": {
+          "ko": "API 키를 코드에 적으면",
+          "en": "You put an API key in code"
+        },
+        "fix": {
+          "ko": "저장 전에 막고 환경 변수로 옮기게 해요",
+          "en": "blocked before saving; moved to an env variable"
+        }
+      },
+      "detail": {
+        "ko": "GitHub·AWS·OpenAI·Slack·Google 키, 개인 키, JWT 모양 글자, password = \"실제값\" 같은 대입(테스트 파일은 대입 검사 제외). 파일 쓰기와 커밋 모두 봐요.",
+        "en": "GitHub/AWS/OpenAI/Slack/Google keys, private keys, JWT-shaped strings, password = \"real value\" assignments (tests excluded). Checks both file writes and commits."
+      }
+    },
+    {
+      "id": "protected-files",
+      "name": {
+        "ko": ".env·키 파일 보호",
+        "en": "Protect .env & key files"
+      },
+      "desc": {
+        "ko": ".env·인증서·SSH 키 파일에 쓰지 않는다",
+        "en": "Never writes to .env, certificates or SSH keys"
+      },
+      "example": {
+        "bad": {
+          "ko": ".env 파일을 고치려 하면",
+          "en": "Claude tries to edit .env"
+        },
+        "fix": {
+          "ko": "막고 .env.example 로 안내해요",
+          "en": "blocked; pointed to .env.example"
+        }
+      },
+      "detail": {
+        "ko": ".env 류(.env.example 은 허용), .pem·.key·.p12 같은 인증서, id_rsa 같은 SSH 키 파일에 쓰기",
+        "en": ".env files (.env.example allowed), certificates like .pem/.key/.p12, SSH keys like id_rsa"
+      }
+    },
+    {
+      "id": "danger-cmd",
+      "name": {
+        "ko": "위험 명령 차단",
+        "en": "Block dangerous commands"
+      },
+      "desc": {
+        "ko": "rm -rf /, curl | sh, 커밋 안 한 변경을 날리는 reset --hard 등",
+        "en": "rm -rf /, curl | sh, reset --hard over uncommitted work, ..."
+      },
+      "example": {
+        "bad": {
+          "ko": "홈 폴더 전체 삭제 같은 명령을 치면",
+          "en": "A command would wipe your home folder"
+        },
+        "fix": {
+          "ko": "실행 전에 막아요",
+          "en": "blocked before it runs"
+        }
+      },
+      "detail": {
+        "ko": "rm -rf 로 / · ~ · . · * 지우기, 드라이브 통째 지우기, curl … | sh, chmod 777, mkfs·dd. 커밋 안 한 변경이 있을 때만 reset --hard·clean -f·checkout . 도 막아요.",
+        "en": "rm -rf on / ~ . *, wiping a drive, curl … | sh, chmod 777, mkfs/dd. reset --hard, clean -f and checkout . only when there are uncommitted changes."
+      }
+    },
+    {
+      "id": "password-cli",
+      "name": {
+        "ko": "명령줄 비밀번호 금지",
+        "en": "No passwords on the command line"
+      },
+      "desc": {
+        "ko": "mysql -p비번 같은 명령을 막는다",
+        "en": "Blocks things like mysql -pSECRET"
+      },
+      "example": {
+        "bad": {
+          "ko": "명령에 비밀번호를 그대로 적으면",
+          "en": "A password is typed into a command"
+        },
+        "fix": {
+          "ko": "막고 안전한 입력 방법을 알려 줘요",
+          "en": "blocked; a safe way is suggested"
+        }
+      },
+      "detail": {
+        "ko": "--password=값, mysql -p값, sshpass -p, curl -u 아이디:비번, PGPASSWORD=값 ($변수 참조는 허용)",
+        "en": "--password=value, mysql -pvalue, sshpass -p, curl -u user:pass, PGPASSWORD=value ($VAR references allowed)"
+      }
+    },
+    {
+      "id": "git-add-all",
+      "name": {
+        "ko": "git add 전체 금지",
+        "en": "No git add -A"
+      },
+      "desc": {
+        "ko": "바꾼 파일만 골라서 올린다",
+        "en": "Stage only the files you changed"
+      },
+      "example": {
+        "bad": {
+          "ko": "git add . 로 전부 올리면",
+          "en": "git add . stages everything"
+        },
+        "fix": {
+          "ko": "바꾼 파일만 골라 올리게 해요",
+          "en": "only the changed files get staged"
+        }
+      },
+      "detail": {
+        "ko": "git add -A · git add . · git add --all · git add *, git commit -a",
+        "en": "git add -A / . / --all / *, git commit -a"
+      }
+    },
+    {
+      "id": "protect-branch",
+      "name": {
+        "ko": "보호 브랜치",
+        "en": "Protected branches"
+      },
+      "desc": {
+        "ko": "main 에 직접 커밋·강제 push 하지 않는다",
+        "en": "No direct commits or force-pushes to main"
+      },
+      "example": {
+        "bad": {
+          "ko": "main 에 바로 커밋하면",
+          "en": "Committing straight to main"
+        },
+        "fix": {
+          "ko": "브랜치를 만들어 PR로 합치게 해요",
+          "en": "a branch and a PR are used instead"
+        }
+      },
+      "detail": {
+        "ko": "main·master 에 바로 커밋, 강제 push",
+        "en": "Direct commits and force-pushes to main/master"
+      }
+    },
+    {
+      "id": "commit-msg",
+      "name": {
+        "ko": "커밋 메시지 형식",
+        "en": "Commit message format"
+      },
+      "desc": {
+        "ko": "feat: / fix: 형식, 제목 72자 이하",
+        "en": "feat: / fix: style, subject up to 72 chars"
+      },
+      "example": {
+        "bad": {
+          "ko": "커밋 메시지를 \"수정\"처럼 대충 쓰면",
+          "en": "A vague message like \"update\""
+        },
+        "fix": {
+          "ko": "feat: / fix: 형식으로 다시 쓰게 해요",
+          "en": "rewritten as feat: / fix: ..."
+        }
+      },
+      "detail": {
+        "ko": "제목이 feat·fix·docs·style·refactor·perf·test·build·ci·chore·revert 중 하나 + \": 설명\", 72자 이하",
+        "en": "Subject is one of feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert + \": description\", up to 72 chars"
+      }
+    },
+    {
+      "id": "branch-name",
+      "name": {
+        "ko": "브랜치 이름 규칙",
+        "en": "Branch naming"
+      },
+      "desc": {
+        "ko": "feature/·fix/ 처럼 시작한다",
+        "en": "Starts with feature/, fix/, ..."
+      },
+      "example": {
+        "bad": {
+          "ko": "브랜치 이름을 test123 으로 지으면",
+          "en": "A branch named test123"
+        },
+        "fix": {
+          "ko": "feature/login 처럼 짓게 해요",
+          "en": "renamed like feature/login"
+        }
+      },
+      "detail": {
+        "ko": "feature/·fix/·hotfix/·chore/·docs/·refactor/·test/ 로 시작(대문자·숫자 가능: feature/JIRA-123)",
+        "en": "Starts with feature/ fix/ hotfix/ chore/ docs/ refactor/ test/ (caps and digits OK: feature/JIRA-123)"
+      }
+    },
+    {
+      "id": "no-verify",
+      "name": {
+        "ko": "검사 건너뛰기 금지",
+        "en": "No --no-verify"
+      },
+      "desc": {
+        "ko": "커밋 전 검사를 --no-verify 로 피하지 않는다",
+        "en": "Never skip pre-commit checks"
+      },
+      "example": {
+        "bad": {
+          "ko": "--no-verify 로 검사를 건너뛰면",
+          "en": "Skipping checks with --no-verify"
+        },
+        "fix": {
+          "ko": "막고 검사 실패 원인을 고치게 해요",
+          "en": "blocked; the failure gets fixed"
+        }
+      },
+      "detail": {
+        "ko": "git commit·push·merge·rebase --no-verify, git commit -n",
+        "en": "git commit/push/merge/rebase --no-verify, git commit -n"
+      }
+    },
+    {
+      "id": "file-size",
+      "name": {
+        "ko": "큰 새 파일 막기",
+        "en": "Limit new file size"
+      },
+      "desc": {
+        "ko": "400줄 넘는 새 파일은 나누게 한다",
+        "en": "New files over 400 lines must be split"
+      },
+      "example": {
+        "bad": {
+          "ko": "400줄 넘는 새 파일을 만들면",
+          "en": "A new file over 400 lines"
+        },
+        "fix": {
+          "ko": "역할별로 나누게 해요",
+          "en": "split by responsibility"
+        }
+      },
+      "detail": {
+        "ko": "새로 만드는 파일이 400줄을 넘을 때(이미 있는 파일 고치기는 막지 않아요)",
+        "en": "A newly created file over 400 lines (editing existing files is not blocked)"
+      }
+    },
+    {
+      "id": "prefer-gh",
+      "name": {
+        "ko": "GitHub 은 gh 명령으로 읽기",
+        "en": "Read GitHub with gh"
+      },
+      "desc": {
+        "ko": "GitHub 페이지를 긁지 않고 gh 로 읽어 토큰을 아낀다",
+        "en": "Reads GitHub via gh instead of scraping pages"
+      },
+      "example": {
+        "bad": {
+          "ko": "GitHub 페이지를 통째로 긁으면",
+          "en": "Scraping a whole GitHub page"
+        },
+        "fix": {
+          "ko": "gh 명령으로 필요한 것만 읽게 해요",
+          "en": "only what is needed is read via gh"
+        }
+      },
+      "detail": {
+        "ko": "WebFetch 로 github.com 페이지를 열 때(문서 사이트 docs.github.com 은 허용)",
+        "en": "WebFetch on github.com pages (docs.github.com allowed)"
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "collab",
+      "name": {
+        "ko": "협업 약속",
+        "en": "Teamwork"
+      },
+      "desc": {
+        "ko": "커밋은 한 가지씩, PR엔 무엇·왜·확인 방법",
+        "en": "One change per commit; PRs say what, why, how verified"
+      }
+    },
+    {
+      "id": "security",
+      "name": {
+        "ko": "보안 기본기",
+        "en": "Security basics"
+      },
+      "desc": {
+        "ko": "입력 검증·권한 확인·로그에 비밀 안 남기기",
+        "en": "Validate input, check access, keep secrets out of logs"
+      }
+    },
+    {
+      "id": "lean",
+      "name": {
+        "ko": "토큰 아끼기",
+        "en": "Save tokens"
+      },
+      "desc": {
+        "ko": "파일은 필요한 부분만 읽고, 답은 짧게",
+        "en": "Read only what is needed, answer briefly"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "github-flow",
+      "name": {
+        "ko": "GitHub Flow",
+        "en": "GitHub Flow"
+      },
+      "desc": {
+        "ko": "main + 기능 브랜치 + PR",
+        "en": "main + feature branches + PRs"
+      },
+      "hooks": {
+        "protect-branch": {
+          "branches": [
+            "main",
+            "master"
+          ]
+        },
+        "branch-name": {
+          "pattern": "^(feature|feat|fix|hotfix|chore|docs|refactor|test)/[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        }
+      },
+      "for": {
+        "ko": "대부분의 팀에 맞아요",
+        "en": "Fits most teams"
+      },
+      "hooksOn": [
+        "protect-branch",
+        "branch-name"
+      ],
+      "hooksOff": [],
+      "override": {}
+    },
+    {
+      "id": "git-flow",
+      "name": {
+        "ko": "Git Flow",
+        "en": "Git Flow"
+      },
+      "desc": {
+        "ko": "main + develop, 배포 주기가 있을 때",
+        "en": "main + develop, for scheduled releases"
+      },
+      "hooks": {
+        "protect-branch": {
+          "branches": [
+            "main",
+            "master",
+            "develop"
+          ]
+        },
+        "branch-name": {
+          "pattern": "^(feature|release|hotfix|bugfix|support)/[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        }
+      },
+      "for": {
+        "ko": "정해진 날짜에 배포할 때",
+        "en": "For scheduled releases"
+      },
+      "hooksOn": [
+        "protect-branch",
+        "branch-name"
+      ],
+      "hooksOff": [],
+      "override": {
+        "protect-branch": {
+          "bad": {
+            "ko": "main·develop 에 바로 커밋하면",
+            "en": "Committing straight to main or develop"
+          },
+          "fix": {
+            "ko": "feature/ 브랜치에서 작업하게 해요",
+            "en": "work happens on a feature/ branch"
+          },
+          "detail": {
+            "ko": "main·master·develop 에 바로 커밋, 강제 push",
+            "en": "Direct commits and force-pushes to main/master/develop"
+          }
+        },
+        "branch-name": {
+          "bad": {
+            "ko": "브랜치 이름을 test123 으로 지으면",
+            "en": "A branch named test123"
+          },
+          "fix": {
+            "ko": "feature/·release/·hotfix/ 로 시작하게 해요",
+            "en": "it must start with feature/ release/ hotfix/"
+          },
+          "detail": {
+            "ko": "feature/·release/·hotfix/·bugfix/·support/ 로 시작(대문자·숫자 가능)",
+            "en": "Starts with feature/ release/ hotfix/ bugfix/ support/ (caps and digits OK)"
+          }
+        }
+      }
+    },
+    {
+      "id": "trunk",
+      "name": {
+        "ko": "트렁크 기반",
+        "en": "Trunk-based"
+      },
+      "desc": {
+        "ko": "main 에 작게 자주, 숙련 팀",
+        "en": "Small, frequent merges to main"
+      },
+      "hooks": {
+        "protect-branch": {
+          "branches": [
+            "main",
+            "master"
+          ],
+          "allowCommit": true
+        }
+      },
+      "for": {
+        "ko": "작게 자주 합치는 숙련 팀",
+        "en": "Experienced teams merging small and often"
+      },
+      "hooksOn": [
+        "protect-branch"
+      ],
+      "hooksOff": [
+        "branch-name"
+      ],
+      "override": {
+        "protect-branch": {
+          "bad": {
+            "ko": "main 에 강제 push 하면",
+            "en": "Force-pushing to main"
+          },
+          "fix": {
+            "ko": "막아요(main 에 바로 커밋은 괜찮아요)",
+            "en": "blocked (direct commits are fine)"
+          },
+          "detail": {
+            "ko": "main·master 에 강제 push 만(트렁크 기반이라 바로 커밋은 허용)",
+            "en": "Only force-pushes to main/master (direct commits allowed in trunk-based)"
+          }
+        }
+      }
+    },
+    {
+      "id": "none",
+      "name": {
+        "ko": "정하지 않음",
+        "en": "None"
+      },
+      "desc": {
+        "ko": "혼자 쓰는 저장소",
+        "en": "Solo repository"
+      },
+      "hooks": {},
+      "for": {
+        "ko": "혼자 쓰는 저장소",
+        "en": "Solo repository"
+      },
+      "hooksOn": [],
+      "hooksOff": [
+        "protect-branch",
+        "branch-name"
+      ],
+      "override": {}
+    }
+  ]
+}
