@@ -1,14 +1,14 @@
 // 고르기 화면을 띄운다. 브라우저에서 「적용」을 누르면 이 프로세스가 적용하고, 결과 JSON 을 출력한 뒤 끝난다.
 // Claude 는 이 출력 한 덩어리만 읽으면 된다(카탈로그 전체가 문맥에 들어가지 않음).
 // 보안: 127.0.0.1 에만 열고, 임의 포트, 데이터 요청은 일회용 토큰 헤더 — 다른 웹페이지가 보낸 요청은 거절한다.
-// 사용: node scripts/picker.mjs [프로젝트] [--lang ko|en] [--no-open]
+// 사용: node scripts/picker.mjs [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--no-open]
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { detect } from './detect.mjs';
-import { pickLang } from './recommend.mjs';
+import { detect, withHints } from './detect.mjs';
+import { parseArgs } from './lib/args.mjs';
 import { fresh } from './fresh.mjs';
 import { loadAll, PLUGIN_ROOT } from './lib/catalog.mjs';
 import { makeState, cleanSelection } from './lib/picker-state.mjs';
@@ -19,16 +19,15 @@ const STATIC = { '/': 'index.html', '/app.js': 'app.js', '/view.js': 'view.js', 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 
 const args = process.argv.slice(2);
-const li = args.indexOf('--lang');
-const lang = pickLang(li >= 0 ? args[li + 1] : null);
-const root = path.resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--lang') || '.');
+const { lang, root, hints } = parseArgs(args);
 const token = crypto.randomBytes(16).toString('hex');
 
 const all = loadAll();
 const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
-const ctx = { all, cfg, det: detect(root) };
+const ctx = { all, cfg, det: withHints(detect(root), hints) };
 const rel = (p) => path.relative(root, p).split(path.sep).join('/');
 let progress = null; // 적용하는 동안 { done, total, current }
+let applying = false;
 
 const readBody = (req) =>
   new Promise((resolve, reject) => {
@@ -36,10 +35,17 @@ const readBody = (req) =>
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > cfg.maxBodyBytes) reject(new Error('too large'));
-      else chunks.push(c);
+      if (size <= cfg.maxBodyBytes) chunks.push(c); // 넘치면 더 쌓지 않고 끝까지 읽은 뒤 거절한다(연결을 끊으면 화면이 이유를 못 받는다)
     });
-    req.on('end', () => resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')));
+    // 깨진 JSON 이 프로세스를 죽이지 않게(결과 JSON 을 못 내면 기다리던 Claude 가 이유를 모른다).
+    req.on('end', () => {
+      if (size > cfg.maxBodyBytes) return reject(new Error('too large'));
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'));
+      } catch {
+        reject(new Error('bad json'));
+      }
+    });
     req.on('error', reject);
   });
 
@@ -94,10 +100,17 @@ const server = http.createServer(async (req, res) => {
     const route = routes[`${req.method} ${url.pathname}`];
     if (route) return send(200, await route(url, req));
     if (req.method === 'POST' && url.pathname === '/api/apply') {
-      const sel = cleanSelection(ctx, await readBody(req), lang);
-      const result = await apply(root, sel, (p) => (progress = p));
-      send(200, result);
-      return finish({ status: 'applied', root, selection: sel, ...result });
+      // 적용은 한 번에 하나만(두 번 눌리면 같은 임시 폴더를 두고 다투고 결과가 두 번 나간다).
+      if (applying) return send(409, { error: 'busy' });
+      applying = true;
+      try {
+        const sel = cleanSelection(ctx, await readBody(req), lang);
+        const result = await apply(root, sel, (p) => (progress = p));
+        send(200, result);
+        return finish({ status: 'applied', root, selection: sel, ...result });
+      } finally {
+        applying = false;
+      }
     }
     if (req.method === 'POST' && url.pathname === '/api/cancel') {
       send(200, { ok: true });

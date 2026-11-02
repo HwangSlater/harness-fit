@@ -46,6 +46,25 @@ const PY_STACKS = [['Django', /django/i], ['FastAPI', /fastapi/i], ['Flask', /fl
 const KIND = { web: ['Next.js', 'React', 'Vue', 'Svelte', 'Angular'], mobile: ['React Native', 'Expo', 'Flutter', 'iOS'],
   backend: ['Express', 'NestJS', 'Django', 'FastAPI', 'Flask', 'Go', 'Rust', 'Java/Kotlin'], data: ['pandas', 'PyTorch'] };
 
+const kindsOf = (stack) => {
+  const kinds = Object.keys(KIND).filter((k) => KIND[k].some((s) => stack.includes(s)));
+  return kinds.length ? kinds : ['general'];
+};
+
+// 사용자가 말로 알려 줄 수 있는 스택 이름(이 목록에 있는 것만 받는다).
+export const KNOWN_STACKS = [...JS_STACKS.map(([n]) => n), ...FILE_STACKS.map(([n]) => n), ...PY_STACKS.map(([n]) => n), 'Node.js', 'GitHub Actions'];
+const TEAM_HINT_AUTHORS = 2; // 「여럿이 개발」이라고 했을 때 팀으로 볼 최소 인원(조합 추천 기준과 같음)
+
+// 저장소에서 읽은 것에 사용자가 알려 준 것(hints)을 더한다. 모르는 스택 이름은 버린다.
+export const withHints = (det, hints = {}) => {
+  const known = new Map(KNOWN_STACKS.map((s) => [s.toLowerCase(), s]));
+  const extra = (hints.stack || []).map((s) => known.get(s.toLowerCase())).filter((s) => s && !det.stack.includes(s));
+  if (!extra.length && !hints.team) return det;
+  const stack = [...det.stack, ...extra];
+  const authors = hints.team ? Math.max(det.authors, TEAM_HINT_AUTHORS) : det.authors;
+  return { ...det, stack, kinds: kindsOf(stack), authors, team: authors > 1, hinted: { stack: extra, team: !!hints.team } };
+};
+
 export const detect = (dir) => {
   const root = git(dir, ['rev-parse', '--show-toplevel']) || dir;
   const has = (f) => fs.existsSync(path.join(root, f));
@@ -60,14 +79,15 @@ export const detect = (dir) => {
   if (!stack.length && pkg) stack.push('Node.js');
   if (has('.github/workflows')) stack.push('GitHub Actions');
 
-  const kinds = Object.keys(KIND).filter((k) => KIND[k].some((s) => stack.includes(s)));
   const authors = git(root, ['shortlog', '-sne', '--since=6.months', 'HEAD']).split('\n').filter(Boolean).length;
   const remote = git(root, ['remote', 'get-url', 'origin']);
   return {
     root,
     name: pkg?.name || path.basename(root),
     stack,
-    kinds: kinds.length ? kinds : ['general'],
+    kinds: kindsOf(stack),
+    // 스택을 알 수 있는 파일이 하나도 없다(빈 저장소 등) → 맞춤 추천을 할 수 없다. CI 파일만 있는 것도 같다.
+    thin: !stack.some((s) => s !== 'GitHub Actions'),
     isGit: !!git(root, ['rev-parse', '--git-dir']),
     commits: Number(git(root, ['rev-list', '--count', 'HEAD']) || 0),
     authors,
@@ -80,6 +100,11 @@ export const detect = (dir) => {
   };
 };
 
+// --brief: 고르기 화면을 열기 전에 Claude 가 읽는 짧은 요약(빈 저장소인지, 알려 줄 수 있는 스택 이름).
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
-  process.stdout.write(JSON.stringify(detect(path.resolve(process.argv[2] || '.')), null, 2) + '\n');
+  const args = process.argv.slice(2);
+  const det = detect(path.resolve(args.find((a) => !a.startsWith('--')) || '.'));
+  const brief = args.includes('--brief');
+  const out = brief ? { thin: det.thin, stack: det.stack, commits: det.commits, authors: det.authors, ...(det.thin ? { knownStacks: KNOWN_STACKS } : {}) } : det;
+  process.stdout.write(JSON.stringify(out, null, brief ? 0 : 2) + '\n');
 }

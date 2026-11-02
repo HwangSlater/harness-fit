@@ -8,6 +8,6 @@
   "pluginRepo": "HwangSlater/harness-fit",
   "marketplace": "harness-fit",
   "pluginId": "harness-fit@harness-fit",
-  "pluginRef": "v0.2.1",
+  "pluginRef": "v0.2.2",
   "_pluginRef": "팀원이 받는 플러그인 버전(태그). 배포할 때 이 태그를 만들어야 한다. 마켓 소스는 커밋 sha 고정을 지원하지 않아 태그로 고정한다."
 }

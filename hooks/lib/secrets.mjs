@@ -21,17 +21,28 @@ export const isTestFile = (p) =>
 
 const mask = (s) => (s.length <= 12 ? s.slice(0, 4) + '…' : s.slice(0, 8) + '…' + s.slice(-2));
 
+// 경로 모양 값(pwd 에 담은 /var/www/html, C:\app\data 같은 것)은 비밀번호가 아니다. 구분자가 둘 이상인 것만 경로로 본다.
+const PATH_VALUE = /^(?:~|\.{1,2}|[A-Za-z]:)?(?:[\\/][\w.-]+){2,}[\\/]?$/;
+
+// 줄마다 본다. `harness:allow secret <이유>` 가 달린 줄은 패턴·대입 검사 모두 건너뛴다.
+// 패턴 하나는 한 번만 알린다(같은 키가 여러 줄에 있어도).
 export const findSecrets = (text, filePath = '') => {
   const hits = [];
-  for (const { id, re } of SECRET_PATTERNS) {
-    const m = text.match(re);
-    if (m) hits.push(`${id}(${mask(m[0])})`);
-  }
-  if (!isTestFile(filePath)) {
-    for (const line of text.split('\n')) {
-      const m = line.match(ASSIGNED);
-      if (m && !PLACEHOLDER.test(m[1]) && !ALLOW.test(line)) hits.push(`assigned(${mask(m[0])})`);
+  const seen = new Set();
+  const checkAssigned = !isTestFile(filePath);
+  for (const line of text.split('\n')) {
+    if (ALLOW.test(line)) continue;
+    for (const { id, re } of SECRET_PATTERNS) {
+      if (seen.has(id)) continue;
+      const m = line.match(re);
+      if (m) {
+        seen.add(id);
+        hits.push(`${id}(${mask(m[0])})`);
+      }
     }
+    if (!checkAssigned) continue;
+    const m = line.match(ASSIGNED);
+    if (m && !PLACEHOLDER.test(m[1]) && !PATH_VALUE.test(m[1])) hits.push(`assigned(${mask(m[0])})`);
   }
   return hits;
 };

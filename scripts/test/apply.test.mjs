@@ -33,6 +33,21 @@ test('harness.json: Git 전략이 보호 브랜치·브랜치 이름 옵션을 �
   assert.equal(trunk.rules['protect-branch'].allowCommit, true);
 });
 
+test('다시 적용해도 사용자가 넣은 훅 옵션은 남고, Git 전략이 정하는 값만 바뀐다', () => {
+  const prev = { rules: { 'commit-msg': { lang: 'ko' }, 'protect-branch': { branches: ['옛것'], mine: 1 } } };
+  const cfg = buildConfig(all, base, prev);
+  assert.deepEqual(cfg.rules['commit-msg'], { lang: 'ko' });
+  assert.deepEqual(cfg.rules['protect-branch'].branches, ['main', 'master', 'develop']);
+  assert.equal(cfg.rules['protect-branch'].mine, 1);
+  assert.equal(buildConfig(all, base, null).rules.secrets, true);
+});
+
+test('auto 추천도 팀 조합이면 팀원 공유를 켠다(화면과 같은 값)', () => {
+  const det = { stack: [], authors: 3, team: true, host: 'github', commits: 40, hasDevelop: false };
+  assert.equal(recommend(all, det, 'ko').share, true);
+  assert.equal(recommend(all, { ...det, authors: 1, team: false }, 'ko').share, false);
+});
+
 test('추천: 팀이면 팀 협업 + GitHub Flow, 스택 스킬이 붙는다', () => {
   const det = { stack: ['Next.js', 'TypeScript'], authors: 3, team: true, host: 'github', commits: 40, hasDevelop: false };
   const r = recommend(all, det, 'ko');
@@ -98,6 +113,25 @@ test('보고용 이름은 스킬·훅·규칙으로 나뉘고 id 대신 이름�
   assert.deepEqual(Object.keys(l).sort(), ['combo', 'flow', 'hooks', 'rules', 'skills']);
   assert.equal(l.hooks.length, base.hooks.length);
   assert.ok(!l.hooks.includes('secrets') && !l.rules.includes('collab') && !l.skills.includes('handoff'), '이름이 있으면 id 를 보이지 않는다');
+});
+
+test('빈 저장소는 thin, 사용자가 알려 준 스택·인원은 추천에 들어간다', async () => {
+  const { detect, withHints } = await import('../detect.mjs');
+  const { parseArgs } = await import('../lib/args.mjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-empty-'));
+  const det = detect(dir);
+  assert.equal(det.thin, true);
+  const { root, hints } = parseArgs([dir, '--lang', 'ko', '--stack', 'next.js, Supabase,없는것', '--team']);
+  assert.equal(root, path.resolve(dir), '--stack 값을 프로젝트 경로로 착각하지 않는다');
+  const hinted = withHints(det, hints);
+  assert.deepEqual(hinted.hinted.stack, ['Next.js', 'Supabase'], '대소문자 무시, 모르는 이름은 버림');
+  assert.ok(hinted.team);
+  const r = recommend(all, hinted, 'ko');
+  assert.equal(r.combo, 'team');
+  assert.ok(r.skills.includes('react-best-practices'));
+  assert.doesNotMatch(r.why[0], /커밋/, '알려 준 인원을 커밋 기록처럼 쓰지 않는다');
+  assert.equal(withHints(det, { stack: [], team: false }), det, '알려 준 게 없으면 그대로');
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test('요청 칸과 팀 공유는 파일 목록에 들어간다', () => {

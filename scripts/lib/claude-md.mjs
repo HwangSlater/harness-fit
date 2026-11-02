@@ -29,14 +29,19 @@ export const ruleTexts = (sel) => {
   return Object.fromEntries(ids.map((id) => [id, renderRule(id, sel.lang, sel.hooks)]).filter(([, text]) => text));
 };
 
-// CLAUDE.md 의 관리 구역(START~END)만 바꾼다. 사용자가 쓴 나머지는 건드리지 않는다.
-export const buildClaudeMd = (current, sel) => {
-  const body = Object.values(ruleTexts(sel)).join('\n\n');
-  const block = body ? `${START}\n${body}\n${END}` : '';
-  if (current && current.includes(START) && current.includes(END)) {
-    const re = new RegExp(`\\n*${START}[\\s\\S]*?${END}\\n?`);
-    return current.replace(re, block ? `\n\n${block}\n` : '\n').replace(/^\n+/, '');
-  }
+// 관리 구역(START~END) 한 덩어리. 표시가 없거나 순서가 거꾸로면(END 가 먼저) 없는 것으로 본다.
+const BLOCK = new RegExp(`\\n*${START}[\\s\\S]*?${END}\\n?`);
+export const extractBlock = (text) => text?.match(new RegExp(`${START}[\\s\\S]*?${END}`))?.[0] || '';
+
+// 관리 구역만 block 으로 바꾼다(빈 문자열이면 구역을 뺀다). 사용자가 쓴 나머지는 건드리지 않는다.
+// 표시가 짝이 안 맞게 남아 있으면(END 만 있음 등) 지우지 않고 끝에 새 구역을 붙인다.
+export const setBlock = (current, block) => {
+  if (current && BLOCK.test(current)) return current.replace(BLOCK, block ? `\n\n${block}\n` : '\n').replace(/^\n+/, '');
   if (!block) return current;
   return current ? `${current.replace(/\s*$/, '')}\n\n${block}\n` : `${block}\n`;
+};
+
+export const buildClaudeMd = (current, sel) => {
+  const body = Object.values(ruleTexts(sel)).join('\n\n');
+  return setBlock(current, body ? `${START}\n${body}\n${END}` : '');
 };

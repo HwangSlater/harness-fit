@@ -11,7 +11,7 @@ Claude Code 를 처음 쓸 때, 뭘 깔아야 할지 고민하지 마세요.<br>
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757.svg)](#claude-code-에서-쓰기)
-![Skills](https://img.shields.io/badge/skills-81%20from%2033%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
+![Skills](https://img.shields.io/badge/skills-81%20from%2024%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
 ![Languages](https://img.shields.io/badge/UI-KO%20%C2%B7%20EN-555.svg)
 [![Local first](https://img.shields.io/badge/runs-locally-555.svg)](#내-데이터는-내-컴퓨터에)
 
@@ -55,6 +55,8 @@ npx github:HwangSlater/harness-fit
 ```
 /harness-fit:setup
 ```
+
+따로 설명하지 않아도 저장소(package.json, 커밋한 사람 수, 브랜치, CI 설정)를 읽고 추천해요. 막 만든 빈 저장소처럼 읽을 게 없으면 맞춤 추천을 할 수 없다고 먼저 알려 주고, 기본 조합으로 갈지 무엇을 만드는지(예: 「Next.js + Supabase, 3명」) 알려 줄지 물어봐요.
 
 적용이 끝나면 Claude 가 결과를 정리하고, 남은 일(직접 설치할 스킬, 화면에 적어 둔 요청)을 이어서 해 줘요.
 
@@ -125,7 +127,7 @@ npx github:HwangSlater/harness-fit
 
 ## 토큰은 얼마나 드나요?
 
-훅은 0 이에요. 스킬은 평소 이름과 한 줄 설명만, 쓸 때 본문을 읽어요. 아래는 Next.js · TypeScript · Supabase 예시 저장소에서 잰 값이에요.
+훅은 0 이에요. 스킬은 평소 이름과 한 줄 설명만, 쓸 때 본문을 읽어요. 아래는 Next.js · TypeScript · Supabase · GitHub Actions 예시 저장소에서 잰 값이에요. 스킬 수에는 직접 설치할 스킬 1개(React 성능 규칙)가 들어 있어요.
 
 | 조합 | 스킬 · 훅 | 매 대화에 드는 양 |
 | --- | --- | --- |
@@ -138,8 +140,8 @@ npx github:HwangSlater/harness-fit
 
 ## 스킬은 어디서 왔나요?
 
-- GitHub star 1,000 이상, 최근 6개월 안에 업데이트된 저장소 33곳에서 고른 81개예요(`catalog/catalog.json`).
-- 저장해 둔 목록은 금방 낡아요. 그래서 화면을 열 때마다 같은 검색어로 **목록 기준일 이후 새로 뜬 저장소**를 다시 찾아 따로 보여 줘요. 검증 전이라 바로 설치하지 않고, 고르면 적용 뒤 Claude 가 내용을 살펴봐요.
+- GitHub star 1,000 이상, 최근 6개월 안에 업데이트된 저장소 24곳에서 고른 81개예요(`catalog/catalog.json`).
+- 저장해 둔 목록은 금방 낡아요. 그래서 화면을 열 때마다 같은 검색어로 **목록 기준일 이후 새로 나오거나 업데이트된 저장소**를 다시 찾아 따로 보여 줘요. 검증 전이라 바로 설치하지 않고, 고르면 적용 뒤 Claude 가 내용을 살펴봐요.
 - 스킬마다 출처 · 라이선스 · 고정한 커밋 · 들어 있는 실행 파일을 「자세히」에서 보여 줘요.
 - MIT · Apache-2.0 처럼 복사가 허용된 라이선스만 파일로 설치해요. 나머지는 원래 저장소의 설치 방법을 안내해요.
 
@@ -152,6 +154,8 @@ npx github:HwangSlater/harness-fit
 ```
 
 또는 `npx github:HwangSlater/harness-fit --undo`. 마지막 적용 전 상태로 돌아가요.
+
+적용한 뒤 직접 고친 파일은 지우지 않아요. CLAUDE.md 는 harness-fit 구역만, `.gitignore` 는 넣은 한 줄만 빼고, 나머지 고친 파일은 그대로 두고 알려 줘요.
 
 ## 내 데이터는 내 컴퓨터에
 

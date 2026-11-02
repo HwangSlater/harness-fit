@@ -65,6 +65,7 @@
     },
     {
       "id": "team",
+      "share": true,
       "name": {
         "ko": "팀 협업",
         "en": "Team"
@@ -109,6 +110,7 @@
     },
     {
       "id": "strict",
+      "share": true,
       "name": {
         "ko": "꼼꼼하게",
         "en": "Thorough"

@@ -44,9 +44,14 @@ export function header({ S, t, act }) {
   }
   for (const [stack, ids] of byStack) chips.push(h('span.chip', {}, stack, ' → ', h('b', {}, ids.map((id) => skillBy(S, id)?.title || id).join(', '))));
   if (S.detected.hasDevelop) chips.push(h('span.chip', {}, t('flowChip')));
+  // 빈 저장소: 맞춤 추천을 못 했다는 것을 숨기지 않는다. 사용자가 말로 알려 준 것은 그렇다고 표시한다.
+  const hint = S.detected.hinted;
+  // 인원은 맨 앞 칩(추천 이유)이 이미 말하므로 여기엔 스택만.
+  if (hint?.stack.length) chips.push(h('span.chip.hint', {}, t('hintChip', { list: hint.stack.join(' · ') })));
+  else if (S.detected.thin && !hint) chips.push(h('span.chip.thin', {}, t('thinChip')));
   return h('header.top', {},
     h('div.grow', {}, h('h1', {}, t('title', { name: S.detected.name })), h('p.lead', {}, t('lead')), h('div.detect', {}, chips)),
-    h('button.lang', { on: { click: act.switchLang } }, t('langToggle')));
+    h('button.lang', { 'data-key': 'lang', on: { click: act.switchLang } }, t('langToggle')));
 }
 
 export function tiles({ S, sel, t }) {
@@ -71,7 +76,7 @@ export function combos({ S, sel, ui, t, act }) {
     h('div.combos', {}, S.combos.map((k) => {
       const n = costOf(S, k.skills, k.rules, k.flow);
       const picked = k.id === sel.combo;
-      return h(`button.combo${picked ? '.on' : ''}`, { 'aria-pressed': String(picked), on: { click: () => act.pickCombo(k) } },
+      return h(`button.combo${picked ? '.on' : ''}`, { 'data-key': `combo:${k.id}`, 'aria-pressed': String(picked), on: { click: () => act.pickCombo(k) } },
         h('div.row1', {}, h('span.name', {}, k.name),
           picked && ui.custom ? h('span.tag', {}, t('custom')) : k.id === S.recommended.combo ? h('span.rec', {}, t('recommended')) : null),
         h('div.for', {}, k.for),
@@ -81,7 +86,7 @@ export function combos({ S, sel, ui, t, act }) {
         picked ? null : h('div.diff', {}, diffText({ sel, t }, k)));
     })),
     ui.switched ? h('div.toast', { role: 'status' }, t('switched', { name: S.combos.find((k) => k.id === sel.combo)?.name }),
-      h('button.linkish.small', { on: { click: act.undoSwitch } }, t('undoSwitch'))) : null);
+      h('button.linkish.small', { 'data-key': 'undoSwitch', on: { click: act.undoSwitch } }, t('undoSwitch'))) : null);
 }
 
 // 다른 조합을 고르면 지금 선택에서 무엇이 달라지는지(「지금보다 스킬 +4 · 훅 +1」)
@@ -99,9 +104,9 @@ function skillCard(c, k) {
   const { S, sel, t, act } = c;
   const on = sel.skills.has(k.id);
   return h(`div.sk${on ? '' : '.off'}`, {},
-    h('button.sk-main', { 'aria-pressed': String(on), on: { click: () => act.toggle('skills', k.id) } },
+    h('button.sk-main', { 'data-key': `skill:${k.id}`, 'aria-pressed': String(on), on: { click: () => act.toggle('skills', k.id) } },
       h('b', {}, k.title), h('span', {}, on ? k.when : t('removed'))),
-    h('div.sk-foot', {}, skillBadges(S, k, t), h('button.sk-more', { on: { click: () => act.openDetail(k.id) } }, t('details'))));
+    h('div.sk-foot', {}, skillBadges(S, k, t), h('button.sk-more', { 'data-key': `more:${k.id}`, 'aria-haspopup': 'dialog', on: { click: () => act.openDetail(k.id) } }, t('details'))));
 }
 
 function stageColumn(c, [id, , path]) {
@@ -113,7 +118,7 @@ function stageColumn(c, [id, , path]) {
   return h(`div.stage${id === 'other' ? '.wide' : ''}`, {},
     h('div.sh', {}, h('span.ico', {}, icon(path)), h('div', {}, h('h3', {}, t(`stage.${id}`)), h('div.tiny', {}, t(`stage.${id}.sub`)))),
     shown.length ? shown.map((k) => skillCard(c, k)) : h('div.empty', {}, id === 'other' ? t('emptyOther') : t('emptyStage')),
-    others.length ? h('button.add', { 'aria-haspopup': 'dialog', on: { click: () => act.openAdd(id) } }, t('addSkill', { n: others.length })) : null);
+    others.length ? h('button.add', { 'data-key': `add:${id}`, 'aria-haspopup': 'dialog', on: { click: () => act.openAdd(id) } }, t('addSkill', { n: others.length })) : null);
 }
 
 export function journey(c) {
@@ -122,7 +127,7 @@ export function journey(c) {
   return sectionK(2, [kind(t, 'skill')], t('s2'), t('s2p'),
     h('div.card.journey', {}, MAIN.map((st) => stageColumn(c, st))),
     h('div.card.journey.other', {}, stageColumn(c, STAGES[6])),
-    h('button.browse-all', { 'aria-haspopup': 'dialog', on: { click: () => act.openAdd('all') } }, t('browseAll', { n: more })));
+    h('button.browse-all', { 'data-key': 'browseAll', 'aria-haspopup': 'dialog', on: { click: () => act.openAdd('all') } }, t('browseAll', { n: more })));
 }
 
 export function guards(c) {
@@ -156,11 +161,27 @@ function flowNote({ S, sel, t }) {
   return parts.length ? h('div.flow-note', { role: 'status' }, t('flowNote', { list: parts.join(', ') })) : null;
 }
 
+// 라디오 묶음 키보드: 화살표·Home·End 로 옮기면서 고른다. Tab 으로는 고른 하나에만 들어온다.
+const FLOW_KEYS = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+function flowKey({ S, act }, e, id) {
+  const i = S.flows.findIndex((f) => f.id === id);
+  const n = S.flows.length;
+  const to = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : e.key in FLOW_KEYS ? (i + FLOW_KEYS[e.key] + n) % n : -1;
+  if (to < 0) return;
+  e.preventDefault();
+  const next = S.flows[to].id;
+  act.pickFlow(next);
+  document.querySelector(`[data-key="flow:${CSS.escape(next)}"]`)?.focus();
+}
+
 export function flows(c) {
   const { S, sel, t, act } = c;
   return sectionK(4, [kind(t, 'hook'), kind(t, 'rule')], t('s4'), t('s4p'),
-    h('div.flows', { role: 'radiogroup' }, S.flows.map((f) =>
-      h(`button.flow${f.id === sel.flow ? '.on' : ''}`, { role: 'radio', 'aria-checked': String(f.id === sel.flow), on: { click: () => act.pickFlow(f.id) } },
+    h('div.flows', { role: 'radiogroup', 'aria-label': t('s4') }, S.flows.map((f) =>
+      h(`button.flow${f.id === sel.flow ? '.on' : ''}`, {
+        'data-key': `flow:${f.id}`, role: 'radio', 'aria-checked': String(f.id === sel.flow), tabindex: f.id === sel.flow ? '0' : '-1',
+        on: { click: () => act.pickFlow(f.id), keydown: (e) => flowKey(c, e, f.id) },
+      },
         h('span.name', {}, f.name), branchSvg(f.id), h('span.for', {}, f.for), h('span.d', {}, f.desc)))),
     flowNote(c));
 }
@@ -178,12 +199,12 @@ export function note({ S, sel, t, act }) {
   const examples = ['noteEx1', 'noteEx2', 'noteEx3', 'noteEx4'].map((k) => t(k));
   return section(6, t('s6'), t('s6p'),
     h('div.card.req', {},
-      h('textarea', { id: 'note', rows: 4, maxlength: S.noteMax, placeholder: t('notePh'), 'aria-label': t('s6'), value: sel.note, on: { input: (e) => act.setNote(e.target.value) } }),
+      h('textarea', { id: 'note', 'data-key': 'note', rows: 4, maxlength: S.noteMax, placeholder: t('notePh'), 'aria-label': t('s6'), value: sel.note, on: { input: (e) => act.setNote(e.target.value) } }),
       h('div.req-foot', {},
         h('span.tiny', {}, t('noteEx')),
-        examples.map((ex) => {
+        examples.map((ex, i) => {
           const has = sel.note.includes(ex);
-          return h(`button.exchip${has ? '.used' : ''}`, { disabled: has, title: has ? t('noteDup') : null, on: { click: () => act.addNote(ex) } }, has ? `✓ ${ex}` : `+ ${ex}`);
+          return h(`button.exchip${has ? '.used' : ''}`, { 'data-key': `ex:${i}`, disabled: has, title: has ? t('noteDup') : null, on: { click: () => act.addNote(ex) } }, has ? `✓ ${ex}` : `+ ${ex}`);
         }),
         h('span.count.tiny', { id: 'noteCount' }, t('noteCount', { n: sel.note.length, max: S.noteMax })))));
 }
@@ -208,16 +229,17 @@ export function outcome({ S, sel, ui, t, act }) {
     : f.error ? h('div.fresh-line.tiny', {}, t('freshError', { error: f.error, date: S.checkedAt }))
       : !f.repos.length ? h('div.fresh-line.tiny', {}, t('freshNoneShort', { date: S.checkedAt }))
         : h('div.card.fresh', {}, h('b', {}, t('freshTitle')), h('div.tiny', {}, t('freshHint')), f.repos.slice(0, 12).map((r) =>
-          h('label.fr', {}, h('input', { type: 'checkbox', checked: sel.explore.has(r.repo), on: { change: () => act.toggle('explore', r.repo) } }),
+          h('label.fr', {}, h('input', { 'data-key': `explore:${r.repo}`, type: 'checkbox', checked: sel.explore.has(r.repo), on: { change: () => act.toggle('explore', r.repo) } }),
             h('span', {}, h('b', {}, r.repo), h('span.d', {}, r.description), h('span.m', {}, `${t('stars', { n: stars(S, r.stars) })} · ${r.isNew ? t('freshNew') : t('freshUpdated')} ${r.isNew ? r.createdAt : r.pushedAt}`)))));
   return section(7, t('s7'), t('s7p'),
     h('div.card.share', {},
-      h('button.share-btn', { 'aria-pressed': String(sel.share), on: { click: act.toggleShare } },
+      h('button.share-btn', { 'data-key': 'share', 'aria-pressed': String(sel.share), on: { click: act.toggleShare } },
         h('span', {}, h('b', {}, t('shareTitle')), h('span.d', {}, t('shareD')), h('span.m', {}, t('sharePin', { repo: S.pluginRepo, ref: S.pluginRef }))), switchEl(sel.share, t))),
     h(`div.card.what${ui.previewStale ? '.stale' : ''}`, {},
-      !p ? h('div.tiny', {}, t('previewLoading')) : p.error ? h('div.err', {}, t('error', { error: p.error })) : null,
+      !p ? h('div.tiny', {}, t('previewLoading'))
+        : p.error ? h('div.err', { role: 'alert' }, p.error, ' ', p.text, ' ', h('button.linkish.small', { 'data-key': 'retryPreview', on: { click: act.retryPreview } }, t('retry'))) : null,
       h('ul.what-list', {}, items.map(([kind, title, d]) => h('li', {}, h(`span.wdot.${kind}`), h('div', {}, h('b', {}, title), h('div.tiny', {}, d))))),
-      p && !p.error ? h('details.paths', { id: 'paths', open: ui.pathsOpen, on: { toggle: (e) => (ui.pathsOpen = e.target.open) } }, h('summary', {}, t('paths')), h('pre', {}, p.changes.map(pathLine).join('\n'))) : null,
+      p && !p.error ? h('details.paths', { id: 'paths', open: ui.pathsOpen, on: { toggle: (e) => (ui.pathsOpen = e.target.open) } }, h('summary', { 'data-key': 'paths' }, t('paths')), h('pre', {}, p.changes.map(pathLine).join('\n'))) : null,
       h('div.undo', {}, t('undoLine', { cmd: S.undoCommand }))),
     fresh);
 }
@@ -231,27 +253,28 @@ export function bar({ S, sel, ui, t, act }) {
     ui.busy ? h('div.progress', { role: 'status' },
       h('div.k', {}, pr?.total ? t('progress', { done: pr.done, total: pr.total }) : t('applying'), pr?.current ? ` · ${t('progressCur', { name: skillBy(S, pr.current)?.title || pr.current })}` : ''),
       h('div.pbar', {}, h('i', { style: `width:${pr?.total ? (pr.done / pr.total) * 100 : 5}%` }))) : h('div.grow'),
-    h('button.btn.link', { disabled: ui.busy, on: { click: act.showFiles } }, t('seeFiles')),
-    h('button.btn.ghost', { disabled: ui.busy, on: { click: act.cancel } }, t('cancel')),
-    h('button.btn.primary', { disabled: ui.busy, on: { click: act.apply } }, ui.busy ? t('applying') : t('apply')),
+    h('button.btn.link', { 'data-key': 'seeFiles', disabled: ui.busy, on: { click: act.showFiles } }, t('seeFiles')),
+    h('button.btn.ghost', { 'data-key': 'cancel', 'aria-haspopup': 'dialog', disabled: ui.busy, on: { click: act.cancel } }, t('cancel')),
+    h('button.btn.primary', { 'data-key': 'apply', 'aria-haspopup': 'dialog', disabled: ui.busy, on: { click: act.apply } }, ui.busy ? t('applying') : t('apply')),
   ];
 }
 
-export function finished(c, result, hasNote) {
-  const { S, ui, t } = c;
-  if (!result) return h('div.done.card', {}, h('h2', {}, t('cancelled')));
+// 끝 화면. c.sel·c.ui.preview 는 「확인하고 적용」을 누른 순간의 사본이다(app.js).
+export function finished(c, result) {
+  const { S, sel, ui, t } = c;
+  if (!result) return h('div.done.card', {}, h('h2', { tabindex: '-1' }, t('cancelled')));
   // 무엇이 스킬·훅·규칙으로 들어갔는지 확인 창과 같은 묶음으로. 정확한 경로는 접어 둔다.
-  const p = ui.preview && !ui.preview.error ? ui.preview : null;
+  const p = ui.preview && !ui.preview.error && ui.preview.changes ? ui.preview : null;
   return h('div.done.card', {},
     h('div.check', {}, icon('M5 13l4 4L19 7', 28)),
-    h('h2', {}, t('doneTitle')),
+    h('h2', { tabindex: '-1' }, t('doneTitle')),
     h('p', {}, t('done')),
-    hasNote ? h('p', {}, t('doneNote')) : null,
+    sel.note.trim() ? h('p', {}, t('doneNote')) : null,
     result.failed?.length ? h('p.err', {}, t('doneFailed', { list: result.failed.map((x) => skillBy(S, x.skill)?.title || x.skill).join(', ') })) : null,
     result.manual?.length ? h('p', {}, t('doneManual', { list: result.manual.map((m) => skillBy(S, m.skill)?.title || m.skill).join(', ') })) : null,
     h('p.undo', {}, t('doneUndo', { cmd: result.undo || S.undoCommand })),
     p ? h('div.cgs', {}, changeGroups(c, p, result.failed)) : null,
-    h('details.paths', {}, h('summary', {}, t('paths')), h('pre', {}, result.changed.map((line) => {
+    h('details.paths', {}, h('summary', {}, t('paths')), h('pre', {}, (result.changed || []).map((line) => {
       const id = line.match(/\.claude\/skills\/([^/\s]+)/)?.[1];
       return id ? `${line}  — ${skillBy(S, id)?.title || ''}` : line;
     }).join('\n'))));

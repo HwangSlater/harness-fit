@@ -1,15 +1,14 @@
 // 셸 명령(Bash/PowerShell) 규칙: 위험 명령·명령줄 비밀번호·비밀값 커밋.
-import fs from 'node:fs';
-import path from 'node:path';
-import { git, addArgs } from '../lib/core.mjs';
+import { git, GIT, dataMasked } from '../lib/core.mjs';
 import { findSecrets, forbiddenFile } from '../lib/secrets.mjs';
+import { wipesEverything } from '../lib/delete.mjs';
+import { commitPlan } from '../lib/staged.mjs';
 
-const RM_TARGET = String.raw`(?:\/\*?|~\/?\*?|\$HOME\/?|\.{1,2}\/?|\*)`;
+// 위험 명령은 실행되지 않는 글(커밋 메시지·echo 인자)을 비운 명령에서 찾는다(dataMasked).
+// `bash -c "…"`·`eval "…"` 처럼 실행되는 따옴표 속은 그대로 본다.
 const DANGER = [
-  // rm -rf / · ~ · $HOME · . · .. · *
-  new RegExp(String.raw`\brm\s+(?:-[a-zA-Z]*(?:rf|fr)[a-zA-Z]*|-r\s+-f|-f\s+-r|--recursive\s+--force|--force\s+--recursive)\s+["']?${RM_TARGET}["']?(?=\s|$|;|&|\|)`),
-  // PowerShell: 드라이브 루트·홈을 통째로 지우기
-  /\bRemove-Item\b[^;|&\n]*-Recurse[^;|&\n]*\s["']?(?:[A-Za-z]:\\?|~|\$HOME|\$env:USERPROFILE)["']?(?=\s|$)/i,
+  // rm·Remove-Item·del·rd 등으로 루트·홈·지금 폴더를 통째로 지우기(정책은 lib/delete.mjs 맨 위)
+  wipesEverything,
   // 인터넷에서 받은 스크립트를 바로 실행
   /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^|\n]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b|\b(?:irm|Invoke-RestMethod)\b[^|\n]*\|\s*iex\b/i,
   /\bchmod\s+(?:-R\s+)?0?777\b/,
@@ -20,13 +19,14 @@ const DANGER = [
 export const dangerCmd = {
   id: 'danger-cmd',
   on: 'shell',
-  check({ cmd, t }) {
-    return DANGER.some((re) => re.test(cmd)) ? t('danger.cmd') : null;
+  check({ cmd, shell, t }) {
+    const view = dataMasked(cmd, shell);
+    return DANGER.some((d) => (typeof d === 'function' ? d(view) : d.test(view))) ? t('danger.cmd') : null;
   },
 };
 
 // 커밋하지 않은 변경을 날리는 명령은 작업 트리가 깨끗할 때만 둔다.
-const DISCARD = /\bgit\s+(?:-C\s+\S+\s+)?(?:reset\s+[^;&|\n]*--hard|clean\s+-[a-zA-Z]*f|checkout\s+(?:--\s+)?\.(?=\s|$)|restore\s+(?:--\S+\s+)*\.(?=\s|$))/;
+const DISCARD = new RegExp(GIT + String.raw`(?:reset\s+[^;&|\n]*--hard|clean\s+-[a-zA-Z]*f|checkout\s+(?:--\s+)?\.(?=\s|$)|restore\s+(?:--\S+\s+)*\.(?=\s|$))`);
 export const discardChanges = {
   id: 'danger-cmd',
   on: 'shell',
@@ -41,7 +41,8 @@ export const discardChanges = {
 
 const PASSWORD_ON_CLI = [
   /--password[= ](?!-?stdin)(?!["']?\$)\S+/i,
-  /\b(?:mysql|mysqldump|mysqladmin|mongo\w*)\b[^|;&\n]*\s-p(?!\s|$)(?!["']?\$)\S+/i,
+  // mysql 의 -p 는 비밀번호, -P 는 포트라 대소문자를 가린다.
+  /\b(?:mysql|mysqldump|mysqladmin|mongo\w*)\b[^|;&\n]*\s-p(?!\s|$)(?!["']?\$)\S+/,
   /\bsshpass\s+-p\s*(?!["']?\$)\S+/i,
   /\bcurl\b[^|;&\n]*\s-u\s+["']?[^\s:"'$]+:(?!\$)[^\s"']+/i,
   /\b(?:PGPASSWORD|MYSQL_PWD)=(?!["']?\$)\S+/,
@@ -54,31 +55,20 @@ export const passwordCli = {
   },
 };
 
-// 커밋에 비밀값·키 파일이 들어가는지. 이미 stage 한 것 + 같은 명령에서 add 하는 것.
+// 커밋에 비밀값·키 파일이 들어가는지. 무엇이 들어가는지는 lib/staged.mjs(commitPlan) 가 정한다.
+// 지우는 변경은 보지 않는다(저장소에서 .env 를 빼는 커밋은 통과).
 export const secretsCommit = {
   id: 'secrets',
   on: 'shell',
-  check({ cmd, cwd, root, opts, t }) {
-    if (!root || !/\bgit\s+(?:-C\s+\S+\s+)?commit\b/.test(cmd)) return null;
-    const adds = addArgs(cmd);
-    const staged = (git(root, ['diff', '--cached', '--name-only']) || '').split('\n').filter(Boolean);
-    const files = [...new Set([...staged, ...adds.map((f) => path.relative(root, path.resolve(cwd, f)).split(path.sep).join('/'))])];
-    const bad = files.map((f) => [f, forbiddenFile(f, opts.paths || [])]).filter(([, why]) => why);
+  check({ cmd, shell, cwd, root, opts, t }) {
+    if (!root) return null;
+    const plan = commitPlan(cmd, cwd, root, shell);
+    if (!plan) return null;
+    const bad = plan.files.map((f) => [f, forbiddenFile(f, opts.paths || [])]).filter(([, why]) => why);
     if (bad.length) return t('secrets.commitFile', { files: bad.map(([f, w]) => `${f}(${t(w)})`).join(', ') });
-    const cached = git(root, ['diff', '--cached', '-U0', '--no-color']) || '';
-    const pending = adds.length ? git(root, ['diff', '-U0', '--no-color', '--', ...adds.map((f) => path.resolve(cwd, f))]) || '' : '';
-    const added = `${cached}\n${pending}`.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
-    // 아직 추적하지 않는 새 파일은 diff 에 안 나오므로 내용을 직접 읽는다(1MB 미만만).
-    for (const f of adds) {
-      const abs = path.resolve(cwd, f);
-      if (git(root, ['ls-files', '--error-unmatch', '--', abs]) !== null) continue;
-      try {
-        const st = fs.statSync(abs);
-        if (st.isFile() && st.size < 1 << 20) added.push(fs.readFileSync(abs, 'utf8'));
-      } catch {}
-    }
-    const hits = findSecrets(added.join('\n'));
-    return hits.length ? t('secrets.commit', { hits: hits.join(', ') }) : null;
+    // 파일마다 경로와 함께 본다 — 쓰기 검사와 같이 테스트 파일은 대입 검사에서 뺀다.
+    const hits = [...plan.added].flatMap(([file, ls]) => findSecrets(ls.join('\n'), file));
+    return hits.length ? t('secrets.commit', { hits: [...new Set(hits)].join(', ') }) : null;
   },
 };
 

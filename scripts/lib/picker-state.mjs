@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { recommend, expandCombo, PLUGIN_ROOT } from './catalog.mjs';
 import { ruleTokens } from './tokens.mjs';
-import { UNDO_COMMAND } from '../apply.mjs';
+import { UNDO_COMMAND } from './backup.mjs';
 
 const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, rel), 'utf8'));
 

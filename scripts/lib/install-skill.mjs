@@ -21,7 +21,8 @@ const getBytes = async (url) => {
 const textCache = new Map();
 export const fetchSkillText = async ({ sources, skill, repo, maxChars }) => {
   const key = `${skill.repo}@${repo.sha}/${skill.path}`;
-  if (!textCache.has(key)) textCache.set(key, getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${skill.path}`).then((b) => b.toString('utf8')));
+  // 실패한 요청은 기억하지 않는다(잠깐 끊겼던 연결 때문에 계속 실패하지 않게).
+  if (!textCache.has(key)) textCache.set(key, getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${skill.path}`).then((b) => b.toString('utf8')).catch((e) => (textCache.delete(key), Promise.reject(e))));
   const text = await textCache.get(key);
   return text.length > maxChars ? `${text.slice(0, maxChars)}\n…` : text;
 };
@@ -29,36 +30,64 @@ export const fetchSkillText = async ({ sources, skill, repo, maxChars }) => {
 const treeCache = new Map();
 const repoTree = async (sources, repo, sha) => {
   const key = `${repo}@${sha}`;
-  if (!treeCache.has(key)) treeCache.set(key, getJson(`${sources.githubApi}/repos/${repo}/git/trees/${sha}?recursive=1`));
-  return treeCache.get(key);
+  if (!treeCache.has(key)) treeCache.set(key, getJson(`${sources.githubApi}/repos/${repo}/git/trees/${sha}?recursive=1`).catch((e) => (treeCache.delete(key), Promise.reject(e))));
+  const tree = await treeCache.get(key);
+  // 아주 큰 저장소는 목록이 잘려 온다. 일부만 받고 성공이라 하지 않는다.
+  if (tree.truncated) throw new Error(`파일 목록이 잘림: ${repo}`);
+  return tree;
 };
+
+// 스킬 폴더의 파일들. 저장소 맨 위에 있는 스킬(SKILL.md 가 루트)은 저장소 전체가 아니라 SKILL.md 하나만.
+const skillFiles = (tree, skillPath) => {
+  const dir = path.posix.dirname(skillPath);
+  const blobs = (tree.tree || []).filter((e) => e.type === 'blob');
+  return { dir, files: dir === '.' ? blobs.filter((e) => e.path === skillPath) : blobs.filter((e) => e.path.startsWith(`${dir}/`)) };
+};
+const TMP_PREFIX = '.harness-tmp-';
 
 // skill: 카탈로그 항목, repo: 카탈로그 저장소 항목(sha·license), dest: 설치할 폴더
 export const installSkill = async ({ sources, skill, repo, dest }) => {
-  const dir = path.posix.dirname(skill.path);
   const tree = await repoTree(sources, skill.repo, repo.sha);
-  const files = (tree.tree || []).filter((e) => e.type === 'blob' && e.path.startsWith(`${dir}/`));
-  if (!files.length) throw new Error(`파일 없음: ${skill.repo}/${dir}`);
+  const { dir, files } = skillFiles(tree, skill.path);
+  if (!files.length) throw new Error(`파일 없음: ${skill.repo}/${skill.path}`);
   if (files.length > MAX_FILES) throw new Error(`파일이 너무 많음(${files.length}개): ${skill.id}`);
   const total = files.reduce((s, f) => s + (f.size || 0), 0);
   if (total > MAX_BYTES) throw new Error(`너무 큼(${Math.round(total / 1024)}KB): ${skill.id}`);
 
-  const tmp = `${dest}.harness-tmp`;
+  // 받는 동안은 .claude/skills 바깥(같은 디스크의 .claude 아래)에 둔다. 반쯤 받은 폴더가 스킬로 읽히지 않게,
+  // 실패하면 지운다. 다 받은 뒤에만 바꿔 넣는다(원래 폴더는 그때까지 그대로).
+  const tmp = path.join(path.dirname(path.dirname(dest)), `${TMP_PREFIX}${skill.id}`);
   fs.rmSync(tmp, { recursive: true, force: true });
-  for (const f of files) {
-    const rel = f.path.slice(dir.length + 1);
-    const out = path.join(tmp, ...rel.split('/'));
-    if (!path.resolve(out).startsWith(path.resolve(tmp) + path.sep)) throw new Error(`잘못된 경로: ${f.path}`);
-    fs.mkdirSync(path.dirname(out), { recursive: true });
-    fs.writeFileSync(out, await getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${f.path}`));
+  try {
+    for (const f of files) {
+      const rel = dir === '.' ? f.path : f.path.slice(dir.length + 1);
+      const out = path.join(tmp, ...rel.split('/'));
+      if (!path.resolve(out).startsWith(path.resolve(tmp) + path.sep)) throw new Error(`잘못된 경로: ${f.path}`);
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, await getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${f.path}`));
+    }
+    fs.writeFileSync(
+      path.join(tmp, '.harness-source.json'),
+      JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: repo.license, installedAt: new Date().toISOString().slice(0, 10) }, null, 2) + '\n',
+    );
+    // 원래 폴더는 옆으로 치워 두었다가, 새 폴더가 자리를 잡은 뒤에 지운다.
+    // (Windows 에서 백신 등이 잡고 있어 바꿔 넣기가 실패하면 원래 폴더를 되돌려 놓는다.)
+    const old = `${tmp}-old`;
+    fs.rmSync(old, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    if (fs.existsSync(dest)) fs.renameSync(dest, old);
+    try {
+      fs.renameSync(tmp, dest);
+    } catch (e) {
+      if (fs.existsSync(old)) fs.renameSync(old, dest);
+      throw e;
+    }
+    // 바꿔 넣기는 끝났다. 옛 폴더를 못 지워도(Windows 에서 잡혀 있음) 받기는 성공이다. 남은 것은 다음 받기 때 지운다.
+    try {
+      fs.rmSync(old, { recursive: true, force: true });
+    } catch {}
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
   }
-  fs.writeFileSync(
-    path.join(tmp, '.harness-source.json'),
-    JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: repo.license, installedAt: new Date().toISOString().slice(0, 10) }, null, 2) + '\n',
-  );
-  // 다 받은 뒤에만 바꿔 넣는다(중간에 실패하면 원래 폴더가 그대로 남게).
-  fs.rmSync(dest, { recursive: true, force: true });
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.renameSync(tmp, dest);
   return { files: files.length, bytes: total };
 };

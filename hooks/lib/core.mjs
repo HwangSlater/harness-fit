@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { QUOTED_OR_WORD, GIT_CMD } from './cmdline.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CONFIG_FILE = path.join('.claude', 'harness.json');
@@ -81,28 +82,16 @@ export const translator = (lang) => (key, vars = {}) => {
   return text.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
 };
 
+// 명령줄 읽기 도우미는 cmdline.mjs 에 있다(규칙 파일이 core 하나만 불러도 되게 다시 내보낸다).
+export { GIT, SUB_END, BASH, POWERSHELL, shellOf, stripQuoted, shortFlags, splitWords, gitSegments, dataMasked } from './cmdline.mjs';
+
 // 명령이 도는 저장소: `cd 경로 &&` 나 `git -C 경로` 를 따른다.
 const unquote = (s) => s.replace(/^["']|["']$/g, '');
 export const commandCwd = (cmd, cwd) => {
   let dir = cwd;
   const cd = cmd.match(/(?:^|[;&|]\s*)cd\s+("[^"]+"|'[^']+'|\S+)\s*(?:&&|;)/);
   if (cd) dir = path.resolve(dir, unquote(cd[1]));
-  const dashC = cmd.match(/\bgit\s+-C\s+("[^"]+"|'[^']+'|\S+)/);
+  const dashC = cmd.match(new RegExp(String.raw`${GIT_CMD}(?:(?:-c\s+${QUOTED_OR_WORD}|--[\w-]+(?:=${QUOTED_OR_WORD})?|-[pP])\s+)*-C\s+(${QUOTED_OR_WORD})`));
   if (dashC) dir = path.resolve(dir, unquote(dashC[1]));
   return dir;
-};
-
-// `git add a b && git commit` 처럼 같은 명령 안에서 add 하는 파일들.
-export const addArgs = (cmd) => {
-  const out = [];
-  for (const m of cmd.matchAll(/\bgit\s+(?:-C\s+\S+\s+)?add\s+([^;&|\n]+)/g)) {
-    for (const tok of m[1].match(/"[^"]+"|'[^']+'|\S+/g) || []) if (!tok.startsWith('-')) out.push(unquote(tok));
-  }
-  return out;
-};
-
-// 명령에서 git 하위 명령 뒤의 인자 부분(다음 && ; | 전까지).
-export const gitSub = (cmd, sub) => {
-  const m = cmd.match(new RegExp(`\\bgit\\s+(?:-C\\s+\\S+\\s+)?${sub}\\b([^;&|\\n]*(?:<<[\\s\\S]*)?)`));
-  return m ? m[1] : null;
 };

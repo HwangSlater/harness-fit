@@ -43,13 +43,15 @@ export const expandCombo = (all, comboId, det) => {
     }
   }
   const known = new Set(all.catalog.skills.map((s) => s.id));
-  return { combo: comboId, skills: skills.filter((s) => known.has(s)), stackSkills: added, addons, hooks: [...combo.hooks], rules: [...combo.rules], flow: combo.flow };
+  // share: 팀원도 같은 플러그인을 쓰게 안내할지(팀·꼼꼼 조합 기본). 화면과 auto 가 같은 값을 쓴다.
+  return { combo: comboId, skills: skills.filter((s) => known.has(s)), stackSkills: added, addons, hooks: [...combo.hooks], rules: [...combo.rules], flow: combo.flow, share: !!combo.share };
 };
 
 // 감지 결과 → 추천 조합과 이유(사용자에게 보이는 한 줄들).
 export const recommend = (all, det, lang) => {
   const rule = all.combos.recommend.find((r) => holds(r.if, det));
-  const why = [fill(rule.why[lang] || rule.why.en, det)];
+  // 인원을 사용자가 알려 줬으면 커밋 기록에서 읽은 것처럼 쓰지 않는다.
+  const why = [det.hinted?.team ? (lang === 'ko' ? '여럿이 개발한다고 알려 주심' : 'You said several people will work on it') : fill(rule.why[lang] || rule.why.en, det)];
   const sel = expandCombo(all, rule.combo, det);
   if (sel.stackSkills.length) why.push(`${det.stack.join(' · ')} → ${sel.stackSkills.join(', ')}`);
   if (det.team && det.host === 'github') applyFlow(all, sel, 'github-flow');

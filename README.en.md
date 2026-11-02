@@ -11,7 +11,7 @@ It reads your repo and lets you pick the skills, hooks and rules that fit — on
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-d97757.svg)](#claude-code)
-![Skills](https://img.shields.io/badge/skills-81%20from%2033%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
+![Skills](https://img.shields.io/badge/skills-81%20from%2024%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
 ![Languages](https://img.shields.io/badge/UI-KO%20%C2%B7%20EN-555.svg)
 [![Local first](https://img.shields.io/badge/runs-locally-555.svg)](#your-data-stays-on-your-machine)
 
@@ -55,6 +55,8 @@ Then, in your project:
 ```
 /harness-fit:setup
 ```
+
+No need to describe your project: it reads the repo (package.json, recent committers, branches, CI). If there is nothing to read yet, such as a brand-new empty repo, it tells you a tailored recommendation isn't possible and asks whether to start from the default set or hear what you're building (e.g. "Next.js + Supabase, 3 people").
 
 When it's applied, Claude summarizes the result and continues with what's left (skills to install yourself, requests you typed on the screen).
 
@@ -111,7 +113,7 @@ Installing the plugin blocks nothing in projects without `.claude/harness.json`.
 
 ## How many tokens?
 
-Hooks cost 0. Skills keep only a name and one-line description until used. Measured on an example Next.js · TypeScript · Supabase repo:
+Hooks cost 0. Skills keep only a name and one-line description until used. Measured on an example Next.js · TypeScript · Supabase · GitHub Actions repo (skill counts include one skill you install yourself, React performance):
 
 | Combo | Skills · hooks | Per conversation |
 | --- | --- | --- |
@@ -124,7 +126,7 @@ The percentage is the share of what Claude can hold at once (200k tokens).
 
 ## Where do the skills come from?
 
-- 81 skills from 33 GitHub repositories with 1,000+ stars, updated within the last six months (`catalog/catalog.json`).
+- 81 skills from 24 GitHub repositories with 1,000+ stars, updated within the last six months (`catalog/catalog.json`).
 - A saved list goes stale, so every time the picker opens it reruns the same searches for **repositories that appeared after the catalog date** and lists them separately. They are not vetted, so nothing is installed; pick one and Claude reviews it after setup.
 - "Details" shows each skill's source, license, pinned commit and any executable files it contains.
 - Only permissively licensed skills (MIT, Apache-2.0, …) are copied; others link to their own install instructions.
@@ -138,6 +140,8 @@ Skills belong to their authors. The source is recorded in `.harness-source.json`
 ```
 
 Or `npx github:HwangSlater/harness-fit --undo`. Restores the state before the last apply.
+
+Files you edited after setup are not wiped: only the harness-fit block is taken out of CLAUDE.md and only its line out of `.gitignore`; other edited files are left as they are and listed.
 
 ## Your data stays on your machine
 

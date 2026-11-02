@@ -15,12 +15,14 @@
   "git.commitAll": "Do not use `git commit -a`. Add the files you changed, then commit.",
   "git.protectedCommit": "Do not commit directly to the protected branch ({branch}). Create one with `git switch -c feature/<name>`, commit there and merge through a PR.",
   "git.protectedForce": "Do not force-push to a protected branch. Fix things with a new commit instead of rewriting pushed history.",
+  "git.protectedDelete": "Do not delete the protected branch ({branch}) on the remote. If it really has to go, ask the user to do it themselves.",
   "git.protectedPush": "Do not push directly to a protected branch. Push a feature branch and open a PR.",
   "git.msgConventional": "Commit message is not in `type: description` form (\"{subject}\"). e.g. `feat: add login`, `fix(api): handle empty response`. Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.",
   "git.msgKorean": "Write commit messages in Korean.",
   "git.msgEnglish": "Write commit messages in English.",
   "git.msgLong": "Commit subject is {len} characters (max {max}). Put details in the body after a blank line.",
-  "git.branchName": "Branch name `{name}` does not match the convention. e.g. `feature/login`, `fix/empty-cart` (pattern: {pattern})",
+  "git.branchName": "Branch name `{name}` does not match the convention. e.g. {examples} (pattern: {pattern})",
+  "git.branchNameNoExample": "Branch name `{name}` does not match the convention. (pattern: {pattern})",
   "git.noVerify": "Do not skip pre-commit checks with `--no-verify`. Fix what the check reports instead.",
   "web.preferGh": "Read GitHub ({url}) with `gh` instead of scraping the page, e.g. `gh repo view`, `gh api repos/<owner>/<repo>/contents/<path>`, `gh issue view`."
 }
