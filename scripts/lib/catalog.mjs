@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withoutDups, dupHooks, dupSkills, PROBE_FLOW } from '../../picker/dup.js';
+import { ruleTexts } from './claude-md.mjs';
 
 export const PLUGIN_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, rel), 'utf8'));
@@ -25,18 +27,23 @@ const holds = (cond, det) => {
   return { '>': v > n, '<': v < n, '>=': v >= n, '<=': v <= n, '==': v === n }[m[2]];
 };
 
-// 조합 하나를 감지 결과에 맞춰 실제 선택으로 펼친다(스택 스킬 더하기).
+// 조합 하나를 감지 결과에 맞춰 실제 선택으로 펼친다(스택 스킬·언어별 훅 더하기).
 export const expandCombo = (all, comboId, det) => {
   const combo = all.combos.combos.find((c) => c.id === comboId);
   if (!combo) throw new Error(`없는 조합: ${comboId}`);
   const skills = [...combo.skills];
+  const hooks = [...combo.hooks];
   const added = [];
   const addons = []; // 화면에 「Next.js → React 성능 규칙」처럼 이유를 보여 주려고 남긴다
   if (combo.stackAddons) {
     for (const a of all.combos.stackAddons) {
       if (a.onlyIf && !a.onlyIf.includes(comboId)) continue;
+      // unless: 그 스택이 함께 있으면 넣지 않는다(파이썬 스킬이 pre-commit 을 따로 세워 두 번 깔리던 일 — 2026-11-05)
+      if (a.unless?.some((s) => det.stack.includes(s))) continue;
       const stacks = a.when.filter((s) => det.stack.includes(s));
       if (!stacks.length) continue;
+      // 언어별 훅(swift-unsafe 등)은 그 언어를 쓰는 저장소에서만 기본으로 켠다
+      for (const id of a.hooks || []) if (!hooks.includes(id)) hooks.push(id);
       const fresh = a.skills.filter((id) => !skills.includes(id));
       for (const id of fresh) skills.push(id), added.push(id);
       if (fresh.length) addons.push({ stacks, skills: fresh });
@@ -44,7 +51,17 @@ export const expandCombo = (all, comboId, det) => {
   }
   const known = new Set(all.catalog.skills.map((s) => s.id));
   // share: 팀원도 같은 플러그인을 쓰게 안내할지(팀·꼼꼼 조합 기본). 화면과 auto 가 같은 값을 쓴다.
-  return { combo: comboId, skills: skills.filter((s) => known.has(s)), stackSkills: added, addons, hooks: [...combo.hooks], rules: [...combo.rules], flow: combo.flow, share: !!combo.share };
+  const share = !!combo.share;
+  // base: 겹침을 빼기 전 조합 그대로(화면이 팀원 공유를 바꿀 때 다시 계산하려고 남긴다)
+  // 조합의 브랜치 방식이 켜고 끄는 훅도 여기서 맞춘다(pr-merge 처럼 브랜치 방식으로만 들어가는 훅 — 화면 defaultsFor 와 같은 범위)
+  const flowObj = all.packs.flows.find((f) => f.id === combo.flow) || null;
+  const flowHooks = [...hooks.filter((h) => !(flowObj?.hooksOff || []).includes(h)), ...(flowObj?.hooksOn || [])];
+  const base = { skills: skills.filter((s) => known.has(s)), hooks: [...new Set(flowHooks)] };
+  const kept = withoutDups(base, det.existing, known, share, flowObj);
+  const already = { hooks: dupHooks(det.existing, share, flowObj).filter((x) => base.hooks.includes(x.id)), skills: dupSkills(det.existing, known, share).filter((x) => base.skills.includes(x.id)) };
+  // covered: 같은 일을 하는 기존 훅이 있는 훅 전부 — 조합에 없던 훅도(브랜치 방식이 켜려 할 때 막고, 규칙 글을 「켜짐」 기준으로 만들려고)
+  const covered = dupHooks(det.existing, share, flowObj).map((x) => x.id);
+  return { combo: comboId, ...kept, base, already, covered, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules: [...combo.rules], flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {} };
 };
 
 // 감지 결과 → 추천 조합과 이유(사용자에게 보이는 한 줄들).
@@ -54,6 +71,12 @@ export const recommend = (all, det, lang) => {
   const why = [det.hinted?.team ? (lang === 'ko' ? '여럿이 개발한다고 알려 주심' : 'You said several people will work on it') : fill(rule.why[lang] || rule.why.en, det)];
   const sel = expandCombo(all, rule.combo, det);
   if (sel.stackSkills.length) why.push(`${det.stack.join(' · ')} → ${sel.stackSkills.join(', ')}`);
+  // 이미 있는 것과 겹쳐 뺀 것(auto 에서도 사용자가 알 수 있게)
+  const titles = readJson('catalog/titles.json');
+  const nameOf = (x, kind) => (kind === 'hook' ? all.packs.hooks.find((h) => h.id === x.id)?.name[lang] : titles[x.id]?.title?.[lang]) || x.id;
+  for (const [kind, list] of [['hook', sel.already.hooks], ['skill', sel.already.skills]]) {
+    for (const x of list) why.push(lang === 'ko' ? `이미 있음(${x.by.join(', ')}) → 「${nameOf(x, kind)}」 뺌` : `Already covered by ${x.by.join(', ')} → left out "${nameOf(x, kind)}"`);
+  }
   if (det.team && det.host === 'github') applyFlow(all, sel, 'github-flow');
   if (det.hasDevelop) {
     applyFlow(all, sel, 'git-flow');
@@ -71,9 +94,17 @@ export const labelsFor = (all, sel, lang) => {
     flow: name(all.packs.flows, sel.flow),
     skills: sel.skills.map((id) => titles[id]?.title?.[lang] || id),
     hooks: sel.hooks.map((id) => name(all.packs.hooks, id)),
-    rules: sel.rules.map((id) => name(all.packs.rules, id)),
+    // 이미 CLAUDE.md 에 있어 줄이 다 빠진 규칙은 「들어갔다」고 하지 않는다
+    rules: sel.lang ? Object.keys(ruleTexts(sel)).filter((id) => sel.rules.includes(id)).map((id) => name(all.packs.rules, id)) : sel.rules.map((id) => name(all.packs.rules, id)),
   };
 };
+
+// 지금 카탈로그에 있는 스킬·훅·규칙 id. 적용할 때 harness.json 에 남겨, 다음에 열 때 그 뒤로 새로 생긴 것을 가려낸다.
+export const catalogIds = (all) => ({
+  skills: all.catalog.skills.map((s) => s.id),
+  hooks: all.packs.hooks.map((h) => h.id),
+  rules: all.packs.rules.map((r) => r.id),
+});
 
 // 브랜치 방식을 바꾸면 거기에 딸린 훅도 켜고 끈다(정하지 않음 → 보호 브랜치·이름 규칙 끔 등).
 // 화면(picker/app.js)도 같은 packs.json 의 hooksOn/hooksOff 로 똑같이 한다.
@@ -81,6 +112,10 @@ export const applyFlow = (all, sel, flowId) => {
   const flow = all.packs.flows.find((f) => f.id === flowId);
   if (!flow) return sel;
   sel.flow = flowId;
-  sel.hooks = [...new Set([...sel.hooks.filter((h) => !flow.hooksOff.includes(h)), ...flow.hooksOn])];
+  // 이미 있는 훅이 같은 일을 하면 브랜치 방식이 켜려는 훅이라도 다시 켜지 않는다
+  // 시험 입력은 GitHub Flow 옵션 기준이라, 다른 방식이 옵션을 넣는 훅은 겹침에서 뺀다(picker/dup.js PROBE_FLOW)
+  if (flowId !== PROBE_FLOW) sel.covered = (sel.covered || []).filter((h) => !(h in (flow.hooks || {})));
+  const dup = new Set(sel.covered || []);
+  sel.hooks = [...new Set([...sel.hooks.filter((h) => !flow.hooksOff.includes(h)), ...flow.hooksOn.filter((h) => !dup.has(h))])];
   return sel;
 };

@@ -1,5 +1,6 @@
-## Git 전략: GitHub Flow
-- `main` 은 언제나 배포 가능한 상태로 둔다. 작업은 `feature/<이름>`·`fix/<이름>` 브랜치에서 하고 PR 로 합친다.
-- main 에 바로 커밋하면 훅이 막는다. 브랜치를 만들어 커밋한다. {{hook:protect-branch}}
-- PR 하나 = 기능 하나. 리뷰하기 힘들 만큼 커지면(대략 400줄 넘게) 나눈다.
-- 합칠 때는 커밋을 하나로 합쳐(squash merge) 넣고, 합친 브랜치는 지운다.
+## 브랜치 전략: GitHub Flow
+- `main` 은 늘 배포할 수 있게 둔다. {{judge}}
+- 작업은 브랜치에서 하고 PR 로 합친다. {{!hook:protect-branch}}
+- 브랜치 이름은 `feature/…`·`fix/…` 로 시작한다. {{!hook:branch-name}}
+- PR 하나에는 기능 하나(대략 400줄을 넘으면 나눈다). {{judge}}
+- squash 로 합치고, 합친 브랜치는 지운다. {{!hook:pr-merge}}

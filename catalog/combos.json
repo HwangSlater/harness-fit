@@ -1,5 +1,5 @@
 {
-  "_설명": "추천 조합. 조합은 '어떻게 일하나'로 나누고, 스택별 스킬은 stackAddons 로 감지 결과에 따라 자동으로 더한다(조합 수를 늘리지 않으려고).",
+  "_설명": "추천 조합. 조합은 '어떻게 일하나'로 나누고, 스택별 스킬과 언어별 훅(hooks)은 stackAddons 로 감지 결과에 따라 자동으로 더한다(조합 수를 늘리지 않으려고).",
   "combos": [
     {
       "id": "light",
@@ -8,7 +8,7 @@
         "en": "Light"
       },
       "desc": {
-        "ko": "안전장치 훅만. 문맥에 거의 안 들어간다",
+        "ko": "안전장치 훅만. 문맥에 거의 안 들어가요",
         "en": "Safety hooks only. Almost no context cost"
       },
       "skills": [],
@@ -19,6 +19,7 @@
         "password-cli"
       ],
       "rules": [
+        "commands",
         "lean"
       ],
       "flow": "none",
@@ -50,11 +51,17 @@
         "protected-files",
         "danger-cmd",
         "password-cli",
-        "prefer-gh"
+        "unsafe-html",
+        "gha-inject",
+        "prefer-gh",
+        "commit-hash",
+        "work-checklist"
       ],
       "rules": [
+        "commands",
         "lean",
-        "security"
+        "security",
+        "structure"
       ],
       "flow": "none",
       "stackAddons": true,
@@ -71,14 +78,14 @@
         "en": "Team"
       },
       "desc": {
-        "ko": "PR·리뷰·브랜치 규칙까지",
-        "en": "Adds PR, review and branch rules"
+        "ko": "PR·리뷰·브랜치 전략까지",
+        "en": "Adds PR, review and a branch strategy"
       },
       "skills": [
         "brainstorming",
         "writing-plans",
         "systematic-debugging",
-        "test-driven-development",
+        "tdd-lite",
         "verification-before-completion",
         "receiving-code-review",
         "pr-writer",
@@ -94,17 +101,25 @@
         "commit-msg",
         "branch-name",
         "no-verify",
-        "prefer-gh"
+        "unsafe-html",
+        "pin-deps",
+        "no-rewrite-pushed",
+        "gha-inject",
+        "prefer-gh",
+        "commit-hash",
+        "work-checklist"
       ],
       "rules": [
+        "commands",
         "lean",
         "security",
+        "structure",
         "collab"
       ],
       "flow": "github-flow",
       "stackAddons": true,
       "for": {
-        "ko": "여러 명이 PR로 코드를 합칠 때",
+        "ko": "여러 명이 PR로 코드를 병합할 때",
         "en": "Several people merge code through PRs"
       }
     },
@@ -129,7 +144,6 @@
         "pr-writer",
         "finishing-a-development-branch",
         "find-bugs",
-        "differential-review",
         "supply-chain-risk-auditor",
         "skill-scanner"
       ],
@@ -144,11 +158,20 @@
         "branch-name",
         "no-verify",
         "file-size",
-        "prefer-gh"
+        "unsafe-html",
+        "pin-deps",
+        "no-rewrite-pushed",
+        "gha-inject",
+        "prefer-gh",
+        "commit-hash",
+        "work-checklist",
+        "docs-check"
       ],
       "rules": [
+        "commands",
         "lean",
         "security",
+        "structure",
         "collab"
       ],
       "flow": "github-flow",
@@ -187,6 +210,9 @@
       ],
       "skills": [
         "swiftui-pro"
+      ],
+      "hooks": [
+        "swift-unsafe"
       ]
     },
     {
@@ -211,6 +237,9 @@
       ],
       "skills": [
         "modern-python"
+      ],
+      "hooks": [
+        "python-unsafe"
       ]
     },
     {
@@ -239,6 +268,9 @@
       "onlyIf": [
         "team",
         "strict"
+      ],
+      "unless": [
+        "Python"
       ]
     }
   ],

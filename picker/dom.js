@@ -22,10 +22,16 @@ function build(el, tag, props, kids) {
   return el;
 }
 
-// 선 아이콘(24×24, 선 굵기 2)
-export const icon = (d, size = 16) =>
-  s('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' },
-    s('path', { d }));
+// 선 아이콘: index.html 의 <symbol id="i-…"> 를 가져다 쓴다(꼴은 components.css 의 svg.i)
+export const icon = (id, cls = 'i') => s('svg', { class: cls, 'aria-hidden': 'true' }, s('use', { href: `#${id}` }));
 
-// 문구: {이름} 자리를 채운다
-export const fmt = (text, vars = {}) => String(text).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+// 문구: {이름} 자리를 채운다. {이름|하나일 때|여럿일 때} 는 그 값의 수로 낱말을 고른다(영어 단·복수 — 「1 instruction」·「2 instructions」).
+// 수는 Intl.PluralRules(lang) 로 가린다. 한국어 문구는 이 꼴을 쓰지 않는다(늘 other). 값이 「1,234」처럼 꾸민 글이어도 숫자만 본다.
+const plurals = new Map();
+const pluralOf = (lang, v) => {
+  if (!plurals.has(lang)) plurals.set(lang, new Intl.PluralRules(lang));
+  const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(/[^\d.-]/g, ''));
+  return plurals.get(lang).select(Number.isFinite(n) ? n : 0);
+};
+export const fmt = (text, vars = {}, lang = 'en') =>
+  String(text).replace(/\{(\w+)(?:\|([^|{}]*)\|([^|{}]*))?\}/g, (_, k, one, other) => (one === undefined ? vars[k] ?? '' : pluralOf(lang, vars[k]) === 'one' ? one : other));

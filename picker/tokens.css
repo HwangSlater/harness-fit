@@ -1,0 +1,87 @@
+/* 글꼴: Spoqa Han Sans Neo(SIL OFL 1.1, fonts/OFL.txt) — 국내 서비스에서 널리 쓰는 본문 글꼴. 한글 2,350자 묶음만 담은 파일 */
+@font-face { font-family: "Spoqa Han Sans Neo"; font-weight: 400; font-display: swap; src: url("fonts/SpoqaHanSansNeo-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Spoqa Han Sans Neo"; font-weight: 500; font-display: swap; src: url("fonts/SpoqaHanSansNeo-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Spoqa Han Sans Neo"; font-weight: 600 700; font-display: swap; src: url("fonts/SpoqaHanSansNeo-Bold.woff2") format("woff2"); }
+/* 값은 여기 한 곳에서만 정한다(GitHub Primer 바탕 값 — 시안 A2-6, DESIGN.md). 부품은 components.css, 짜임은 layout.css */
+:root {
+  /* 색 */
+  --ink: #1f2328;
+  --ink-2: #59636e;
+  --line: #d1d9e0;
+  --line-soft: #e1e6eb;
+  --canvas: #ffffff;
+  --subtle: #f6f8fa;
+  --hover: #eff2f5;
+  --accent: #0969da;
+  --accent-soft: #ddf4ff;
+  --accent-line: #54aeff;
+  --on-accent: #ffffff;
+  --neutral-mute: #818b98;
+  --track-off: #e6eaef;
+  --danger: #d1242f;
+  --warn-soft: #fff8c5;
+  --warn-line: #d4a72c;
+  --warn-ink: #7d4e00;
+  --info-soft: #ddf4ff;
+  --info-line: #54aeff;
+  --danger-soft: #ffebe9;
+  --top: #000000;
+  --top-ink: #ffffff;
+  --top-ink-2: #9198a1;
+  --top-line: #3d444d;
+  --top-hover: rgba(101, 108, 118, 0.28);
+  --counter-bg: rgba(129, 139, 152, 0.16);
+  --toast-bg: #1f2328;
+
+  /* 글꼴·글자 크기 */
+  --font: "Spoqa Han Sans Neo", -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --fs-q: 26px; --lh-q: 34px;      /* 단계 제목 */
+  --fs-lead: 14px; --lh-lead: 21px; /* 단계 설명 */
+  --fs-h: 16px; --lh-h: 24px;      /* 구획·창 제목 */
+  --fs-body: 14px; --lh-body: 20px;
+  --fs-sm: 12px; --lh-sm: 18px;
+  --fs-xs: 11px;                   /* 칩 안 작은 글 */
+  --fs-big: 24px; --lh-big: 30px;  /* 요약 카드 토큰 수 */
+
+  /* 간격 4/8/12/16/24/32 */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+
+  /* 모서리·그림자 */
+  --r: 6px;
+  --r-dlg: 12px; /* Primer 겹창(Dialog) 모서리 */
+  --shadow: 0 1px 1px rgba(31, 35, 40, 0.04), 0 1px 2px rgba(31, 35, 40, 0.03);
+  --shadow-btn: 0 1px 0 rgba(31, 35, 40, 0.04);
+  --shadow-dlg: 0 1px 3px rgba(31, 35, 40, 0.12), 0 8px 24px rgba(66, 74, 83, 0.12);
+  --scrim: rgba(31, 35, 40, 0.4);
+
+  /* 조작 크기 */
+  --tap: 44px;     /* 눌리는 넓이 */
+  --ctl: 32px;     /* 보이는 단추·칩 높이 */
+  --ctl-lg: 44px;  /* 큰 단추(다음·적용·창 아래) */
+  --field: 32px;   /* 입력칸·고르기 높이 */
+  --field-lg: 36px; /* 창 위 찾기 칸 */
+  --tgl-w: 32px; --tgl-h: 20px; --knob: 12px; /* 작은 스위치(Primer ToggleSwitch small) */
+
+  /* 짜임 */
+  --top-h: 64px;
+  --nav-h: 48px;
+  --cta-h: 72px;
+  --mbar-h: 52px;
+  --sum-w: 320px;
+  --page-max: 1312px;
+  --group-w: 136px;   /* 묶음 표 왼쪽 이름 칸 */
+  --dlg-w: 1040px;
+  --dlg-h: 86vh;
+  --dlg-nav-w: 220px; /* 창 왼쪽 묶음 목록 */
+  --dlg-gap: 16px;
+
+  --ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --t-fast: .08s;
+  --t: .14s;
+  --stale: .55;        /* 다시 계산 중인 값의 흐림 */
+  --pre-max: 360px;    /* 원문·경로 목록 상자 높이 */
+}
+@media (max-width: 860px) {
+  :root { --top-h: 56px; --fs-q: 22px; --lh-q: 30px; }
+}

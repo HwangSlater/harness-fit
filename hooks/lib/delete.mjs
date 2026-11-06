@@ -3,15 +3,17 @@
 // 막는 대상(rm·Remove-Item 모두 같은 정책):
 //   - 루트: / · /* · C: · C:\ · C:\* · \ · *
 //   - 홈: ~ · $HOME · ${HOME} · $env:USERPROFILE · %USERPROFILE% (와 그 아래 *)
-//   - 지금·위 폴더: . · .. · ./ · ./* · .\* · ../*
+//   - 지금·위 폴더: . · .. · ./ · ./* · .\* · ../* · .*(숨은 파일 전부)
 // ./build·node_modules·C:\work\tmp 처럼 이름 있는 하위 폴더는 둔다.
 // GNU rm 은 재귀(-r)와 강제(-f)가 둘 다 있을 때, PowerShell·cmd 는 재귀(-Recurse, /s)만 있어도 본다
 // (PowerShell 은 -Recurse 를 주면 하위 항목을 묻지 않고 지운다). -WhatIf 는 실제로 지우지 않으므로 둔다.
 import { GIT } from './cmdline.mjs';
 
 const ROOT_TARGET = /^(?:[A-Za-z]:)?[\\/]?\*?$/;
-const HOME_TARGET = /^(?:~|\$\{?HOME\}?|\$env:USERPROFILE|%USERPROFILE%)(?:[\\/]\*?)?$/i;
-const HERE_TARGET = /^\.{1,2}(?:[\\/]\*?)?$/;
+// ${HOME:?}·${HOME:-…} 처럼 기본값·검사를 붙인 꼴도 홈이다
+const HOME_TARGET = /^(?:~|\$HOME|\$\{HOME(?::?[-?=+][^}]*)?\}|\$env:USERPROFILE|\$env:HOME|%USERPROFILE%)(?:[\\/]\*?)?$/i;
+// 지금·위 폴더와 숨은 파일 전부(.* — .git 도 지운다)
+const HERE_TARGET = /^\.{1,2}(?:[\\/]\*?)?$|^\.\*$/;
 export const isWipeTarget = (x) => x !== '' && (ROOT_TARGET.test(x) || HOME_TARGET.test(x) || HERE_TARGET.test(x));
 
 // 위험 검사용 느슨한 낱말 나누기: 공백으로 자르고 앞뒤 따옴표·괄호를 뗀다(`bash -c "rm -rf /"` 의 `/"` 도 `/` 로).
@@ -93,5 +95,23 @@ const CHECKS = {
 // 앞이 글자·점·- 이면 다른 낱말의 일부다. `git rm`(저장소에서 빼기)은 셸 rm 이 아니다.
 const DELETE_CMD = new RegExp(String.raw`(?<![\w.\-$])(?<!${GIT})(rm|del|erase|ri|rd|rmdir|Remove-Item)(?=\s)([^;&|\n]*)`, 'gi');
 
+// PowerShell 파이프: `Get-ChildItem [대상] | Remove-Item -Recurse` — 대상이 없거나(지금 폴더) 통째 대상이면 지우기와 같다.
+const LIST_PIPE = /(?<![\w.\-$])(?:Get-ChildItem|gci|ls|dir)\b([^|;&\n]*)\|\s*(?:Remove-Item|rm|ri|del|erase|rd|rmdir)\b([^|;&\n]*)/gi;
+const LIST_VALUE = new Set(['-filter', '-include', '-exclude', '-depth']);
+const listTargets = (words) => {
+  const out = [];
+  for (let i = 0; i < words.length; i++) {
+    if (LIST_VALUE.has(words[i].toLowerCase())) i++;
+    else if (/^-path$|^-literalpath$/i.test(words[i])) out.push(words[++i] ?? '');
+    else if (!words[i].startsWith('-')) out.push(words[i]);
+  }
+  return out.length ? out : ['.'];
+};
+const pipedWipe = (cmd) =>
+  [...cmd.matchAll(LIST_PIPE)].some((m) => {
+    const filtered = /-(?:filter|include|exclude)\b/i.test(m[1]);
+    return !filtered && listTargets(looseWords(m[1])).some(isWipeTarget) && psRemove(looseWords(m[2]).concat('.'), false);
+  });
+
 export const wipesEverything = (cmd) =>
-  [...cmd.matchAll(DELETE_CMD)].some((m) => CHECKS[m[1].toLowerCase()](looseWords(m[2])));
+  [...cmd.matchAll(DELETE_CMD)].some((m) => CHECKS[m[1].toLowerCase()](looseWords(m[2]))) || pipedWipe(cmd);

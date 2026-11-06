@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { installSkill } from '../lib/install-skill.mjs';
+import { installSkill, setSkillName, reservedNames } from '../lib/install-skill.mjs';
+import { loadAll } from '../lib/catalog.mjs';
 
 const sources = { githubApi: 'api', rawBase: 'raw' };
 const repo = { sha: 'abc', license: 'MIT' };
@@ -18,6 +19,38 @@ const project = () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-install-'));
   return { root, dest: (id) => path.join(root, '.claude', 'skills', id) };
 };
+
+// 받은 스킬의 name 이 Claude Code 명령과 같으면 그 명령을 대신해 버린다(code.claude.com/docs/en/skills). 폴더 이름(카탈로그 id)으로 맞춘다.
+test('SKILL.md 의 name 을 폴더 이름으로 맞춘다: 겹치는 이름(security-review)도 바꾸고, 나머지 글·줄바꿈은 그대로', async () => {
+  const { root, dest } = project();
+  const md = '---\r\nname: security-review\r\ndescription: 보안 검토\r\n---\r\n\r\n# 본문 name: security-review\r\n';
+  const real = globalThis.fetch;
+  globalThis.fetch = (url) => Promise.resolve(url.includes('/git/trees/') ? ok({ tree: [{ type: 'blob', path: 'skills/security-review/SKILL.md', size: 10 }] }) : ok(md));
+  try {
+    await installSkill({ sources, repo, skill: { id: 'sentry-security-review', repo: 'o/sentry', path: 'skills/security-review/SKILL.md' }, dest: dest('sentry-security-review') });
+  } finally {
+    globalThis.fetch = real;
+  }
+  const got = fs.readFileSync(path.join(dest('sentry-security-review'), 'SKILL.md'), 'utf8');
+  assert.equal(got, md.replace('name: security-review\r\ndesc', 'name: sentry-security-review\r\ndesc'));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dest('sentry-security-review'), '.harness-source.json'), 'utf8')).renamedFrom, 'security-review');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('name 맞추기: 이미 같거나 머리말·name 이 없으면 그대로, 따옴표 친 이름도 읽는다', () => {
+  assert.deepEqual(setSkillName('---\nname: tdd-lite\n---\n', 'tdd-lite'), { text: '---\nname: tdd-lite\n---\n', from: null });
+  assert.deepEqual(setSkillName('# 머리말 없음\nname: x\n', 'a'), { text: '# 머리말 없음\nname: x\n', from: null });
+  assert.deepEqual(setSkillName('---\ndescription: d\n---\nname: x\n', 'a'), { text: '---\ndescription: d\n---\nname: x\n', from: null });
+  assert.deepEqual(setSkillName('---\nname: "tdd"\n---\n', 'tdd-lite'), { text: '---\nname: tdd-lite\n---\n', from: 'tdd' });
+});
+
+test('카탈로그 스킬 id 는 Claude Code 명령·번들 스킬 이름과 겹치지 않고, 겹치면 받지 않는다', async () => {
+  const names = reservedNames();
+  assert.ok(names.has('security-review') && names.has('simplify') && names.has('review'), '명령·번들 스킬·별칭이 목록에 있다');
+  assert.deepEqual(loadAll().catalog.skills.map((s) => s.id).filter((id) => names.has(id)), []);
+  await assert.rejects(installSkill({ sources, repo, skill: { id: 'simplify', repo: 'o/r', path: 'SKILL.md' }, dest: 'unused' }), /명령과 이름이 같음/);
+});
+
 
 test('저장소 맨 위의 스킬은 SKILL.md 하나만 받는다(저장소 전체가 아니라)', async () => {
   const { root, dest } = project();

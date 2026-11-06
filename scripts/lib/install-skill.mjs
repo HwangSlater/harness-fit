@@ -1,10 +1,31 @@
 // 카탈로그의 스킬 하나를 고정된 커밋에서 받아 프로젝트 .claude/skills/<id>/ 에 넣는다.
-// 받은 파일은 실행하지 않는다. 내용만 쓴다. 출처는 .harness-source.json 에 남긴다(라이선스 표시·업데이트 확인용).
+// 받은 파일은 실행하지 않는다. 내용만 쓴다(SKILL.md 머리말의 name 만 폴더 이름으로 맞춘다). 출처는 .harness-source.json 에 남긴다(라이선스 표시·업데이트 확인용).
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { PLUGIN_ROOT } from './catalog.mjs';
+
 const MAX_FILES = 80;
 const MAX_BYTES = 2 << 20; // 스킬 하나에 2MB
+
+// Claude Code 에 이미 있는 명령·번들 스킬 이름. 프로젝트 스킬이 같은 이름이면 그 명령을 대신해 버린다
+// (code.claude.com/docs/en/skills — 「Your skill replaces the bundled command」). 예: sentry 의 name: security-review → /security-review 가 바뀐다.
+let reserved;
+export const reservedNames = () =>
+  (reserved ??= new Set(JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'reserved-skill-names.json'), 'utf8')).names));
+
+// SKILL.md 머리말의 name 을 폴더 이름(카탈로그 id)으로 맞춘다. 명령 이름은 name 이 정하므로(없으면 폴더 이름)
+// 원래 이름이 Claude Code 명령과 겹치거나 화면에 보인 이름과 다르지 않게 한다. 바꾼 것은 from 으로 돌려준다(.harness-source.json 에 남김).
+// 머리말이나 name 줄이 없으면 그대로 둔다 — 그때는 폴더 이름이 곧 명령 이름이다.
+export const setSkillName = (text, name) => {
+  const m = text.match(/^(﻿?---\r?\n)([\s\S]*?)(\r?\n---[ \t]*(?:\r?\n|$))/);
+  const line = m?.[2].match(/^name:[ \t]*(.*)$/m);
+  if (!line) return { text, from: null };
+  const from = line[1].trim().replace(/^(["'])(.*)\1$/, '$2');
+  if (from === name) return { text, from: null };
+  const head = m[2].replace(/^name:[ \t]*.*$/m, `name: ${name}`);
+  return { text: `${m[1]}${head}${m[3]}${text.slice(m[0].length)}`, from };
+};
 
 const getJson = async (url) => {
   const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(20000) });
@@ -47,6 +68,7 @@ const TMP_PREFIX = '.harness-tmp-';
 
 // skill: 카탈로그 항목, repo: 카탈로그 저장소 항목(sha·license), dest: 설치할 폴더
 export const installSkill = async ({ sources, skill, repo, dest }) => {
+  if (reservedNames().has(skill.id)) throw new Error(`Claude Code 명령과 이름이 같음: ${skill.id}`);
   const tree = await repoTree(sources, skill.repo, repo.sha);
   const { dir, files } = skillFiles(tree, skill.path);
   if (!files.length) throw new Error(`파일 없음: ${skill.repo}/${skill.path}`);
@@ -58,17 +80,23 @@ export const installSkill = async ({ sources, skill, repo, dest }) => {
   // 실패하면 지운다. 다 받은 뒤에만 바꿔 넣는다(원래 폴더는 그때까지 그대로).
   const tmp = path.join(path.dirname(path.dirname(dest)), `${TMP_PREFIX}${skill.id}`);
   fs.rmSync(tmp, { recursive: true, force: true });
+  let renamedFrom = null;
   try {
     for (const f of files) {
       const rel = dir === '.' ? f.path : f.path.slice(dir.length + 1);
       const out = path.join(tmp, ...rel.split('/'));
       if (!path.resolve(out).startsWith(path.resolve(tmp) + path.sep)) throw new Error(`잘못된 경로: ${f.path}`);
       fs.mkdirSync(path.dirname(out), { recursive: true });
-      fs.writeFileSync(out, await getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${f.path}`));
+      let bytes = await getBytes(`${sources.rawBase}/${skill.repo}/${repo.sha}/${f.path}`);
+      if (rel === 'SKILL.md') {
+        const fixed = setSkillName(bytes.toString('utf8'), skill.id);
+        if (fixed.from !== null) { renamedFrom = fixed.from; bytes = Buffer.from(fixed.text, 'utf8'); }
+      }
+      fs.writeFileSync(out, bytes);
     }
     fs.writeFileSync(
       path.join(tmp, '.harness-source.json'),
-      JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: repo.license, installedAt: new Date().toISOString().slice(0, 10) }, null, 2) + '\n',
+      JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: repo.license, installedAt: new Date().toISOString().slice(0, 10), ...(renamedFrom !== null ? { renamedFrom } : {}) }, null, 2) + '\n',
     );
     // 원래 폴더는 옆으로 치워 두었다가, 새 폴더가 자리를 잡은 뒤에 지운다.
     // (Windows 에서 백신 등이 잡고 있어 바꿔 넣기가 실패하면 원래 폴더를 되돌려 놓는다.)

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
+import { detectCommands } from './lib/commands.mjs';
 
 const readJson = (f) => {
   try {
@@ -28,8 +29,9 @@ const git = (cwd, args) => {
 };
 
 // [표시 이름, 판정] — 판정은 (deps, has) → boolean
+// React 는 RN·Expo 앱이 아닐 때만(RN 앱에도 react 가 있어 웹용 React 스킬이 같이 들어가던 일 — 2026-11-05)
 const JS_STACKS = [
-  ['Next.js', (d) => d.next], ['React', (d) => d.react && !d.next], ['Vue', (d) => d.vue], ['Svelte', (d) => d.svelte],
+  ['Next.js', (d) => d.next], ['React', (d) => d.react && !d.next && !d['react-native'] && !d.expo], ['Vue', (d) => d.vue], ['Svelte', (d) => d.svelte],
   ['Angular', (d) => d['@angular/core']], ['React Native', (d) => d['react-native']], ['Expo', (d) => d.expo],
   ['Express', (d) => d.express], ['NestJS', (d) => d['@nestjs/core']], ['Electron', (d) => d.electron],
   ['TypeScript', (d) => d.typescript], ['Prisma', (d) => d.prisma || d['@prisma/client']], ['Tailwind', (d) => d.tailwindcss],
@@ -59,10 +61,13 @@ const TEAM_HINT_AUTHORS = 2; // 「여럿이 개발」이라고 했을 때 팀�
 export const withHints = (det, hints = {}) => {
   const known = new Map(KNOWN_STACKS.map((s) => [s.toLowerCase(), s]));
   const extra = (hints.stack || []).map((s) => known.get(s.toLowerCase())).filter((s) => s && !det.stack.includes(s));
-  if (!extra.length && !hints.team) return det;
+  const similar = hints.similar || [];
+  const skip = hints.skip || {};
+  const more = similar.length || Object.keys(skip).length ? { existing: { ...det.existing, similar }, skipLines: skip } : {};
+  if (!extra.length && !hints.team) return Object.keys(more).length ? { ...det, ...more } : det;
   const stack = [...det.stack, ...extra];
   const authors = hints.team ? Math.max(det.authors, TEAM_HINT_AUTHORS) : det.authors;
-  return { ...det, stack, kinds: kindsOf(stack), authors, team: authors > 1, hinted: { stack: extra, team: !!hints.team } };
+  return { ...det, ...more, stack, kinds: kindsOf(stack), authors, team: authors > 1, hinted: { stack: extra, team: !!hints.team } };
 };
 
 export const detect = (dir) => {
@@ -81,6 +86,7 @@ export const detect = (dir) => {
 
   const authors = git(root, ['shortlog', '-sne', '--since=6.months', 'HEAD']).split('\n').filter(Boolean).length;
   const remote = git(root, ['remote', 'get-url', 'origin']);
+  const cmds = detectCommands(root);
   return {
     root,
     name: pkg?.name || path.basename(root),
@@ -96,6 +102,9 @@ export const detect = (dir) => {
     defaultBranch: git(root, ['symbolic-ref', '--short', 'HEAD']) || 'main',
     hasDevelop: !!git(root, ['rev-parse', '--verify', '--quiet', 'develop']),
     hasTests: ['test', 'tests', '__tests__', 'spec'].some(has) || !!(deps.vitest || deps.jest || deps['@playwright/test']),
+    // 이 저장소의 시험·검사·빌드 명령(CLAUDE.md 지침 「이 저장소 명령」). listed: 사용자 CLAUDE.md 에 이미 있어 뺀 것
+    commands: cmds.commands,
+    commandsListed: cmds.listed,
     existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') },
   };
 };

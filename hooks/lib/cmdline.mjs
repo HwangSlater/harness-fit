@@ -10,7 +10,9 @@ export const QUOTED_OR_WORD = String.raw`(?:"[^"]*"|'[^']*'|\S+)`;
 const GIT_GLOBAL = String.raw`(?:-[Cc]\s+${QUOTED_OR_WORD}|--[\w-]+(?:=${QUOTED_OR_WORD})?|-[pP])`;
 // git 실행 파일: git · git.exe · git.cmd. 경로가 붙거나(`/usr/bin/git`, `"C:\Program Files\Git\bin\git.exe"`)
 // PowerShell 호출 연산자(`& git`)가 앞에 와도 같다.
-export const GIT_CMD = String.raw`\bgit(?:\.exe|\.cmd)?["']?\s+`;
+// 앞 git 의 옵션 값(`-c git`, `-C /x/git`, `--opt=git`)인 git 에서는 새로 시작하지 않는다 — 그러지 않으면
+// `git -c git -c git …` 처럼 값마다 다시 시작해 옵션 끝까지 읽느라 길이의 제곱만큼 걸렸다(2만 자에 2초, 10만 자에 100초 넘게).
+export const GIT_CMD = String.raw`(?<!=|-[Cc]\s+\S*)\bgit(?:\.exe|\.cmd)?["']?\s+`;
 export const GIT = String.raw`${GIT_CMD}(?:${GIT_GLOBAL}\s+)*`;
 // 하위 명령 이름의 끝. `\b` 는 `commit-graph` 의 `-` 앞에서도 끝나므로 `-` 까지 이어지면 다른 명령으로 본다.
 export const SUB_END = String.raw`(?![\w-])`;
@@ -18,6 +20,10 @@ export const SUB_END = String.raw`(?![\w-])`;
 const GIT_EXE_PATH = /^(?:.*[\\/])?git(?:\.exe|\.cmd)?$/i;
 const COMMAND_START = /[;&|\n(]/;
 const BLANK = /[ \t]/;
+
+// 줄 이어 쓰기 표시(따옴표 밖). 따옴표 속은 이미 비워져 있어 여기 걸리지 않는다.
+const CONTINUATION = { [BASH]: /\\\r?\n/g, [POWERSHELL]: /`\r?\n/g };
+const CONTINUATION_AT = { [BASH]: '\\', [POWERSHELL]: '`' };
 
 // 따옴표를 비울 때 채우는 글자. 공백·구분자·옵션 글자가 아니어야 한다(길이는 그대로 두어 위치를 맞춘다).
 const FILL = '_';
@@ -45,12 +51,18 @@ const atCommandStart = (cmd, open) => {
 const isGitExe = (cmd, span) => GIT_EXE_PATH.test(valueOf(cmd, span)) && atCommandStart(cmd, span.open);
 
 // 한 훅 프로세스 안에서 같은 (셸, 명령) 을 다시 읽지 않게 기억한다. 너무 쌓이면 비운다.
+// 명령 글 자체를 열쇠로 쓰고(글자를 이어 붙인 새 열쇠를 만들면 10MB 명령을 부를 때마다 다시 해시했다) 그 안에서 (셸, 종류) 로 나눈다.
 const CACHE_MAX = 256;
-const memo = (cache, key, make) => {
-  if (cache.has(key)) return cache.get(key);
-  if (cache.size >= CACHE_MAX) cache.clear();
+const memo = (cache, cmd, key, make) => {
+  let inner = cache.get(cmd);
+  if (!inner) {
+    if (cache.size >= CACHE_MAX) cache.clear();
+    inner = new Map();
+    cache.set(cmd, inner);
+  }
+  if (inner.has(key)) return inner.get(key);
   const value = make();
-  cache.set(key, value);
+  inner.set(key, value);
   return value;
 };
 const parsed = new Map();
@@ -58,11 +70,12 @@ const segmentsMemo = new Map();
 
 // { docs: heredoc 목록, spans, comments, bare: 따옴표 속·heredoc 본문·주석을 비운 명령 }
 const parse = (cmd, shell) =>
-  memo(parsed, `${shell}\0${cmd}`, () => {
+  memo(parsed, cmd, shell, () => {
     const docs = shell === BASH ? heredocs(cmd) : [];
     const { spans, comments } = scanQuotes(cmd, shell, new Map(docs.map((h) => [h.start, h.end])));
     const fills = spans.filter((s) => !isGitExe(cmd, s)).map(fillOf);
-    const bare = fillRanges(cmd, [...fills, ...docs.map((h) => [h.start, h.end]), ...comments]);
+    // 줄 이어 쓰기(bash `\` + 줄바꿈, PowerShell 백틱 + 줄바꿈)는 한 명령이다 — 공백으로 바꿔 다음 줄 옵션을 놓치지 않게.
+    const bare = fillRanges(cmd, [...fills, ...docs.map((h) => [h.start, h.end]), ...comments]).replace(CONTINUATION[shell] || CONTINUATION[BASH], (m) => ' '.repeat(m.length));
     return { docs, spans, comments, bare };
   });
 
@@ -71,29 +84,43 @@ const parse = (cmd, shell) =>
 export const stripQuoted = (cmd, shell = BASH) => parse(cmd, shell).bare;
 
 // 낱말 나누기. 따옴표는 벗기고 붙은 조각(`"+"main`)은 한 낱말로 잇는다. 주석은 뺀다.
+// 따옴표 밖 글자는 한 글자씩 잇지 않고 이어진 구간을 한 번에 잘라 붙인다(아주 긴 낱말에서 글자마다 새 글을 만들어 느렸다).
+const WS = /\s/;
 export const splitWords = (s, shell = BASH) => {
   const { spans, comments } = parse(s, shell);
+  const cont = CONTINUATION_AT[shell] || CONTINUATION_AT[BASH];
   const words = [];
   let cur = null;
+  let runFrom = -1; // 따옴표 밖 글자가 이어지기 시작한 자리
   let k = 0;
   let c = 0;
-  const flush = () => {
+  const endRun = (i) => {
+    if (runFrom === -1) return;
+    cur = (cur ?? '') + s.slice(runFrom, i);
+    runFrom = -1;
+  };
+  const flush = (i) => {
+    endRun(i);
     if (cur !== null) words.push(cur);
     cur = null;
   };
   for (let i = 0; i < s.length; i++) {
     if (spans[k] && i === spans[k].open) {
+      endRun(i);
       cur = (cur ?? '') + valueOf(s, spans[k]);
       i = spans[k].close;
       k++;
     } else if (comments[c] && i === comments[c][0]) {
-      flush();
+      flush(i);
       i = comments[c][1] - 1;
       c++;
-    } else if (/\s/.test(s[i])) flush();
-    else cur = (cur ?? '') + s[i];
+    } else if (s[i] === cont && (s[i + 1] === '\n' || (s[i + 1] === '\r' && s[i + 2] === '\n'))) {
+      flush(i);
+      i += s[i + 1] === '\r' ? 2 : 1;
+    } else if (WS.test(s[i])) flush(i);
+    else if (runFrom === -1) runFrom = i;
   }
-  flush();
+  flush(s.length);
   return words;
 };
 
@@ -114,7 +141,7 @@ export const shortFlags = (args, takesValue = '') => {
 // git 하위 명령(들)의 인자 부분(다음 && ; | 줄바꿈 전까지). 한 명령에 여러 번 나오면 모두.
 // start: 원래 명령에서 인자 부분의 시작 자리, bare: 따옴표 속을 비운 것(옵션 찾기용), raw: 원래 글, words: 따옴표를 벗긴 낱말.
 export const gitSegments = (cmd, sub, shell = BASH) =>
-  memo(segmentsMemo, `${shell}\0${sub}\0${cmd}`, () => {
+  memo(segmentsMemo, cmd, `${shell}\0${sub}`, () => {
     const re = new RegExp(GIT + `(?:${sub})` + SUB_END + String.raw`([^;&|\n]*)`, 'g');
     return [...stripQuoted(cmd, shell).matchAll(re)].map((m) => {
       const start = m.index + m[0].length - m[1].length;
@@ -122,6 +149,54 @@ export const gitSegments = (cmd, sub, shell = BASH) =>
       return { start, bare: m[1], raw, words: splitWords(raw, shell) };
     });
   });
+
+// 명령을 ; && || | & 줄바꿈 ( ) 로 나눈 조각들(따옴표 속·heredoc 본문은 나누지 않는다). 위치 순.
+// heredoc 끝 줄(EOF)은 앞 명령의 일부라 조각으로 내지 않는다.
+// { start, bare, raw, words } — start 는 원래 명령에서의 자리.
+const SEGMENT_BREAK = /[;&|\n()]/;
+export const commandSegments = (cmd, shell = BASH) =>
+  memo(segmentsMemo, cmd, `${shell}\0\0seg`, () => {
+    const { docs, bare } = parse(cmd, shell);
+    const skip = docs.map((h) => {
+      const next = cmd.indexOf('\n', h.end + 1);
+      return [h.end, next === -1 ? cmd.length : next];
+    });
+    const inDocEnd = (i) => skip.some(([s, e]) => i >= s && i < e);
+    const out = [];
+    let from = 0;
+    const flush = (to) => {
+      const raw = cmd.slice(from, to);
+      if (raw.trim() && !inDocEnd(from + raw.search(/\S/))) out.push({ start: from, bare: bare.slice(from, to), raw, words: splitWords(raw, shell) });
+    };
+    for (let i = 0; i <= bare.length; i++) {
+      if (i === bare.length || SEGMENT_BREAK.test(bare[i])) {
+        flush(i);
+        from = i + 1;
+      }
+    }
+    return out;
+  });
+
+// 따옴표 속 글을 다시 명령으로 실행하는 꼴: `bash -c "…"`, `sh -c '…'`, `eval "…"`, `pwsh -Command "…"`,
+// `Invoke-Expression "…"`·`iex '…'`, `cmd /c "…"`. 그 따옴표 속 명령과 그 명령을 읽을 셸을 돌려준다.
+// 규칙은 바깥 명령과 함께 이 안쪽 명령도 본다(따옴표 속이라 git 명령이 안 보이던 일을 막으려고).
+// 앞 옵션은 값을 하나 받을 수 있다(-ExecutionPolicy Bypass, -o pipefail)
+const INNER_BASH = /(?:\b(?:ba|z|da|k)?sh(?:\.exe)?\s+(?:-[A-Za-z]+\s+(?:[A-Za-z]\w*\s+)?)*-[A-Za-z]*c\s+|\beval\s+)$/;
+const INNER_PS = /(?:\b(?:pwsh|powershell)(?:\.exe)?\s+(?:-[A-Za-z]+\s+(?:[A-Za-z]\w*\s+)?)*-(?:c|Command)\s+|\b(?:iex|Invoke-Expression)\s+(?:-Command\s+)?|\bcmd(?:\.exe)?\s+\/[cCkK]\s+)$/i;
+const MAX_INNER_DEPTH = 3;
+export const innerCommands = (cmd, shell = BASH, depth = 0) => {
+  if (depth >= MAX_INNER_DEPTH) return [];
+  const { spans, bare } = parse(cmd, shell);
+  const out = [];
+  for (const s of spans) {
+    const before = bare.slice(Math.max(0, s.open - 80), s.open);
+    const inner = INNER_BASH.test(before) ? BASH : INNER_PS.test(before) ? POWERSHELL : null;
+    if (!inner) continue;
+    const body = valueOf(cmd, s);
+    out.push({ cmd: body, shell: inner }, ...innerCommands(body, inner, depth + 1));
+  }
+  return out;
+};
 
 // 위험 명령 찾기용: 실행되지 않는 글(echo·printf·Write-Host 인자, git commit/tag -m 메시지, gh pr/issue 본문,
 // cat heredoc 본문, 주석)을 비운다. `bash -c "…"`·`eval "…"`·`cmd /c "…"` 처럼 실행되는 글과 명령 치환
@@ -136,13 +211,17 @@ const DATA_CMD = new RegExp(
 );
 // 큰따옴표 안 명령 치환. PowerShell 의 백틱은 이스케이프라 치환이 아니다.
 const SUBSTITUTION = { [BASH]: /\$\(|`/, [POWERSHELL]: /\$\(/ };
-const CAT_BEFORE = /\bcat\s+$/;
+// heredoc 을 받는 명령(그 줄의 마지막 명령 첫 낱말)이 셸·실행기인지
+const HEREDOC_RUNNER = /^(?:sudo\s+)?(?:(?:ba|z|da|k)?sh|fish|pwsh|powershell|python[23]?|node|perl|ruby|php|eval|source|\.|xargs|ssh)\b/;
+const lastCommand = (before) => before.split(/[;&|\n(]/).pop().trim();
 
 export const dataMasked = (cmd, shell = BASH) => {
   if (PIPE_TO_SHELL.test(stripQuoted(cmd, shell))) return cmd;
   const substitution = SUBSTITUTION[shell] || SUBSTITUTION[BASH];
+  // heredoc 본문은 셸·실행기로 가지 않으면 글이다(cat > 파일, git commit -F -, gh pr create --body-file -).
+  // 따옴표 친 끝 표시(<<'EOF')면 치환도 없다. 따옴표 없는 끝 표시는 $(…) 가 없을 때만 글로 본다.
   const docs = parse(cmd, shell)
-    .docs.filter((h) => CAT_BEFORE.test(cmd.slice(0, h.op)) && (h.quotedDelim || !substitution.test(h.body)))
+    .docs.filter((h) => !HEREDOC_RUNNER.test(lastCommand(cmd.slice(0, h.op))) && (h.quotedDelim || !substitution.test(h.body)))
     .map((h) => [h.start, h.end]);
   const view = fillRanges(cmd, docs);
   const { spans, comments, bare } = parse(view, shell);

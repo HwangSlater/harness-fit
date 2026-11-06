@@ -1,13 +1,13 @@
 {
   "name": "harness-fit",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Find the skills, hooks and rules your project actually needs — a visual picker for Claude Code.",
   "type": "module",
   "bin": {
-    "harness-fit": "bin/harness-fit.js"
+    "harness-fit": "cli/harness-fit.js"
   },
   "files": [
-    "bin",
+    "cli",
     "scripts",
     "hooks",
     "picker",
@@ -21,7 +21,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node bin/harness-fit.js",
+    "start": "node cli/harness-fit.js",
     "test": "node --test hooks/test/*.test.mjs scripts/test/*.test.mjs"
   },
   "engines": {

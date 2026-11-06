@@ -1,6 +1,6 @@
 ## 협업
-- 커밋은 `타입: 설명` 형식으로 쓴다(예: `feat: 로그인 추가`). 형식이 틀리면 훅이 막는다. {{hook:commit-msg}}
-- 커밋 메시지만 보고 무엇을 왜 바꿨는지 알 수 있게 쓴다. {{!hook:commit-msg}}
-- 한 커밋에는 한 가지 이유의 변경만 — 리팩토링과 기능 추가를 섞지 않는다.
-- PR 설명에는 무엇을·왜·어떻게 확인했는지를 쓴다.
-- 이미 push 한 커밋은 다시 쓰지 않는다(rebase·amend 로 고치지 않고 새 커밋으로).
+- 커밋은 `타입: 설명` 형식으로 쓴다. {{!hook:commit-msg}}
+- 커밋엔 무엇을 왜 바꿨는지 쓰고, 한 가지 이유만 담는다. {{judge}}
+- PR 설명에는 무엇을·왜·어떻게 확인했는지 쓴다. {{!skill:pr-writer}}
+- 이미 push 한 커밋은 다시 쓰지 않는다. {{!hook:no-rewrite-pushed}}
+- 이미 push 한 커밋을 reset·filter-branch 로 고쳐 강제 push 하지 않는다. {{hook:no-rewrite-pushed}}

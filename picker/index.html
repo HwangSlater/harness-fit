@@ -1,15 +1,55 @@
 <!doctype html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self'; img-src 'self' data:">
   <title>harness-fit</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="layout.css">
 </head>
 <body>
-  <main id="main"></main>
-  <div class="bar" id="bar"></div>
+  <svg class="sprite" width="0" height="0" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 24 24"><path d="M5 4v16M19 4v16M5 12h14"/><circle cx="12" cy="12" r="2.2"/></symbol>
+    <symbol id="i-feather" viewBox="0 0 24 24"><path d="M20 4C11 4 6 10 6 18M6 18l-2 2M10 14h6M13 10h5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14c2.8 0 5 2.2 5 5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4 2 20h20z"/><path d="M12 10v4M12 17v.5"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-err" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16v.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-repo" viewBox="0 0 24 24"><path d="M5 19V5a2 2 0 0 1 2-2h12v14H7a2 2 0 0 0-2 2 2 2 0 0 0 2 2h12"/></symbol>
+    <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-8 3-11.5 8"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  </svg>
+  <a class="skip" href="#main" id="skip">본문으로 건너뛰기</a>
+  <header class="gh-top" id="top"></header>
+  <nav class="unav" id="unav"><ol id="tabs"></ol></nav>
+  <div class="page" id="page">
+    <main id="main" tabindex="-1"></main>
+    <aside class="sum" id="sum"></aside>
+  </div>
+  <div class="mbar" id="mbar" role="region"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog class="dlg" id="panel" aria-labelledby="panelTitle" aria-describedby="panelSub">
+    <div class="dlg-h">
+      <div><h2 id="panelTitle" tabindex="-1"></h2><p id="panelSub"></p></div>
+      <button class="xbtn" type="button" id="panelClose" data-key="panelClose" aria-label="닫기"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-tools" id="panelTools"></div>
+    <div class="dlg-b" id="panelBody"></div>
+    <div class="dlg-f" id="panelFoot"></div>
+  </dialog>
   <script type="module" src="app.js"></script>
 </body>
 </html>

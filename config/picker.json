@@ -6,5 +6,6 @@
   "contextTokens": 200000,
   "noteMaxChars": 2000,
   "skillPreviewChars": 12000,
-  "progressPollMs": 400
+  "progressPollMs": 400,
+  "githubTimeoutMs": 20000
 }

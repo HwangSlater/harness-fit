@@ -1619,7 +1619,8 @@
    "onUse": 3636,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "overlapsHook": "commit-msg"
   },
   {
    "id": "using-git-worktrees",

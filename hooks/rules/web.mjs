@@ -4,7 +4,7 @@ export const preferGh = {
   on: 'fetch',
   check({ input, t }) {
     const url = String(input.tool_input?.url || '');
-    return /^https?:\/\/(?:www\.)?github\.com\//i.test(url) ? t('web.preferGh', { url }) : null;
+    return /^https?:\/\/(?:www\.)?github\.com(?:[/?#:]|$)/i.test(url.trim()) ? t('web.preferGh', { url }) : null;
   },
 };
 

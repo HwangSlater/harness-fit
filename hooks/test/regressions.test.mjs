@@ -102,11 +102,14 @@ test('-am 묶음에서도 커밋 메시지를 꺼내 검사한다', () => {
   allows(['git commit -am "feat: add button"']);
 });
 
-test('비밀값: 허용 주석은 패턴 검사에도 듣고, 경로 모양 값은 비밀번호가 아니다', () => {
+test('비밀값: 허용 주석은 옵션을 켰을 때만 패턴 검사에도 듣고, 경로 모양 값은 비밀번호가 아니다', () => {
   setRules({ secrets: true });
   assert.equal(write('src/a.ts', `const k = "${FAKE_AWS}"`).length, 1);
-  assert.deepEqual(write('src/a.ts', `const k = "${FAKE_AWS}" // harness:allow secret 문서 예시`), []);
-  assert.equal(write('src/a.ts', `// harness:allow secret 다른 줄\nconst k = "${FAKE_AWS}"`).length, 1, '허용은 그 줄에만');
+  assert.equal(write('src/a.ts', `const k = "${FAKE_AWS}" // lint:allow secrets 문서 예시`).length, 1, '옵션을 안 켜면 받지 않는다');
+  setRules({ secrets: { allowComment: true } });
+  assert.deepEqual(write('src/a.ts', `const k = "${FAKE_AWS}" // lint:allow secrets 문서 예시`), []);
+  assert.equal(write('src/a.ts', `// lint:allow secrets 다른 줄\nconst a = 1;\nconst k = "${FAKE_AWS}"`).length, 1, '허용은 그 줄과 바로 아래 줄에만');
+  setRules({ secrets: true });
   // 키 이름과 값을 떼어 적는다(전역 비밀값 훅이 이 시험 파일 자체를 막지 않게).
   const PWD = (v) => 'pwd' + ' = "' + v + '"';
   assert.deepEqual(write('src/a.sh', PWD('/var/www/html')), []);
@@ -156,16 +159,19 @@ test('기본 브랜치 패턴은 packs.json 의 GitHub Flow 패턴과 같다', (
   assert.equal(flow.hooks['branch-name'].pattern, DEFAULT_BRANCH_PATTERN);
 });
 
-test('보안 규칙 문장은 켠 훅마다 따로 붙는다', () => {
+// 훅이 줄 전체를 다 막을 때만 그 줄이 빠진다(2026-11-06 사용자 원칙: 일부만 막는 훅이면 줄은 남는다 — 남는 부분만 적은 줄로 바꾼다)
+test('보안 규칙 문장은 다 막는 훅(pin-deps)이 켜질 때만 그 줄이 빠진다', () => {
   for (const lang of ['ko', 'en']) {
-    const onlySecrets = renderRule('security', lang, ['secrets']);
-    const onlyDanger = renderRule('security', lang, ['danger-cmd']);
+    const partial = renderRule('security', lang, ['secrets', 'danger-cmd', 'password-cli']);
+    const pinned = renderRule('security', lang, ['pin-deps']);
     const none = renderRule('security', lang, []);
     const lines = (s) => s.split('\n').length;
-    assert.ok(!/\{\{/.test(onlySecrets + onlyDanger + none), '표시가 남으면 안 된다');
-    assert.equal(lines(onlySecrets), lines(onlyDanger));
-    assert.equal(lines(onlySecrets), lines(none));
-    assert.notEqual(onlySecrets, onlyDanger);
-    assert.notEqual(onlySecrets, none);
+    assert.ok(!/\{\{/.test(partial + pinned + none), '표시가 남으면 안 된다');
+    assert.equal(lines(partial), lines(none), '적어 둔 꼴만 막는 훅은 줄을 지우지 않는다');
+    // pin-deps 는 package.json 만 보므로 「정확한 버전」 줄 대신 package.json 밖을 말하는 줄이 남는다
+    assert.equal(lines(pinned), lines(none));
+    assert.doesNotMatch(pinned, /정확한 버전으로 넣는다|at exact versions/);
+    assert.match(pinned, /requirements\.txt/);
+    assert.doesNotMatch(partial + pinned, /훅이 막|hook blocks/i, '「훅이 막는다」는 글로 적지 않는다');
   }
 });

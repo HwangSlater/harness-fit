@@ -1,5 +1,6 @@
-## Git strategy: GitHub Flow
-- Keep `main` deployable. Work on `feature/<name>` or `fix/<name>` branches and merge through PRs.
-- A hook blocks direct commits to main; create a branch first. {{hook:protect-branch}}
-- One PR = one change. Split it when it gets hard to review (roughly 400+ lines).
-- Squash-merge, then delete the merged branch.
+## Branch strategy: GitHub Flow
+- Keep `main` deployable at all times. {{judge}}
+- Work on branches and merge through PRs. {{!hook:protect-branch}}
+- Branch names start with `feature/…` or `fix/…`. {{!hook:branch-name}}
+- One feature per PR (split it at roughly 400 lines). {{judge}}
+- Squash-merge, then delete the merged branch. {{!hook:pr-merge}}

@@ -1,8 +1,9 @@
 ## 보안
-- 키·토큰 같은 비밀값을 파일에 쓰거나 커밋하는 것은 훅이 막는다. {{hook:secrets}}
-- 키·토큰은 코드에 쓰지 않고 환경 변수나 시크릿 저장소에서 읽는다. {{!hook:secrets}}
-- 시스템·홈 전체 삭제, 받은 스크립트 바로 실행 같은 위험한 명령은 훅이 막는다. {{hook:danger-cmd}}
-- 되돌릴 수 없는 명령(폴더 통째 삭제, 받은 스크립트 바로 실행, 777 권한)은 실행 전에 사용자에게 확인한다. {{!hook:danger-cmd}}
-- 사용자 입력은 경로·셸·SQL·HTML 에 그대로 넣지 않는다. 로그인이 필요한 곳에는 「내 것만 보이는지」 권한 검사를 둔다.
-- 로그·오류 메시지에 토큰·개인정보·내부 경로를 남기지 않는다.
-- 새 라이브러리는 유지보수 상태와 라이선스를 보고, 버전을 고정한다.
+- 키·토큰은 코드에 쓰지 않는다(환경 변수·시크릿 저장소). {{judge}}
+- 되돌릴 수 없는 명령은 실행 전에 묻는다. {{judge}}
+- 사용자 입력은 SQL·셸·파일 경로·HTML 에 그대로 넣지 않는다. {{!skill:security-and-hardening}}
+- 로그인이 필요한 곳에는 「내 것만 보이는지」 권한 검사를 둔다. {{!skill:security-and-hardening}}
+- 로그·오류 메시지에 비밀값·개인정보를 남기지 않는다. {{!skill:security-and-hardening}}
+- 새 라이브러리는 유지보수 상태·라이선스를 보고 고른다. {{!skill:supply-chain-risk-auditor|security-and-hardening}}
+- 의존성은 정확한 버전으로 넣는다. {{!hook:pin-deps}}
+- package.json 밖의 의존성(requirements.txt·pyproject.toml 등)도 버전을 고정한다. {{hook:pin-deps}}

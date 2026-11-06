@@ -66,6 +66,24 @@ test('조합에 적힌 스킬·훅은 모두 카탈로그에 있다', () => {
     for (const h of c.hooks) assert.ok(hooks.has(h), `${c.id}: 없는 훅 ${h}`);
   }
   for (const a of all.combos.stackAddons) for (const s of a.skills) assert.ok(skills.has(s), `stackAddons: 없는 스킬 ${s}`);
+  for (const a of all.combos.stackAddons) for (const h of a.hooks || []) assert.ok(hooks.has(h), `stackAddons: 없는 훅 ${h}`);
+});
+
+test('언어별 훅은 그 언어를 쓰는 저장소에서만 기본으로 켜진다(가볍게는 빼고), push 묶기·답 언어는 어디서도 기본 꺼짐', () => {
+  const det = (stack) => ({ stack, kinds: [], authors: 1, commits: 10, team: false, existing: {} });
+  assert.ok(expandCombo(all, 'solo', det(['iOS'])).hooks.includes('swift-unsafe'));
+  assert.ok(expandCombo(all, 'team', det(['Python'])).hooks.includes('python-unsafe'));
+  assert.ok(!expandCombo(all, 'solo', det([])).hooks.some((h) => h === 'swift-unsafe' || h === 'python-unsafe'));
+  assert.ok(!expandCombo(all, 'light', det(['iOS', 'Python'])).hooks.includes('swift-unsafe'));
+  for (const c of all.combos.combos) for (const id of ['squash-push', 'answer-lang']) assert.ok(!expandCombo(all, c.id, det(['iOS', 'Python'])).hooks.includes(id), `${c.id}: ${id}`);
+});
+
+test('조합에 적힌 규칙은 packs.json 에 있고 한국어·영어 글이 모두 있다', async () => {
+  const { renderRule } = await import('../lib/claude-md.mjs');
+  const rules = new Set(all.packs.rules.map((r) => r.id));
+  for (const c of all.combos.combos) for (const r of c.rules) assert.ok(rules.has(r), `${c.id}: 없는 규칙 ${r}`);
+  // 이 저장소 명령(commands)은 저장소에서 읽은 명령으로 채우는 글이라 명령을 하나 준다
+  for (const r of rules) for (const lang of ['ko', 'en']) assert.ok(renderRule(r, lang, [], [], [], { test: ['npm test'] }), `규칙 글 없음: rules/${r}.${lang}.md`);
 });
 
 test('미리보기는 파일을 바꾸지 않고, 되돌릴 것이 없으면 알린다', () => {
@@ -81,8 +99,9 @@ test('CLAUDE.md 문장은 실제로 켠 훅을 따른다', async () => {
   const { renderRule } = await import('../lib/claude-md.mjs');
   const on = renderRule('collab', 'ko', ['commit-msg']);
   const off = renderRule('collab', 'ko', []);
-  assert.match(on, /훅이 막는다/);
-  assert.doesNotMatch(off, /훅/);
+  assert.doesNotMatch(on, /타입: 설명/, '형식은 훅이 막으니 글로 적지 않는다');
+  assert.match(off, /타입: 설명/);
+  assert.doesNotMatch(on + off, /훅/);
   assert.doesNotMatch(on + off, /\{\{/);
   assert.match(renderRule('github-flow', 'ko', []), /PR 로 합친다/);
   assert.doesNotMatch(renderRule('github-flow', 'ko', []), /훅이 막는다/);

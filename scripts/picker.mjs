@@ -1,22 +1,25 @@
 // 고르기 화면을 띄운다. 브라우저에서 「적용」을 누르면 이 프로세스가 적용하고, 결과 JSON 을 출력한 뒤 끝난다.
 // Claude 는 이 출력 한 덩어리만 읽으면 된다(카탈로그 전체가 문맥에 들어가지 않음).
 // 보안: 127.0.0.1 에만 열고, 임의 포트, 데이터 요청은 일회용 토큰 헤더 — 다른 웹페이지가 보낸 요청은 거절한다.
-// 사용: node scripts/picker.mjs [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--no-open]
+// 사용: node scripts/picker.mjs [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--similar …] [--skip …] [--no-open]
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { detect, withHints } from './detect.mjs';
+import { withInstalled, withHookProbe } from './lib/existing.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { fresh } from './fresh.mjs';
 import { loadAll, PLUGIN_ROOT } from './lib/catalog.mjs';
-import { makeState, cleanSelection } from './lib/picker-state.mjs';
+import { makeState, cleanSelection, readHarnessConfig } from './lib/picker-state.mjs';
 import { fetchSkillText } from './lib/install-skill.mjs';
 import { plan, apply, ruleTexts } from './apply.mjs';
-
-const STATIC = { '/': 'index.html', '/app.js': 'app.js', '/view.js': 'view.js', '/parts.js': 'parts.js', '/dialogs.js': 'dialogs.js', '/dom.js': 'dom.js', '/style.css': 'style.css' };
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
+import { ruleDropped } from './lib/claude-md.mjs';
+import { pluginActive } from './lib/installed.mjs';
+import { offerAll } from './lib/github-settings.mjs';
+import { readStatic } from './lib/static.mjs';
+import { SHARED_KINDS } from '../picker/team.js';
 
 const args = process.argv.slice(2);
 const { lang, root, hints } = parseArgs(args);
@@ -24,10 +27,17 @@ const token = crypto.randomBytes(16).toString('hex');
 
 const all = loadAll();
 const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
-const ctx = { all, cfg, det: withHints(detect(root), hints) };
+// prev: 지난번 적용 때 남긴 .claude/harness.json(훅 옵션의 지난번 값과 지난번 선택). 없거나 깨졌으면 null → 추천에서 시작.
+// 이미 있는 훅·스킬과 겹치는 것은 기본에서 뺀다. 기존 훅 시험은 십몇 초 걸릴 수 있어(2026-11-06 이 PC 14.5초) 화면을 먼저 띄우고
+// 뒤에서 마저 한다 — 그동안 화면은 「이미 있는 훅을 확인하는 중…」이고 적용을 막는다. 답은 GET /api/existing(끝날 때까지 기다렸다 상태를 준다).
+const ctx = { all, cfg, prev: readHarnessConfig(root), det: withInstalled(withHints(detect(root), hints), root) };
+// 시험 준비(임시 저장소 만들기)에 git 을 몇 번 동기로 부르므로, 주소를 내고 브라우저를 연 뒤에 시작한다(server.listen 에서 startProbe).
+let startProbe;
+const hookProbe = new Promise((resolve) => (startProbe = resolve)).then(() => withHookProbe(ctx.det, root)).then((det) => (ctx.det = det));
 const rel = (p) => path.relative(root, p).split(path.sep).join('/');
 let progress = null; // 적용하는 동안 { done, total, current }
 let applying = false;
+let githubOffer = null; // GET /api/github 의 답(약속)
 
 const readBody = (req) =>
   new Promise((resolve, reject) => {
@@ -59,12 +69,18 @@ const touch = () => {
   idle = setTimeout(() => finish({ status: 'timeout' }), cfg.idleMinutes * 60e3);
 };
 
+const langOf = (url) => {
+  const l = url.searchParams.get('lang');
+  return l === 'ko' || l === 'en' ? l : lang;
+};
 const routes = {
-  'GET /api/state': (url) => {
-    const l = url.searchParams.get('lang');
-    return makeState(ctx, l === 'ko' || l === 'en' ? l : lang);
-  },
+  'GET /api/state': (url) => makeState(ctx, langOf(url)),
+  // 기존 훅 시험이 끝나면 그 결과를 넣은 상태(/api/state 와 같은 꼴). 끝나기 전에 부르면 끝날 때까지 기다린다.
+  'GET /api/existing': async (url) => (await hookProbe, makeState(ctx, langOf(url))),
   'GET /api/fresh': () => fresh(),
+  // GitHub 저장소 설정을 켤 수 있는지 + 브랜치 방식마다 바뀔 값(현재 → 새 값). gh 를 몇 번 부르므로 처음 한 번만 읽는다.
+  // ?refresh=1 은 「다시 확인」(오프라인·로그인 전이었을 때).
+  'GET /api/github': (url) => (url.searchParams.get('refresh') && (githubOffer = null), githubOffer ||=offerAll(root, all.packs.flows).catch(() => ({ offered: false, reason: 'error' }))),
   'GET /api/progress': () => progress || {},
   // 「원문 보기」: 카탈로그에 있는 스킬만, 고정 커밋의 SKILL.md 글.
   'GET /api/skill': async (url) => {
@@ -75,27 +91,28 @@ const routes = {
   },
   'POST /api/preview': async (url, req) => {
     const sel = cleanSelection(ctx, await readBody(req), lang);
-    const { changes, manual } = plan(root, sel, all);
-    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, ruleTexts: ruleTexts(sel) };
+    const active = pluginActive(root);
+    const { changes, manual, warnings, skipped, gitHookCmd } = plan(root, sel, all, { active });
+    // 지침 글은 적용과 같은 기준으로: 플러그인이 없으면 훅이 돌지 않으므로 「훅 꺼짐」 글(apply.mjs plan 과 같다)
+    const mdSel = active ? sel : { ...sel, hooks: [] };
+    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, warnings, skipped, gitHookCmd, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
   },
 };
 
 const server = http.createServer(async (req, res) => {
   touch();
   const url = new URL(req.url, 'http://127.0.0.1');
-  const send = (code, body, type = 'application/json; charset=utf-8') => {
-    res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
-    res.end(typeof body === 'string' ? body : JSON.stringify(body));
+  const send = (code, body, type = 'application/json; charset=utf-8', cacheControl = 'no-store') => {
+    res.writeHead(code, { 'Content-Type': type, 'Cache-Control': cacheControl, 'X-Content-Type-Options': 'nosniff' });
+    res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
   };
   // DNS 리바인딩 막기: 다른 이름으로 들어온 요청은 거절.
   if (req.headers.host !== `127.0.0.1:${server.address().port}`) return send(403, { error: 'forbidden' });
   try {
     // 화면 파일(공개된 플러그인 파일)은 토큰 없이. 데이터·적용은 사용자 지정 헤더의 토큰이 있어야 한다
     // (다른 사이트의 스크립트는 CORS 때문에 이 헤더를 붙여 보낼 수 없다).
-    if (req.method === 'GET' && STATIC[url.pathname]) {
-      const f = path.join(PLUGIN_ROOT, 'picker', STATIC[url.pathname]);
-      return send(200, fs.readFileSync(f, 'utf8'), TYPES[path.extname(f)]);
-    }
+    const file = req.method === 'GET' ? readStatic(url.pathname) : null;
+    if (file) return send(200, file.body, file.type, file.cacheControl);
     if (req.headers['x-harness-token'] !== token) return send(403, { error: 'forbidden' });
     const route = routes[`${req.method} ${url.pathname}`];
     if (route) return send(200, await route(url, req));
@@ -104,10 +121,15 @@ const server = http.createServer(async (req, res) => {
       if (applying) return send(409, { error: 'busy' });
       applying = true;
       try {
+        // 화면은 시험이 끝나기 전에 적용을 막지만, 다른 길로 들어온 요청도 시험이 끝난 뒤에 적용한다
+        await hookProbe;
         const sel = cleanSelection(ctx, await readBody(req), lang);
+        // 팀원 공유를 켰으면 팀원에게 닿게 할 일(화면 picker/team.js 와 같은 기준): 올릴 파일 · 열 때 설치 안내 · git 훅은 공유 안 됨
+        const shared = sel.share ? plan(root, sel, all).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : '')) : null;
         const result = await apply(root, sel, (p) => (progress = p));
         send(200, result);
-        return finish({ status: 'applied', root, selection: sel, ...result });
+        const teammates = shared && { commitAndPush: shared, installPromptOnOpen: `${all.sources.pluginRepo} ${all.sources.pluginRef}`, gitPreCommitShared: false, gitPreCommitHowTo: 'each teammate opens /harness-fit:setup on their PC and applies as is' };
+        return finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) });
       } finally {
         applying = false;
       }
@@ -134,4 +156,5 @@ server.listen(0, '127.0.0.1', () => {
   process.stderr.write(`${u}\n`);
   if (!args.includes('--no-open')) openBrowser(u);
   touch();
+  startProbe();
 });

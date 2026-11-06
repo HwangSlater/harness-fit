@@ -8,9 +8,9 @@ export const estimateTokens = (s) => {
 };
 
 // rules/<id>.<lang>.md 들의 토큰 수 { id: n }.
-// 조건 줄은 「훅 켜짐」 기준으로 센다(꺼짐 전용 줄은 뺀다). 정확한 값은 미리보기가 다시 계산한다.
-const OFF_ONLY = /\{\{!hook:[\w-]+\}\}/;
-const TAG = /\s*\{\{hook:[\w-]+\}\}/g;
+// 조건 줄은 「훅 켜짐」 기준으로 센다(꺼짐 전용 줄은 뺀다). 화면 타일은 이 어림값을 쓴다(실제 CLAUDE.md 글은 훅·스킬·빠진 줄에 따라 조금 다르다).
+const OFF_ONLY = /\{\{!(?:hook|skill):[\w|-]+\}\}/;
+const TAG = /\s*\{\{(?:(?:hook|skill):[\w|-]+|judge)\}\}/g;
 
 export const ruleTokens = (pluginRoot, lang) => {
   const out = {};

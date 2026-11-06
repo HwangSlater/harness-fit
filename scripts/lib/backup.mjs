@@ -8,6 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { extractBlock, setBlock } from './claude-md.mjs';
+import { MARKER, launcherText, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
 
 export const BACKUP_DIR = path.join('.claude', 'harness-backup');
 export const GITIGNORE_LINE = '.claude/harness-backup/';
@@ -17,7 +18,9 @@ const STAMP = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/; // new Date().toIS
 const UNDONE_SUFFIX = '.undone'; // 고친 모습을 남겨 둔 백업은 이름을 바꿔 다음 되돌리기 대상에서 뺀다
 const CLOCK_SKEW_MS = 60e3; // 시계 차이 허용. 이보다 미래인 백업은 심어 둔 것으로 본다
 // 적용이 만들 수 있는 경로(plan 과 같은 목록). 이 밖의 경로는 백업 목록에 있어도 건드리지 않는다.
-const ALLOWED = new Set(['.claude/harness.json', 'CLAUDE.md', '.claude/settings.json', '.claude/harness-request.md', '.gitignore']);
+// .git/ 안은 이 파일 하나만(커밋 때 다시 보는 git 훅, apply.mjs gitHookPlan). .git/hooks 의 다른 훅·설정은 목록에 있어도 건드리지 않는다.
+const GIT_HOOK_PATH = '.git/hooks/pre-commit';
+const ALLOWED = new Set(['.claude/harness.json', 'CLAUDE.md', '.claude/settings.json', '.claude/harness-request.md', '.gitignore', GIT_HOOK_PATH]);
 const SKILL_PATH = /^\.claude\/skills\/[\w-][\w.-]*$/; // 첫 글자가 점이면 안 된다(`.`·`..` 로 폴더 전체를 지우지 못하게)
 
 const posix = (p) => p.split(path.sep).join('/');
@@ -91,6 +94,12 @@ export const addEntries = ({ dir, manifest }, root, entries) => {
   writeManifest(dir, manifest);
 };
 
+// GitHub 저장소 설정을 바꿨으면 이전 값을 같은 목록에 남긴다(되돌리기가 읽는다 — scripts/lib/github-settings.mjs).
+export const recordGithub = ({ dir, manifest }, github) => {
+  manifest.github = github;
+  writeManifest(dir, manifest);
+};
+
 const tracked = (root, rel) => {
   try {
     return !!execFileSync('git', ['-C', root, 'ls-files', '--', rel], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -127,9 +136,25 @@ const withoutLine = (text, line) => text.split(/\r?\n/).filter((l) => l.trim() !
 const writeOrRemove = (abs, text) => (text.trim() ? fs.writeFileSync(abs, text) : fs.rmSync(abs, { force: true }));
 
 // 한 항목 되돌리기 → 'removed' | 'restored' | 'trimmed'(넣은 부분만 뺌) | 'saved'(고친 모습을 남기고 되돌림) | 'gone' | 'skipped'(믿을 수 없는 경로)
+// git 훅은 백업 폴더의 사본을 믿지 않는다(심어 둔 사본을 되살리면 다음 커밋 때 그 코드가 돈다).
+// 우리 표시가 있는 파일만 지우고, 「있던 우리 훅」은 지금 플러그인 경로로 새로 만든다. 표시가 없으면(사용자 훅) 건드리지 않는다.
+const undoGitHook = (abs, e) => {
+  const now = readText(abs);
+  if (now !== null && !now.includes(MARKER)) return 'skipped';
+  if (e.action === 'create') {
+    if (now === null) return 'gone';
+    fs.rmSync(abs, { force: true });
+    return 'removed';
+  }
+  fs.writeFileSync(abs, launcherText(PLUGIN_DIR));
+  fs.chmodSync(abs, 0o755);
+  return 'restored';
+};
+
 const undoEntry = (root, dir, e, savedDir) => {
   const abs = resolveAllowed(root, e.path);
   if (!abs) return 'skipped';
+  if (posix(e.path) === GIT_HOOK_PATH) return undoGitHook(abs, e);
   const original = e.action === 'create' ? null : path.join(dir, 'files', e.path);
   if (!fs.existsSync(abs) && !original) return 'gone';
   const edited = !!e.hash && fs.existsSync(abs) && fingerprint(abs) !== e.hash;
