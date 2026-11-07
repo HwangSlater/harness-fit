@@ -16,6 +16,7 @@ import { parseItemList } from '../picker/github-plan.js';
 import { cleanSelection } from './lib/picker-state.mjs';
 import { pluginActive } from './lib/installed.mjs';
 import { detectCommands } from './lib/commands.mjs';
+import { currentListing, planBudget } from './lib/skill-budget.mjs';
 import { spawnSync } from 'node:child_process';
 import { COMMIT_HOOK_IDS, gitHookState, launcherText, chainCommand, PLUGIN_DIR } from '../hooks/lib/git-hook.mjs';
 
@@ -106,8 +107,10 @@ export const requestFile = (note, date) =>
 //   git-hook-exists   남의 pre-commit 훅이나 core.hooksPath(husky·pre-commit·lefthook)가 있어 git 훅을 넣지 않았다
 //   git-hook-elsewhere 훅 폴더가 프로젝트 밖이라(git worktree·submodule) git 훅을 넣지 않았다
 //   — 둘 다 커밋 검사는 Claude Code 안(PreToolUse)에서 계속 돌고, gitHookCmd 를 그 훅에 이어 붙이면 git 훅으로도 돈다.
+//   skill-budget  늘 보는 스킬 목록이 예산의 80% 이상이 될 수 있다(새 스킬 설명이 먼저 빠짐) — 숫자와 줄일 스킬은 skillBudget
+// listing: 지금 스킬 목록(scripts/lib/skill-budget.mjs currentListing). 고르기 화면은 한 번 읽어 둔 것을 넘긴다.
 // skipped: 같은 이름의 폴더가 이미 있고 harness-fit 이 넣은 것이 아니라 건드리지 않은 스킬(retry 와 같은 규칙)
-export const plan = (root, sel, all = loadAll(), { active = pluginActive(root) } = {}) => {
+export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), listing, home } = {}) => {
   const changes = [];
   const warnings = [];
   const add = (p, kind, content) => changes.push({ path: p, kind, action: fs.existsSync(p) ? 'change' : 'create', content });
@@ -151,7 +154,11 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root) }
     const repo = all.catalog.repos.find((r) => r.repo === s.repo);
     return { skill: s.id, repo: s.repo, how: repo?.install || `claude plugin marketplace add ${s.repo}` };
   });
-  return { changes, manual, warnings, skipped, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
+  // 목록 예산: 새로 생기는 스킬 폴더만 더한다(있던 폴더를 고치는 것은 이미 지금 크기에 들어 있다)
+  const fresh = changes.filter((c) => c.kind === 'skill' && c.action === 'create').map((c) => c.skill);
+  const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}));
+  if (skillBudget.level !== 'ok') warnings.push('skill-budget');
+  return { changes, manual, warnings, skipped, skillBudget, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
 };
 
 // 스킬들을 차례로 받는다. 받지 못한 것은 failed 로 돌려준다(나머지는 계속 받는다).
@@ -177,9 +184,9 @@ const lineOf = (root, c) => `${c.action === 'create' ? '+' : '~'} ${rel(root, c.
 
 // onProgress({ done, total, current }) — 스킬을 받는 동안 화면에 진행을 보여 주려고.
 // gh: GitHub 설정에 쓸 실행기(시험이 가짜를 넣는다). sel.github 가 true 일 때만 GitHub 을 건드린다.
-export const apply = async (root, sel, onProgress = () => {}, { gh } = {}) => {
+export const apply = async (root, sel, onProgress = () => {}, { gh, listing } = {}) => {
   const all = loadAll();
-  const { changes, manual, warnings, skipped, gitHookCmd } = plan(root, sel, all);
+  const { changes, manual, warnings, skipped, gitHookCmd, skillBudget } = plan(root, sel, all, { listing });
   const saved = backup(root, changes);
   try {
     for (const c of changes.filter((x) => !x.skill)) {
@@ -205,11 +212,14 @@ export const apply = async (root, sel, onProgress = () => {}, { gh } = {}) => {
     changed: changes.filter((c) => !missed.has(c.skill)).map((c) => lineOf(root, c)),
     // 보고할 때 무엇이 스킬·훅·CLAUDE.md 규칙으로 들어갔는지 나눠 말하려고(SKILL.md). skills 는 실제로 받은 것만.
     labels: labelsFor(all, { ...sel, skills: installed }, sel.lang),
+    // 끝난 뒤 안내: 받은 스킬을 부르는 명령(이름 = 카탈로그 id — install-skill.mjs setSkillName)
+    skillCommands: installed.map((id) => `/${id}`),
     manual,
     failed,
     warnings,
     skipped,
     gitHookCmd,
+    ...(skillBudget.level !== 'ok' ? { skillBudget } : {}),
     undo: UNDO_COMMAND,
     ...(github ? { github } : {}),
   };
@@ -259,9 +269,9 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
     const sel = { ...cleanSelection({ all, cfg, det: { commands: detectCommands(root).commands } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
     const spec = all.packs.flows.find((f) => f.id === sel.flow)?.github;
     if (args.includes('--dry-run')) {
-      const { changes, manual, warnings, gitHookCmd } = plan(root, sel, all);
+      const { changes, manual, warnings, gitHookCmd, skillBudget } = plan(root, sel, all);
       // --dry-run --github-settings: 읽기만 해서(GET) 무엇이 바뀔지 보여 준다. 묻기 전에 Claude 가 이것으로 목록을 만든다.
-      (withGithub ? previewGithub(root, spec) : Promise.resolve(undefined)).then((github) => out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, gitHookCmd, ...(github ? { github } : {}) }));
+      (withGithub ? previewGithub(root, spec) : Promise.resolve(undefined)).then((github) => out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, gitHookCmd, ...(skillBudget.level !== 'ok' ? { skillBudget } : {}), ...(github ? { github } : {}) }));
     } else apply(root, sel).then(out);
   }
 }

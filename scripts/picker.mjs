@@ -17,6 +17,7 @@ import { fetchSkillText } from './lib/install-skill.mjs';
 import { plan, apply, ruleTexts } from './apply.mjs';
 import { ruleDropped } from './lib/claude-md.mjs';
 import { pluginActive } from './lib/installed.mjs';
+import { currentListing } from './lib/skill-budget.mjs';
 import { offerAll } from './lib/github-settings.mjs';
 import { readStatic } from './lib/static.mjs';
 import { SHARED_KINDS } from '../picker/team.js';
@@ -31,6 +32,9 @@ const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.
 // 이미 있는 훅·스킬과 겹치는 것은 기본에서 뺀다. 기존 훅 시험은 십몇 초 걸릴 수 있어(2026-11-06 이 PC 14.5초) 화면을 먼저 띄우고
 // 뒤에서 마저 한다 — 그동안 화면은 「이미 있는 훅을 확인하는 중…」이고 적용을 막는다. 답은 GET /api/existing(끝날 때까지 기다렸다 상태를 준다).
 const ctx = { all, cfg, prev: readHarnessConfig(root), det: withInstalled(withHints(detect(root), hints), root) };
+// 지금 스킬 목록 크기(늘 보는 이름 + 설명). 미리보기마다 수백 개 파일을 다시 읽지 않게 한 번만 읽는다(이 PC 에서 플러그인 하나 406개 · 0.4초).
+let listing;
+const listingNow = () => (listing ||= currentListing(root, { contextTokens: cfg.contextTokens }));
 // 시험 준비(임시 저장소 만들기)에 git 을 몇 번 동기로 부르므로, 주소를 내고 브라우저를 연 뒤에 시작한다(server.listen 에서 startProbe).
 let startProbe;
 const hookProbe = new Promise((resolve) => (startProbe = resolve)).then(() => withHookProbe(ctx.det, root)).then((det) => (ctx.det = det));
@@ -92,10 +96,10 @@ const routes = {
   'POST /api/preview': async (url, req) => {
     const sel = cleanSelection(ctx, await readBody(req), lang);
     const active = pluginActive(root);
-    const { changes, manual, warnings, skipped, gitHookCmd } = plan(root, sel, all, { active });
+    const { changes, manual, warnings, skipped, gitHookCmd, skillBudget } = plan(root, sel, all, { active, listing: listingNow() });
     // 지침 글은 적용과 같은 기준으로: 플러그인이 없으면 훅이 돌지 않으므로 「훅 꺼짐」 글(apply.mjs plan 과 같다)
     const mdSel = active ? sel : { ...sel, hooks: [] };
-    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, warnings, skipped, gitHookCmd, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
+    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, warnings, skipped, gitHookCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
   },
 };
 
@@ -125,8 +129,8 @@ const server = http.createServer(async (req, res) => {
         await hookProbe;
         const sel = cleanSelection(ctx, await readBody(req), lang);
         // 팀원 공유를 켰으면 팀원에게 닿게 할 일(화면 picker/team.js 와 같은 기준): 올릴 파일 · 열 때 설치 안내 · git 훅은 공유 안 됨
-        const shared = sel.share ? plan(root, sel, all).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : '')) : null;
-        const result = await apply(root, sel, (p) => (progress = p));
+        const shared = sel.share ? plan(root, sel, all, { listing: listingNow() }).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : '')) : null;
+        const result = await apply(root, sel, (p) => (progress = p), { listing: listingNow() });
         send(200, result);
         const teammates = shared && { commitAndPush: shared, installPromptOnOpen: `${all.sources.pluginRepo} ${all.sources.pluginRef}`, gitPreCommitShared: false, gitPreCommitHowTo: 'each teammate opens /harness-fit:setup on their PC and applies as is' };
         return finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) });

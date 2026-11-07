@@ -74,7 +74,7 @@ One question per screen. The step tabs at the top and the "Your picks" summary o
 1. **How much should Claude help?** (combo & branch strategy) Light · Solo · Team · Thorough. "What it turns on" on each card previews its skills, hooks and instructions. Stack-specific skills (React, Supabase, GitHub Actions…) are added automatically. Below the combos you pick a **branch strategy** (GitHub Flow · Git Flow · Trunk-based · None); the related hooks follow your choice.
 2. **Which skills should go in?** Click chips to turn skills on or off in each stage: plan → design & UI → build → test & debug → review & security → ship. "Also recommended" is matched to your stack; "See all skills" searches all 81.
 3. **Which mistakes should be blocked?** The 23 hooks in 6 groups (Secrets & danger / Git history / Code / Per language / Way of working / Saving tokens). "Details" shows what each one blocks and its options. "Blocking only" turns on just the hooks that block a command or file write and turns off the notice-only ones (Report commit hashes, Work checklist, Answer language).
-4. **Which instructions go into CLAUDE.md?** The exact text that will be written, matched to the hooks you turned on, is previewed on the right (short / full). The top block, **"Commands in this repo"**, lists the test, lint, type-check, format and build commands read from package.json scripts (using pnpm, yarn or bun when their lockfile is there), Makefile, pyproject (pytest, ruff, mypy, tox, hatch), Cargo and go.mod. Only what the repo really has goes in; if nothing is found, or your CLAUDE.md already lists them, it is left out. Turning on a chip under "Hooks that take over a line" lets that hook enforce the rule, so the overlapping line is dropped; "Show removed lines" shows lines dropped because a hook or skill covers them (or your CLAUDE.md already says it), struck through with the reason.
+4. **Which instructions go into CLAUDE.md?** The exact text that will be written, matched to the hooks you turned on, is previewed on the right (short / full). The top block, **"Commands in this repo"**, lists the test, lint, type-check, format and build commands read from package.json scripts (using pnpm, yarn or bun when their lockfile is there), Makefile, pyproject (pytest, ruff, mypy, tox, hatch), Cargo and go.mod. Only what the repo really has goes in; if nothing is found, or your CLAUDE.md already lists them, it is left out. When the test runner is certain (vitest, jest, Playwright, bun, node --test, pytest, cargo, go), a "One test only" command is added too. Turning on a chip under "Hooks that take over a line" lets that hook enforce the rule, so the overlapping line is dropped; "Show removed lines" shows lines dropped because a hook or skill covers them (or your CLAUDE.md already says it), struck through with the reason. Confusing spots, decisions that aren't in the repo and anything you've corrected twice are things Claude can't learn by reading the repo — write them yourself outside the harness-fit markers (e.g. "`src/legacy/` is still used, but new code doesn't follow it.").
 5. **Anything else?** Write "commit messages in English" and Claude applies it after setup.
 6. **Apply this?** Every pick has a "Change" link back to its step, and you see what gets added where. Only the "Apply" button on this step applies (the summary card's "Review before applying" brings you here).
 
@@ -226,16 +226,18 @@ Installing the plugin does nothing in projects without `.claude/harness.json` (t
 
 ## How many tokens?
 
-Hooks cost 0. Skills keep only a name and one-line description until used. These are the "Read every conversation" numbers from the picker's summary card for an example Next.js · TypeScript · Supabase · GitHub Actions repo (test, lint, typecheck and build scripts in package.json) (skill one-liners + CLAUDE.md instructions, roughly 4 English characters per token). Skill counts include one skill you install yourself (React performance).
+Hooks cost 0. Skills keep only a name and one-line description until used. These are the "Read every conversation" numbers from the picker's summary card for an example Next.js · TypeScript · Supabase · GitHub Actions repo (test (vitest), lint, typecheck and build scripts in package.json) (skill one-liners + CLAUDE.md instructions, roughly 4 English characters per token). Skill counts include one skill you install yourself (React performance).
 
 | Combo | Skills · hooks · instructions | Per conversation |
 | --- | --- | --- |
-| Light | 0 · 4 · 2 | ~83 tokens (0.0%) |
-| Solo | 9 · 9 · 4 | ~891 tokens (0.4%) |
-| Team | 13 · 17 · 6 | ~1,187 tokens (0.6%) |
-| Thorough | 16 · 19 · 6 | ~1,408 tokens (0.7%) |
+| Light | 0 · 4 · 2 | ~81 tokens (0.0%) |
+| Solo | 9 · 9 · 4 | ~909 tokens (0.5%) |
+| Team | 13 · 17 · 6 | ~1,211 tokens (0.6%) |
+| Thorough | 16 · 19 · 6 | ~1,432 tokens (0.7%) |
 
 The percentage is the share of what Claude can hold at once (200k tokens). The instruction counts include "Commands in this repo", and the 6 in Team and Thorough also include the branch strategy (GitHub Flow).
+
+**Skill listing budget**: the list of skill names and descriptions Claude always sees has a budget (8,000 characters by default, per the docs). Over it, newly added skills lose their descriptions first, so Claude may not pick them on its own (`/name` still works). The review step counts your user, project and enabled-plugin skills on this machine plus the new ones; at 80% of the budget or more it shows the numbers and a "Trim to recommended" button. Raising the budget (`skillListingBudgetFraction`) is explained, never changed for you. After setup, the Skills line in `/context` shows the real size.
 
 ## Where do the skills come from?
 

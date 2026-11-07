@@ -233,6 +233,14 @@ html.dlg-open { overflow: hidden; }
 .flash.info { border-color: var(--info-line); background: var(--info-soft); }
 .flash > .btn { flex: none; align-self: center; }
 .flash b { display: block; font-weight: 600; }
+/* 스킬 목록 예산 알림: 숫자 줄 · 고를 수 있는 두 가지 */
+.flash .sp > p + p, .flash .bopts { margin-top: var(--s2); }
+.flash .bnums { color: var(--ink); font-variant-numeric: tabular-nums; }
+.bopts { display: grid; gap: var(--s2); }
+.bopt { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3); }
+.bopt > p { flex: 1 1 220px; min-width: 0; }
+.cmds { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); margin-bottom: var(--s1); }
+.cmds code { padding: 2px 6px; border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--subtle); }
 .notes { display: grid; gap: var(--s2); margin-bottom: var(--s4); }
 .stale { opacity: var(--stale); transition: opacity var(--t) var(--ease); }
 .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--on-accent); }

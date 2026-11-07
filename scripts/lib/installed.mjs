@@ -43,7 +43,8 @@ const frontmatter = (file) => {
 
 const skillsIn = (dir) => {
   let names = [];
-  try { names = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch { return []; }
+  // 링크(심볼릭 링크·정션)로 둔 스킬 폴더도 센다 — 가리키는 곳에 SKILL.md 가 있는지는 아래에서 본다
+  try { names = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() || d.isSymbolicLink()).map((d) => d.name); } catch { return []; }
   return names.map((n) => ({ folder: n, dir: path.join(dir, n) })).filter((s) => fs.existsSync(path.join(s.dir, 'SKILL.md')));
 };
 

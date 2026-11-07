@@ -4,8 +4,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { setBlock } from './claude-md.mjs';
+import { userRulesText } from './user-rules.mjs';
 
-export const COMMAND_KINDS = ['test', 'lint', 'typecheck', 'format', 'build'];
+// testOne: 시험 파일(또는 이름) 하나만 돌리는 명령. 자리표시 `<file>`·`<name>` 은 지침 글이 그 언어 말로 바꾼다.
+export const COMMAND_KINDS = ['test', 'testOne', 'lint', 'typecheck', 'format', 'build'];
 const MAX_PER_KIND = 3; // 한 줄에 너무 많이 늘어놓지 않게(모노레포 등)
 const MAX_READ = 512 * 1024; // 설정 파일은 이 정도면 충분하다(더 크면 앞부분만)
 
@@ -47,6 +49,27 @@ const runScript = (pm, name) => {
   return name === 'test' ? `${pm} test` : `${pm} run ${name}`;
 };
 
+// 시험 하나만: test 스크립트가 시험 도구 하나를 그대로 부를 때만 안다(&&·파이프·환경 변수 앞붙이·설정 경로 옵션이 있으면 모른다 —
+// 도구를 바로 부르면 그 옵션이 빠져 다르게 돌 수 있다). 각 도구 문서의 「파일 하나」 꼴:
+//   vitest run <파일 이름 거르기>(vitest.dev/guide/cli) · jest <경로 꼴>(jestjs.io/docs/cli) · playwright test <파일>(playwright.dev/docs/running-tests)
+//   bun test ./<경로>(bun.sh/docs/cli/test) · node --test <파일>(nodejs.org/api/test.html).
+//   mocha 는 뺐다 — 명령줄 파일이 .mocharc 의 spec 에 더해져 다른 시험도 함께 돈다(mochajs.org/running/configuring, 2026-11-07 확인).
+const EXEC = { npm: 'npx', pnpm: 'pnpm exec', yarn: 'yarn', bun: 'bunx' };
+const CONFIG_FLAG = /^(?:-c|--config|--root|--rootDir|--dir|--project|--projects|--workspace|--selectProjects)(?:=|$)/;
+const testOneJs = (pm, script) => {
+  const s = String(script || '').trim();
+  if (!s || /[&|;<>`$()'"]/.test(s)) return null;
+  const [a, b, ...rest] = s.split(/\s+/);
+  if ([b, ...rest].some((x) => x && CONFIG_FLAG.test(x))) return null;
+  const x = EXEC[pm];
+  if (a === 'vitest' && !['bench', 'watch', 'dev', 'list', 'related', 'init'].includes(b)) return `${x} vitest run <file>`;
+  if (a === 'jest') return `${x} jest <file>`;
+  if (a === 'playwright' && b === 'test') return `${x} playwright test <file>`;
+  if (a === 'bun' && b === 'test') return 'bun test ./<file>'; // ./ 없이 주면 파일이 아니라 이름 거르기로 읽는다
+  if (a === 'node' && b === '--test' && rest.every((r) => !r.startsWith('-'))) return 'node --test <file>';
+  return null;
+};
+
 const fromPackageJson = (root, has) => {
   let pkg;
   try {
@@ -58,9 +81,12 @@ const fromPackageJson = (root, has) => {
   const pm = packageManager(pkg, has);
   const out = {};
   for (const kind of COMMAND_KINDS) {
+    if (!SCRIPT_NAMES[kind]) continue;
     const name = SCRIPT_NAMES[kind].find((n) => typeof scripts[n] === 'string' && scripts[n].trim() && !(n === 'test' && PLACEHOLDER_TEST.test(scripts[n])));
     if (name) out[kind] = [runScript(pm, name)];
   }
+  const one = out.test ? testOneJs(pm, scripts.test) : null;
+  if (one) out.testOne = [one];
   return out;
 };
 
@@ -71,7 +97,7 @@ const fromMakefile = (root) => {
   const targets = new Set([...text.matchAll(/^([A-Za-z][\w-]*)[ \t]*:(?![=:])/gm)].map((m) => m[1]));
   const out = {};
   for (const kind of COMMAND_KINDS) {
-    const name = MAKE_NAMES[kind].find((n) => targets.has(n));
+    const name = MAKE_NAMES[kind]?.find((n) => targets.has(n)); // make 대상 하나만 돌리는 꼴은 Makefile 마다 달라 모른다
     if (name) out[kind] = [`make ${name}`];
   }
   return out;
@@ -116,6 +142,8 @@ const fromPython = (root, has) => {
     || /^\s*["']?pytest\b/m.test(py) || /["']pytest\b/.test(py) || /^pytest\b/im.test(readText(path.join(root, 'requirements-dev.txt')) + readText(path.join(root, 'requirements.txt')));
   const test = hatchOf(['test', 'tests']) || (has('tox.ini') || hasTable('tool.tox') ? 'tox' : pytest ? `${prefix}pytest` : null);
   if (test) put('test', test);
+  // 시험 하나만은 pytest 를 바로 부를 때만(docs.pytest.org 「Specifying which tests to run」). tox·hatch 는 환경·인자 넘기는 꼴이 설정마다 달라 모른다
+  if (test === `${prefix}pytest`) put('testOne', `${prefix}pytest <file>`);
   const ruff = hasTable('tool.ruff') || has('ruff.toml') || has('.ruff.toml');
   const lint = hatchOf(['lint']) || (ruff ? `${prefix}ruff check .` : null);
   if (lint) put('lint', lint);
@@ -132,7 +160,8 @@ const fromPython = (root, has) => {
 const fromCargo = (root, has) => {
   if (!has('Cargo.toml')) return {};
   return {
-    test: ['cargo test'], build: ['cargo build'],
+    // cargo test <이름> 은 이름에 그 글이 든 시험만 돈다(doc.rust-lang.org/cargo/commands/cargo-test.html)
+    test: ['cargo test'], testOne: ['cargo test <name>'], build: ['cargo build'],
     ...(has('clippy.toml') || has('.clippy.toml') ? { lint: ['cargo clippy'] } : {}),
     ...(has('rustfmt.toml') || has('.rustfmt.toml') ? { format: ['cargo fmt'] } : {}),
   };
@@ -142,20 +171,22 @@ const fromCargo = (root, has) => {
 const fromGo = (root, has) => {
   if (!has('go.mod')) return {};
   const golangci = ['.golangci.yml', '.golangci.yaml', '.golangci.toml', '.golangci.json'].some(has);
-  return { test: ['go test ./...'], lint: [golangci ? 'golangci-lint run' : 'go vet ./...'], build: ['go build ./...'] };
+  // -run 은 시험 이름 정규식(pkg.go.dev/cmd/go 「Testing flags」). go test <파일>.go 는 같은 패키지 파일이 빠져 깨지므로 쓰지 않는다
+  return { test: ['go test ./...'], testOne: ['go test -run <name> ./...'], lint: [golangci ? 'golangci-lint run' : 'go vet ./...'], build: ['go build ./...'] };
 };
 
 // 사용자가 쓴 CLAUDE.md(harness-fit 관리 구역은 뺀다 — 지난번에 넣은 명령을 「이미 있음」으로 보지 않게)
-const ownClaudeText = (root) => {
+// + 사용자가 쓴 .claude/rules/ 규칙 파일(프로젝트·~/.claude) — 거기 적힌 명령도 이미 있는 것으로 본다
+const ownClaudeText = (root, home) => {
   const text = readText(path.join(root, 'CLAUDE.md'));
-  return text ? setBlock(text, '') || '' : '';
+  return `${text ? setBlock(text, '') || '' : ''}\n${userRulesText(root, home)}`;
 };
 
 // → { commands: { test: ['npm test'], … }(찾은 종류만, 이미 CLAUDE.md 에 있는 명령은 뺌), listed: ['make build', …](이미 있어 뺀 것) }
-export const detectCommands = (root) => {
+export const detectCommands = (root, { home } = {}) => {
   const has = (f) => fs.existsSync(path.join(root, f));
   const found = [fromPackageJson(root, has), fromMakefile(root), fromPython(root, has), fromCargo(root, has), fromGo(root, has)];
-  const own = ownClaudeText(root);
+  const own = ownClaudeText(root, home);
   const commands = {};
   const listed = [];
   for (const kind of COMMAND_KINDS) {

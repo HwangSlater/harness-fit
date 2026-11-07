@@ -7,7 +7,7 @@ import { PLUGIN_ROOT } from './catalog.mjs';
 const FILES = [
   'index.html', 'tokens.css', 'components.css', 'layout.css',
   'app.js', 'api.js', 'dom.js', 'parts.js', 'frame.js', 'panel.js', 'steps.js', 'skills.js', 'hooks.js', 'browse.js', 'rules.js', 'review.js', 'changes.js',
-  'options.js', 'apply-flow.js', 'github.js', 'github-plan.js', 'hook-options.js', 'dup.js', 'selection.js', 'stats.js', 'team.js',
+  'options.js', 'apply-flow.js', 'github.js', 'github-plan.js', 'hook-options.js', 'dup.js', 'selection.js', 'stats.js', 'team.js', 'budget.js', 'budget-view.js',
   'fonts/SpoqaHanSansNeo-Regular.woff2', 'fonts/SpoqaHanSansNeo-Medium.woff2', 'fonts/SpoqaHanSansNeo-Bold.woff2',
 ];
 export const STATIC = Object.freeze(Object.fromEntries([['/', 'index.html'], ...FILES.map((f) => [`/${f}`, f])]));

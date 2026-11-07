@@ -13,6 +13,7 @@ import { githubOn, choiceOf } from './github.js';
 import { dupsFor, defaultsFor, matesFor, flowBy, blockingHooks } from './stats.js';
 import { hookKey, fromCombo, fromRecommended, snapshot, startSelection, sameSel } from './selection.js';
 import { applyActions } from './apply-flow.js';
+import { budgetActions } from './budget-view.js';
 
 const PREVIEW_DELAY_MS = 250;
 const TOAST_MS = 3200;
@@ -240,6 +241,9 @@ Object.assign(act, {
 });
 // 적용·그만두기(apply-flow.js)
 Object.assign(act, applyActions({ ui, t, current: () => sel, ctx: () => ctx(), payload, render: () => render(), openPanel: (d) => act.openPanel(d) }));
+
+// 스킬 목록 예산 「권장대로 줄이기」·되돌리기(budget-view.js)
+Object.assign(act, budgetActions({ ui, current: () => sel, edited }));
 
 // 적용·그만두기를 기다리는 동안과 끝난 뒤에는 선택을 바꾸는 동작을 모두 막는다(화면도 inert).
 const ALWAYS = new Set(['go', 'loadRaw', 'toggleOpen', 'togglePaths', 'setRuleView', 'toggleDropped', 'closePanel', 'browseGroup', 'browseSearch']);

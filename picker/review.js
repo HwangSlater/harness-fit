@@ -1,11 +1,12 @@
 // 6 확인 단계(고른 것 + 「바꾸기」, 적용하면 생기는 것, 팀원 공유, GitHub 설정)와 끝 화면.
 import { h, icon } from './dom.js';
-import { lrow, flash, shead, num, link } from './parts.js';
+import { lrow, flash, shead, num, link, withCode } from './parts.js';
 import { teamBox, teamHowTo } from './team.js';
 import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy } from './stats.js';
 import { stepHead, sumRows } from './frame.js';
 import { outcomeItems, warningsOf, pathLines, changeGroups } from './changes.js';
 import { githubBox, githubResult } from './github.js';
+import { budgetBox, skillCommands } from './budget-view.js';
 
 const short = (t, names, n = 3) => (names.length > n ? t('listMore', { list: names.slice(0, n).join(' · '), n: names.length - n }) : names.join(' · ') || t('sumNone'));
 
@@ -53,7 +54,7 @@ export function reviewStep(c) {
           h('a.link', { href: `#${id}`, 'data-key': `change:${id}`, 'aria-label': t('changeLabel', { name: k }) }, t('change'))))),
       shead(t('s7'), ''),
       h('div.cols', {},
-        h('div.stack', {}, filesBox(c), warningsOf(c).map(([title, desc]) => flash({ title, desc }))),
+        h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([title, desc]) => flash({ title, desc }))),
         h('div.stack', {},
           teamBox(c),
           githubBox(c))),
@@ -77,6 +78,9 @@ export function finished(c, result) {
       result.manual?.length ? flash({ cls: '.info', title: t('doneManual', { list: names(result.manual) }) }) : null,
       githubResult(c, result.github),
       p ? h('div.box', {}, h('div.box-h', {}, h('span', {}, t('doneWhat'))), changeGroups(c, p, result.failed)) : null,
+      // CLAUDE.md 에 지침을 넣었을 때만: 사람만 아는 것은 직접 적게(지침 단계와 같은 한 줄)
+      p && Object.keys(p.ruleTexts || {}).length ? h('p.hint', {}, withCode(t('ownNotes'))) : null,
+      skillCommands(c, result),
       sel.share && p ? teamHowTo(c, p, true) : null,
       h('details.paths-d', {}, h('summary', {}, t('paths')), h('pre.paths', {}, (result.changed || []).map((line) => {
         const id = line.match(/\.claude\/skills\/([^/\s]+)/)?.[1];

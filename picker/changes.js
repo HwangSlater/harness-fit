@@ -25,7 +25,8 @@ export function outcomeItems({ S, sel, ui, t }) {
   return items;
 }
 // 적용은 되지만 약속대로 동작하지 않을 것(apply.mjs plan 의 warnings)
-export const warningsOf = ({ ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).map((w) => [t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '' })]);
+// skill-budget 은 숫자·단추가 있어 따로 그린다(budget-view.js budgetBox)
+export const warningsOf = ({ ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).filter((w) => w !== 'skill-budget').map((w) => [t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '' })]);
 
 export const pathLines = (S, p) => p.changes.map((x) => `${x.action === 'create' ? '+' : '~'} ${x.path}${x.skill ? `  — ${title(S, x.skill)}` : ''}`).join('\n');
 

@@ -103,7 +103,7 @@ test('CLAUDE.md 문장은 실제로 켠 훅을 따른다', async () => {
   assert.match(off, /타입: 설명/);
   assert.doesNotMatch(on + off, /훅/);
   assert.doesNotMatch(on + off, /\{\{/);
-  assert.match(renderRule('github-flow', 'ko', []), /PR 로 합친다/);
+  assert.match(renderRule('github-flow', 'ko', []), /PR 로 병합한다/);
   assert.doesNotMatch(renderRule('github-flow', 'ko', []), /훅이 막는다/);
 });
 

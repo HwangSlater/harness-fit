@@ -95,6 +95,8 @@ export function skillItem(c, id) {
       row('dPinned', k.install === 'plugin' ? `${t('dPlugin')} ${t('dManualPin')}` : t('dPinnedV', { sha: k.sha })),
       row('dFiles', t('dFilesV', { n: k.files ?? '–' })),
       row('dCostK', t('dCost', { always: num(S, k.always), onUse: num(S, k.onUse) })),
+      // 설명이 긴 스킬(늘 드는 토큰 상위 10% — picker-state.mjs longDesc)
+      k.longDesc ? row('dListK', t('dLongDesc', { n: num(S, k.descChars ?? k.always * 4) })) : null,
       k.scripts.length ? row('dScripts', t('dScriptsNote'), h('ul', {}, k.scripts.map((f) => h('li.mono', {}, f)))) : row('dScriptsK', t('dNoScripts'))),
     raw ? [h('p.hint', {}, t('rawNote')), h('pre.raw', { tabindex: '0' }, raw.text ?? t('loadingRaw'))] : link(`raw:${id}`, t('viewRaw'), () => act.loadRaw(id))],
     onToggle: () => act.toggle('skills', id),

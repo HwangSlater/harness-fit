@@ -195,6 +195,7 @@
   "ruleFoot": "{lines} {lines|line|lines} · ~{tok} {tok|token|tokens} · text outside the markers stays as is",
   "ruleFootShort": "{lines} {lines|line|lines} · ~{tok} {tok|token|tokens}",
   "ruleIn": "Text going into CLAUDE.md",
+  "ownNotes": "Claude can't read confusing spots, decisions that aren't in the repo, or things you've corrected twice from the repo, so write them in CLAUDE.md yourself, outside the markers. E.g. “`src/legacy/` is still used, but new code doesn't follow it.”",
   "ruleNone": "(no instructions)",
   "ruleViewLabel": "View",
   "viewShort": "Short",
@@ -243,5 +244,8 @@
   "hooksBlockOnlyD": "Turns on only hooks that block a command or file write, and turns off notice-only hooks (such as Report commit hashes)",
   "hooksBlockOnlyDone": "{n} blocking {n|hook is|hooks are} on",
   "kindNotice": "Notice only",
-  "coverNoPlugin": "the harness-fit plugin is not installed, so hooks do not run and those lines stay as text"
+  "coverNoPlugin": "the harness-fit plugin is not installed, so hooks do not run and those lines stay as text",
+  "dListK": "Listing budget",
+  "dLongDesc": "Long description — uses a lot of the listing budget (about {n} chars)",
+  "sumBudget": "Skill list at {pct}% of budget — may go over"
 }

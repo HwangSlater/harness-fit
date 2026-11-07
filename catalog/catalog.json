@@ -324,7 +324,9 @@
    "onUse": 3288,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 431,
+   "saysWhen": true
   },
   {
    "id": "brainstorming",
@@ -351,7 +353,9 @@
     "scripts/server.cjs",
     "scripts/start-server.sh",
     "scripts/stop-server.sh"
-   ]
+   ],
+   "descChars": 213,
+   "saysWhen": true
   },
   {
    "id": "grilling",
@@ -372,7 +376,9 @@
    "onUse": 521,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 152,
+   "saysWhen": true
   },
   {
    "id": "create-prd",
@@ -393,7 +399,9 @@
    "onUse": 1826,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 399,
+   "saysWhen": true
   },
   {
    "id": "to-tickets",
@@ -417,7 +425,9 @@
    "onUse": 1454,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 247,
+   "saysWhen": false
   },
   {
    "id": "writing-plans",
@@ -439,7 +449,9 @@
    "onUse": 2586,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 84,
+   "saysWhen": true
   },
   {
    "id": "planning-with-files",
@@ -487,7 +499,9 @@
     "scripts/set-active-plan.ps1",
     "scripts/set-active-plan.sh",
     "scripts/skill-hook.sh"
-   ]
+   ],
+   "descChars": 606,
+   "saysWhen": true
   },
   {
    "id": "api-and-interface-design",
@@ -509,7 +523,9 @@
    "onUse": 3745,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 251,
+   "saysWhen": true
   },
   {
    "id": "domain-modeling",
@@ -531,7 +547,9 @@
    "onUse": 852,
    "install": "copy",
    "files": 4,
-   "scripts": []
+   "scripts": [],
+   "descChars": 151,
+   "saysWhen": true
   },
   {
    "id": "improve-codebase-architecture",
@@ -553,7 +571,9 @@
    "onUse": 1508,
    "install": "copy",
    "files": 3,
-   "scripts": []
+   "scripts": [],
+   "descChars": 125,
+   "saysWhen": false
   },
   {
    "id": "frontend-design",
@@ -574,7 +594,9 @@
    "onUse": 2352,
    "install": "plugin",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 204,
+   "saysWhen": true
   },
   {
    "id": "impeccable",
@@ -605,7 +627,9 @@
     "scripts/live-browser-session.js",
     "scripts/live-browser.js",
     "scripts/modern-screenshot.umd.js"
-   ]
+   ],
+   "descChars": 589,
+   "saysWhen": true
   },
   {
    "id": "taste-skill",
@@ -643,7 +667,9 @@
     "scripts/lib/rules.mjs",
     "scripts/lint.mjs",
     "scripts/scenes.mjs"
-   ]
+   ],
+   "descChars": 948,
+   "saysWhen": true
   },
   {
    "id": "ui-ux-pro-max",
@@ -687,7 +713,9 @@
     "scripts/tests/test_text_layout_resilience.py",
     "scripts/tests/test_web_stack_freshness.py",
     "scripts/validate_data.py"
-   ]
+   ],
+   "descChars": 495,
+   "saysWhen": true
   },
   {
    "id": "web-design-guidelines",
@@ -711,7 +739,9 @@
    "onUse": 308,
    "install": "plugin",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 184,
+   "saysWhen": true
   },
   {
    "id": "frontend-ui-engineering",
@@ -733,7 +763,9 @@
    "onUse": 2992,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 306,
+   "saysWhen": true
   },
   {
    "id": "incremental-implementation",
@@ -754,7 +786,9 @@
    "onUse": 2445,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 343,
+   "saysWhen": true
   },
   {
    "id": "subagent-driven-development",
@@ -776,7 +810,9 @@
    "onUse": 4892,
    "install": "copy",
    "files": 14,
-   "scripts": []
+   "scripts": [],
+   "descChars": 85,
+   "saysWhen": true
   },
   {
    "id": "ponytail",
@@ -799,7 +835,9 @@
    "onUse": 874,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 366,
+   "saysWhen": true
   },
   {
    "id": "react-best-practices",
@@ -823,7 +861,9 @@
    "onUse": 1813,
    "install": "plugin",
    "files": 76,
-   "scripts": []
+   "scripts": [],
+   "descChars": 329,
+   "saysWhen": true
   },
   {
    "id": "swiftui-pro",
@@ -846,7 +886,9 @@
    "onUse": 1506,
    "install": "copy",
    "files": 16,
-   "scripts": []
+   "scripts": [],
+   "descChars": 163,
+   "saysWhen": true
   },
   {
    "id": "ios-simulator",
@@ -917,7 +959,9 @@
     "scripts/xcode/config.py",
     "scripts/xcode/reporter.py",
     "scripts/xcode/xcresult.py"
-   ]
+   ],
+   "descChars": 423,
+   "saysWhen": true
   },
   {
    "id": "expo-router",
@@ -939,7 +983,9 @@
    "onUse": 1764,
    "install": "copy",
    "files": 8,
-   "scripts": []
+   "scripts": [],
+   "descChars": 260,
+   "saysWhen": false
   },
   {
    "id": "react-native-best-practices",
@@ -961,7 +1007,9 @@
    "onUse": 3091,
    "install": "copy",
    "files": 44,
-   "scripts": []
+   "scripts": [],
+   "descChars": 273,
+   "saysWhen": true
   },
   {
    "id": "supabase-postgres",
@@ -985,7 +1033,9 @@
    "onUse": 808,
    "install": "copy",
    "files": 36,
-   "scripts": []
+   "scripts": [],
+   "descChars": 834,
+   "saysWhen": true
   },
   {
    "id": "modern-python",
@@ -1009,7 +1059,9 @@
    "onUse": 2515,
    "install": "copy",
    "files": 14,
-   "scripts": []
+   "scripts": [],
+   "descChars": 159,
+   "saysWhen": true
   },
   {
    "id": "mcp-builder",
@@ -1035,7 +1087,9 @@
    "scripts": [
     "scripts/connections.py",
     "scripts/evaluation.py"
-   ]
+   ],
+   "descChars": 277,
+   "saysWhen": true
   },
   {
    "id": "test-driven-development",
@@ -1056,7 +1110,9 @@
    "onUse": 2398,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 79,
+   "saysWhen": true
   },
   {
    "id": "tdd-lite",
@@ -1077,7 +1133,9 @@
    "onUse": 909,
    "install": "copy",
    "files": 4,
-   "scripts": []
+   "scripts": [],
+   "descChars": 149,
+   "saysWhen": true
   },
   {
    "id": "webapp-testing",
@@ -1107,7 +1165,9 @@
     "examples/element_discovery.py",
     "examples/static_html_automation.py",
     "scripts/with_server.py"
-   ]
+   ],
+   "descChars": 204,
+   "saysWhen": false
   },
   {
    "id": "browser-testing-devtools",
@@ -1132,7 +1192,9 @@
    "onUse": 3736,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 326,
+   "saysWhen": true
   },
   {
    "id": "property-based-testing",
@@ -1156,7 +1218,9 @@
    "onUse": 1080,
    "install": "copy",
    "files": 9,
-   "scripts": []
+   "scripts": [],
+   "descChars": 845,
+   "saysWhen": true
   },
   {
    "id": "systematic-debugging",
@@ -1180,7 +1244,9 @@
    "scripts": [
     "condition-based-waiting-example.ts",
     "find-polluter.sh"
-   ]
+   ],
+   "descChars": 91,
+   "saysWhen": true
   },
   {
    "id": "diagnosing-bugs",
@@ -1204,7 +1270,9 @@
    "files": 3,
    "scripts": [
     "scripts/hitl-loop.template.sh"
-   ]
+   ],
+   "descChars": 156,
+   "saysWhen": true
   },
   {
    "id": "verification-before-completion",
@@ -1226,7 +1294,9 @@
    "onUse": 918,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 225,
+   "saysWhen": true
   },
   {
    "id": "code-review-and-quality",
@@ -1247,7 +1317,9 @@
    "onUse": 5326,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 325,
+   "saysWhen": true
   },
   {
    "id": "receiving-code-review",
@@ -1268,7 +1340,9 @@
    "onUse": 1556,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 234,
+   "saysWhen": true
   },
   {
    "id": "find-bugs",
@@ -1292,7 +1366,9 @@
    "onUse": 708,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 184,
+   "saysWhen": true
   },
   {
    "id": "second-opinion",
@@ -1315,7 +1391,9 @@
    "onUse": 1262,
    "install": "copy",
    "files": 8,
-   "scripts": []
+   "scripts": [],
+   "descChars": 256,
+   "saysWhen": true
   },
   {
    "id": "code-simplification",
@@ -1336,7 +1414,9 @@
    "onUse": 3436,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 418,
+   "saysWhen": true
   },
   {
    "id": "security-and-hardening",
@@ -1358,7 +1438,9 @@
    "onUse": 4399,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 600,
+   "saysWhen": true
   },
   {
    "id": "security-audit",
@@ -1384,7 +1466,9 @@
     "validate-coverage-ledger.test.cjs",
     "validate-findings.cjs",
     "validate-findings.test.cjs"
-   ]
+   ],
+   "descChars": 359,
+   "saysWhen": true
   },
   {
    "id": "sentry-security-review",
@@ -1406,7 +1490,9 @@
    "onUse": 2953,
    "install": "copy",
    "files": 23,
-   "scripts": []
+   "scripts": [],
+   "descChars": 312,
+   "saysWhen": true
   },
   {
    "id": "differential-review",
@@ -1430,7 +1516,9 @@
    "onUse": 1873,
    "install": "copy",
    "files": 7,
-   "scripts": []
+   "scripts": [],
+   "descChars": 477,
+   "saysWhen": true
   },
   {
    "id": "semgrep-scan",
@@ -1458,7 +1546,9 @@
     "scripts/merge_sarif.py",
     "scripts/run-scans.sh",
     "scripts/test_merge_sarif.py"
-   ]
+   ],
+   "descChars": 707,
+   "saysWhen": true
   },
   {
    "id": "supply-chain-risk-auditor",
@@ -1490,7 +1580,9 @@
     "scripts/test_model.py",
     "scripts/test_render.py",
     "scripts/test_sources.py"
-   ]
+   ],
+   "descChars": 367,
+   "saysWhen": true
   },
   {
    "id": "gha-security-review",
@@ -1512,7 +1604,9 @@
    "onUse": 2248,
    "install": "copy",
    "files": 10,
-   "scripts": []
+   "scripts": [],
+   "descChars": 363,
+   "saysWhen": true
   },
   {
    "id": "agentic-actions-auditor",
@@ -1534,7 +1628,9 @@
    "onUse": 5436,
    "install": "copy",
    "files": 15,
-   "scripts": []
+   "scripts": [],
+   "descChars": 571,
+   "saysWhen": true
   },
   {
    "id": "documentation-and-adrs",
@@ -1556,7 +1652,9 @@
    "onUse": 2754,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 290,
+   "saysWhen": true
   },
   {
    "id": "doc-coauthoring",
@@ -1577,7 +1675,9 @@
    "onUse": 3954,
    "install": "plugin",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 428,
+   "saysWhen": true
   },
   {
    "id": "humanizer",
@@ -1598,7 +1698,9 @@
    "onUse": 8099,
    "install": "copy",
    "files": 0,
-   "scripts": []
+   "scripts": [],
+   "descChars": 341,
+   "saysWhen": true
   },
   {
    "id": "git-workflow-and-versioning",
@@ -1620,7 +1722,9 @@
    "install": "copy",
    "files": 1,
    "scripts": [],
-   "overlapsHook": "commit-msg"
+   "overlapsHook": "commit-msg",
+   "descChars": 616,
+   "saysWhen": true
   },
   {
    "id": "using-git-worktrees",
@@ -1644,7 +1748,9 @@
    "onUse": 1705,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 196,
+   "saysWhen": true
   },
   {
    "id": "finishing-a-development-branch",
@@ -1667,7 +1773,9 @@
    "onUse": 1952,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 101,
+   "saysWhen": true
   },
   {
    "id": "pr-writer",
@@ -1690,7 +1798,9 @@
    "onUse": 1326,
    "install": "copy",
    "files": 5,
-   "scripts": []
+   "scripts": [],
+   "descChars": 152,
+   "saysWhen": true
   },
   {
    "id": "iterate-pr",
@@ -1720,7 +1830,9 @@
     "scripts/fetch_pr_feedback.py",
     "scripts/monitor_pr_checks.py",
     "scripts/reply_to_thread.py"
-   ]
+   ],
+   "descChars": 213,
+   "saysWhen": true
   },
   {
    "id": "handoff",
@@ -1742,7 +1854,9 @@
    "onUse": 235,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 86,
+   "saysWhen": false
   },
   {
    "id": "ci-cd-and-automation",
@@ -1763,7 +1877,9 @@
    "onUse": 2919,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 207,
+   "saysWhen": true
   },
   {
    "id": "shipping-and-launch",
@@ -1785,7 +1901,9 @@
    "onUse": 2911,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 271,
+   "saysWhen": true
   },
   {
    "id": "setup-pre-commit",
@@ -1810,7 +1928,9 @@
    "onUse": 565,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 238,
+   "saysWhen": true
   },
   {
    "id": "deploy-to-vercel",
@@ -1834,7 +1954,9 @@
    "onUse": 2435,
    "install": "plugin",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 194,
+   "saysWhen": true
   },
   {
    "id": "eas-app-stores",
@@ -1861,7 +1983,9 @@
    "onUse": 1867,
    "install": "copy",
    "files": 8,
-   "scripts": []
+   "scripts": [],
+   "descChars": 412,
+   "saysWhen": true
   },
   {
    "id": "performance-optimization",
@@ -1883,7 +2007,9 @@
    "onUse": 4220,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 295,
+   "saysWhen": true
   },
   {
    "id": "observability-and-instrumentation",
@@ -1906,7 +2032,9 @@
    "onUse": 3495,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 307,
+   "saysWhen": true
   },
   {
    "id": "docx",
@@ -1947,7 +2075,9 @@
     "scripts/office/validators/docx.py",
     "scripts/office/validators/pptx.py",
     "scripts/office/validators/redlining.py"
-   ]
+   ],
+   "descChars": 835,
+   "saysWhen": true
   },
   {
    "id": "pdf",
@@ -1979,7 +2109,9 @@
     "scripts/extract_form_structure.py",
     "scripts/fill_fillable_fields.py",
     "scripts/fill_pdf_form_with_annotations.py"
-   ]
+   ],
+   "descChars": 437,
+   "saysWhen": true
   },
   {
    "id": "xlsx",
@@ -2016,7 +2148,9 @@
     "scripts/office/validators/pptx.py",
     "scripts/office/validators/redlining.py",
     "scripts/recalc.py"
-   ]
+   ],
+   "descChars": 948,
+   "saysWhen": true
   },
   {
    "id": "pptx",
@@ -2056,7 +2190,9 @@
     "scripts/office/validators/pptx.py",
     "scripts/office/validators/redlining.py",
     "scripts/thumbnail.py"
-   ]
+   ],
+   "descChars": 732,
+   "saysWhen": true
   },
   {
    "id": "skill-creator",
@@ -2090,7 +2226,9 @@
     "scripts/run_eval.py",
     "scripts/run_loop.py",
     "scripts/utils.py"
-   ]
+   ],
+   "descChars": 319,
+   "saysWhen": true
   },
   {
    "id": "writing-for-agents",
@@ -2112,7 +2250,9 @@
    "onUse": 2722,
    "install": "copy",
    "files": 3,
-   "scripts": []
+   "scripts": [],
+   "descChars": 103,
+   "saysWhen": true
   },
   {
    "id": "claude-md-improver",
@@ -2133,7 +2273,9 @@
    "onUse": 1507,
    "install": "plugin",
    "files": 4,
-   "scripts": []
+   "scripts": [],
+   "descChars": 338,
+   "saysWhen": true
   },
   {
    "id": "claude-automation-recommender",
@@ -2154,7 +2296,9 @@
    "onUse": 2753,
    "install": "plugin",
    "files": 6,
-   "scripts": []
+   "scripts": [],
+   "descChars": 354,
+   "saysWhen": true
   },
   {
    "id": "claude-settings-audit",
@@ -2176,7 +2320,9 @@
    "onUse": 3003,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 258,
+   "saysWhen": true
   },
   {
    "id": "skill-scanner",
@@ -2202,7 +2348,9 @@
    "files": 5,
    "scripts": [
     "scripts/scan_skill.py"
-   ]
+   ],
+   "descChars": 329,
+   "saysWhen": true
   },
   {
    "id": "hookify-writing-rules",
@@ -2225,7 +2373,9 @@
    "onUse": 2107,
    "install": "plugin",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 191,
+   "saysWhen": true
   },
   {
    "id": "dispatching-parallel-agents",
@@ -2247,7 +2397,9 @@
    "onUse": 1523,
    "install": "copy",
    "files": 1,
-   "scripts": []
+   "scripts": [],
+   "descChars": 106,
+   "saysWhen": true
   },
   {
    "id": "context-optimization",
@@ -2270,7 +2422,9 @@
    "files": 3,
    "scripts": [
     "scripts/compaction.py"
-   ]
+   ],
+   "descChars": 257,
+   "saysWhen": true
   },
   {
    "id": "caveman",
@@ -2291,7 +2445,9 @@
    "onUse": 1170,
    "install": "copy",
    "files": 2,
-   "scripts": []
+   "scripts": [],
+   "descChars": 203,
+   "saysWhen": true
   },
   {
    "id": "session-report",
@@ -2317,7 +2473,9 @@
    "files": 3,
    "scripts": [
     "analyze-sessions.mjs"
-   ]
+   ],
+   "descChars": 154,
+   "saysWhen": false
   },
   {
    "id": "careful",
@@ -2346,7 +2504,9 @@
     "bin/check-careful.sh",
     "bin/hook-extract.sh"
    ],
-   "overlapsHook": "danger-cmd"
+   "overlapsHook": "danger-cmd",
+   "descChars": 52,
+   "saysWhen": false
   },
   {
    "id": "git-guardrails",
@@ -2374,7 +2534,9 @@
    "scripts": [
     "scripts/block-dangerous-git.sh"
    ],
-   "overlapsHook": "danger-cmd"
+   "overlapsHook": "danger-cmd",
+   "descChars": 243,
+   "saysWhen": true
   }
  ]
 }

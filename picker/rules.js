@@ -1,7 +1,7 @@
 // 4 CLAUDE.md 지침 단계: 지침 목록(목록 상자 + 스위치) + 「줄을 대신 맡는 훅」 칩 + 실제로 써질 구역 미리 보기.
 // 미리 보기 글은 서버가 켠 훅·스킬에 맞춰 만든 것 그대로(/api/preview 의 ruleTexts·ruleDropped — scripts/lib/claude-md.mjs).
 import { h } from './dom.js';
-import { lrow, toggleSwitch, label, isNew, num } from './parts.js';
+import { lrow, toggleSwitch, label, isNew, num, withCode } from './parts.js';
 import { ruleLines, ruleCount, lineCount, ruleTokens, flowBy, hookBy, skillBy } from './stats.js';
 import { stepHead } from './frame.js';
 import { hookChip } from './hooks.js';
@@ -9,8 +9,9 @@ import { hookChip } from './hooks.js';
 const START = '<!-- harness-fit:start -->';
 const END = '<!-- harness-fit:end -->';
 
-// 이 저장소 명령(commands)은 설명 자리에 찾은 명령을 그대로 보여 준다
-const ruleDesc = (S, r) => (r.id === 'commands' ? Object.values(S.detected.commands || {}).flat().join(' · ') || r.desc : r.desc);
+// 이 저장소 명령(commands)은 설명 자리에 찾은 명령을 그대로 보여 준다(시험 하나만 꼴은 자리표시가 든 글이라 미리 보기에서만)
+const ruleDesc = (S, r) => (r.id === 'commands'
+  ? Object.entries(S.detected.commands || {}).filter(([k]) => k !== 'testOne').flatMap(([, v]) => v).join(' · ') || r.desc : r.desc);
 
 function ruleRow(c, r) {
   const { S, sel, ui, t, act } = c;
@@ -111,6 +112,7 @@ export function rulesStep(c) {
           S.rules.map((r) => ruleRow(c, r)),
           flowRow(c)),
         coverChips(c)),
-      preview(c))),
+      // 저장소를 읽어선 알 수 없는 것(헷갈리는 곳·저장소에 없는 결정·두 번 바로잡은 것)은 사람이 표시 밖에 적는다 — 공식 권장
+      h('div.pvcol', {}, preview(c), h('p.hint', {}, withCode(t('ownNotes')))))),
   ];
 }

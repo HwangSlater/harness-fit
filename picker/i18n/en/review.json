@@ -164,5 +164,21 @@
   "teamStep2": "When a teammate pulls the repo, opens it in Claude Code and trusts the folder, they are asked to install harness-fit ({repo} {ref}).",
   "teamStep3": "Once they install it, the same hooks run for their Claude too. Nothing runs before that.",
   "teamStep4": "The git pre-commit hook (.git/hooks/pre-commit) is not part of the repo.",
-  "teamStep4D": "So commits a teammate makes by hand, without Claude, are not checked as is. If they open /harness-fit:setup on their own PC and apply as is (it starts from the last selection), the same hook goes into their .git/hooks. Until then, hooks only see commits made inside Claude Code."
+  "teamStep4D": "So commits a teammate makes by hand, without Claude, are not checked as is. If they open /harness-fit:setup on their own PC and apply as is (it starts from the last selection), the same hook goes into their .git/hooks. Until then, hooks only see commits made inside Claude Code.",
+  "budgetNearT": "The skill list is close to its budget",
+  "budgetOverT": "The skill list may go over its budget",
+  "budgetWhy": "Claude always sees a list of skill names and descriptions and picks skills from it. Over budget, new skills lose their descriptions first, so Claude may not pick them on its own. You can still call them with `/name`.",
+  "budgetNums": "Now about {current} chars + {added} new = {total} / {label} {budget} ({pct}%)",
+  "budgetLabel_default": "default budget",
+  "budgetLabel_env": "your budget",
+  "budgetLabel_fraction": "your budget",
+  "budgetHeavy": "Even without the new skills, the skills you already have use {pct}% of the budget. Turning off plugins you do not use helps.",
+  "budgetTrim": "Trim to recommended",
+  "budgetTrimD": "Removes: {list} · about {n} chars less",
+  "budgetRaise": "To raise the budget, add `\"skillListingBudgetFraction\": 0.02` (2% of the context window) to settings.json. It costs that many more tokens in every conversation. harness-fit does not change your settings.",
+  "budgetTrimmed": "Removed {n} {n|skill|skills}: {list}",
+  "budgetUndo": "Undo",
+  "doneCmdsT": "Call your new skills",
+  "doneCmdsD": "Claude picks them up on its own, or call one by name. The Skills line in `/context` shows the real size.",
+  "doneCmdsBudget": "The skill list is close to its budget, so Claude may not pick these up on its own once descriptions are dropped. Call them by name. The Skills line in `/context` shows the real size."
 }

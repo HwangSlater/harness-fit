@@ -848,8 +848,8 @@
         "en": "Teamwork"
       },
       "desc": {
-        "ko": "커밋은 한 가지씩, PR엔 무엇·왜·확인 방법",
-        "en": "One change per commit; PRs say what, why, how verified"
+        "ko": "커밋은 이유 하나씩, PR엔 까닭과 확인한 명령",
+        "en": "One reason per commit; PRs give the reason and the checks run"
       }
     },
     {
@@ -870,8 +870,8 @@
         "en": "Structure · reuse"
       },
       "desc": {
-        "ko": "나중에 다시 쓰게 나눠 짜고, 세 번째 반복이면 뽑아내기",
-        "en": "Split code so it can be reused; extract on the third repeat"
+        "ko": "세 번째 반복이면 뽑아내고, 안 쓰게 된 코드는 지우기",
+        "en": "Extract on the third repeat; delete code nothing uses"
       }
     },
     {
@@ -881,8 +881,8 @@
         "en": "Save tokens"
       },
       "desc": {
-        "ko": "파일은 필요한 부분만 읽고, 답은 짧게",
-        "en": "Read only what is needed, answer briefly"
+        "ko": "큰 파일은 찾아서 그 부분만 읽고, 답은 짧게",
+        "en": "Search big files before reading; answer briefly"
       }
     }
   ],

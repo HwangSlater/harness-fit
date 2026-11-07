@@ -11,6 +11,7 @@ import { CONFIG_FILE, MAX_CONFIG_BYTES } from '../../hooks/lib/core.mjs';
 const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, rel), 'utf8'));
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const NO_NEW = Object.freeze({ skills: [], hooks: [], rules: [] });
+const LONG_DESC_SHARE = 0.1;
 
 // 화면 문구: picker/i18n/<lang>/*.json 을 이름 순으로 합친다(화면 구역마다 파일 하나 — 같은 키가 두 파일에 있지 않은지는 시험이 본다).
 export const readStrings = (lang) => {
@@ -79,6 +80,8 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
   const repoBy = Object.fromEntries(all.catalog.repos.map((r) => [r.repo, r]));
   const Lmap = (o) => Object.fromEntries(Object.entries(o || {}).map(([id, v]) => [id, Object.fromEntries(Object.entries(v).map(([k, x]) => [k, L(x)]))]));
   const previous = previousOf({ all, cfg }, prev, lang);
+  // 설명이 긴 스킬(늘 드는 토큰 상위 10%): 전체 보기 「자세히」에 「설명이 길어 목록 예산을 많이 써요」
+  const longAt = [...all.catalog.skills].map((s) => s.always || 0).sort((a, b) => b - a)[Math.max(0, Math.ceil(all.catalog.skills.length * LONG_DESC_SHARE) - 1)] || Infinity;
   return {
     lang,
     detected: det,
@@ -96,7 +99,7 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     skills: all.catalog.skills.map((s) => ({
       id: s.id, repo: s.repo, stars: repoBy[s.repo]?.stars, license: repoBy[s.repo]?.license, sha: (repoBy[s.repo]?.sha || '').slice(0, 7),
       stages: s.stages, stacks: s.stacks, needs: s.needs, summary: L(s.summary), always: s.always, onUse: s.onUse, install: s.install,
-      files: s.files, scripts: s.scripts || [], overlapsHook: s.overlapsHook || null,
+      files: s.files, scripts: s.scripts || [], overlapsHook: s.overlapsHook || null, descChars: s.descChars ?? null, longDesc: (s.always || 0) >= longAt,
       title: L(titles[s.id]?.title) || s.id, when: L(titles[s.id]?.when) || L(s.summary),
     })),
     // 훅 묶음(화면은 이 순서로 묶어 보여 주고, 훅이 하나도 없는 묶음은 숨긴다). 묶음에 없는 group 은 화면이 「그 밖」으로 모은다.

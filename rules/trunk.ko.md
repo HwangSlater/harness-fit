@@ -1,4 +1,4 @@
 ## 브랜치 전략: 트렁크 기반
-- `main` 에 작게, 하루 한 번 이상 합친다. 브랜치는 하루 안에 끝낸다. {{judge}}
+- `main` 에 작게, 하루 한 번 이상 병합한다. 브랜치는 하루 안에 끝낸다. {{judge}}
 - 덜 된 기능은 기능 플래그 뒤에 두고, main 은 늘 테스트를 통과하게 둔다. {{judge}}
-- main 에 강제 push 하지 않는다. {{!hook:protect-branch}}
+- main 에 강제 푸시하지 않는다. {{!hook:protect-branch}}

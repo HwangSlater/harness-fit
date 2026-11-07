@@ -28,16 +28,16 @@ const pkg = (scripts, extra = {}) => ({ 'package.json': { name: 'x', scripts, ..
 
 test('package.json: npm 이 기본, 자리표시 test 는 명령이 아니다', () => {
   assert.deepEqual(cmds(pkg({ test: 'vitest run', lint: 'eslint .', typecheck: 'tsc --noEmit', format: 'prettier -w .', build: 'vite build', dev: 'vite' })),
-    { test: ['npm test'], lint: ['npm run lint'], typecheck: ['npm run typecheck'], format: ['npm run format'], build: ['npm run build'] });
+    { test: ['npm test'], testOne: ['npx vitest run <file>'], lint: ['npm run lint'], typecheck: ['npm run typecheck'], format: ['npm run format'], build: ['npm run build'] });
   assert.deepEqual(cmds(pkg({ test: 'echo "Error: no test specified" && exit 1' })), {});
   assert.deepEqual(cmds(pkg({ 'type-check': 'tsc', fmt: 'biome format' })), { typecheck: ['npm run type-check'], format: ['npm run fmt'] });
 });
 
 test('package.json: 잠금 파일·packageManager 로 패키지 관리자를 고른다(bun 은 늘 bun run)', () => {
   const s = { test: 'vitest', lint: 'eslint .' };
-  assert.deepEqual(cmds({ ...pkg(s), 'pnpm-lock.yaml': '' }), { test: ['pnpm test'], lint: ['pnpm run lint'] });
-  assert.deepEqual(cmds({ ...pkg(s), 'yarn.lock': '' }), { test: ['yarn test'], lint: ['yarn run lint'] });
-  assert.deepEqual(cmds({ ...pkg(s), 'bun.lockb': '' }), { test: ['bun run test'], lint: ['bun run lint'] });
+  assert.deepEqual(cmds({ ...pkg(s), 'pnpm-lock.yaml': '' }), { test: ['pnpm test'], testOne: ['pnpm exec vitest run <file>'], lint: ['pnpm run lint'] });
+  assert.deepEqual(cmds({ ...pkg(s), 'yarn.lock': '' }), { test: ['yarn test'], testOne: ['yarn vitest run <file>'], lint: ['yarn run lint'] });
+  assert.deepEqual(cmds({ ...pkg(s), 'bun.lockb': '' }), { test: ['bun run test'], testOne: ['bunx vitest run <file>'], lint: ['bun run lint'] });
   assert.deepEqual(cmds({ ...pkg(s), 'bun.lock': '' }).test, ['bun run test']);
   assert.deepEqual(cmds(pkg(s, { packageManager: 'pnpm@9.1.0' })).test, ['pnpm test'], 'packageManager 가 먼저');
   assert.deepEqual(cmds({ 'package.json': '{ 깨진' }), {}, '깨진 package.json 은 건너뛴다');
@@ -51,11 +51,11 @@ test('Makefile: 있는 대상만(변수 대입은 대상이 아니다)', () => {
 
 test('pyproject: pytest·ruff·mypy 설정, 잠금 파일이면 그 도구로 돌린다', () => {
   const py = '[project]\nname = "x"\n\n[tool.pytest.ini_options]\naddopts = "-q"\n\n[tool.ruff]\nline-length = 100\n\n[tool.ruff.format]\nquote-style = "double"\n\n[tool.mypy]\nstrict = true\n';
-  assert.deepEqual(cmds({ 'pyproject.toml': py, 'uv.lock': '' }), { test: ['uv run pytest'], lint: ['uv run ruff check .'], typecheck: ['uv run mypy .'], format: ['uv run ruff format .'] });
+  assert.deepEqual(cmds({ 'pyproject.toml': py, 'uv.lock': '' }), { test: ['uv run pytest'], testOne: ['uv run pytest <file>'], lint: ['uv run ruff check .'], typecheck: ['uv run mypy .'], format: ['uv run ruff format .'] });
   assert.deepEqual(cmds({ 'pyproject.toml': py, 'poetry.lock': '' }).test, ['poetry run pytest']);
-  assert.deepEqual(cmds({ 'pyproject.toml': '[project]\nname = "x"\ndependencies = []\n[project.optional-dependencies]\ndev = ["pytest>=8"]\n' }), { test: ['pytest'] });
+  assert.deepEqual(cmds({ 'pyproject.toml': '[project]\nname = "x"\ndependencies = []\n[project.optional-dependencies]\ndev = ["pytest>=8"]\n' }), { test: ['pytest'], testOne: ['pytest <file>'] });
   assert.deepEqual(cmds({ 'pyproject.toml': '[project]\nname = "x"\n' }), {}, '설정이 없으면 아무것도 지어내지 않는다');
-  assert.deepEqual(cmds({ 'requirements.txt': 'flask==3\n', 'conftest.py': '' }), { test: ['pytest'] });
+  assert.deepEqual(cmds({ 'requirements.txt': 'flask==3\n', 'conftest.py': '' }), { test: ['pytest'], testOne: ['pytest <file>'] });
 });
 
 test('pyproject: tox·hatch 스크립트가 있으면 그것을 쓴다', () => {
@@ -65,10 +65,31 @@ test('pyproject: tox·hatch 스크립트가 있으면 그것을 쓴다', () => {
 });
 
 test('Cargo·Go: 도구에 들어 있는 명령 + 설정 파일이 있을 때만 clippy·rustfmt·golangci-lint', () => {
-  assert.deepEqual(cmds({ 'Cargo.toml': '[package]\nname = "x"\n' }), { test: ['cargo test'], build: ['cargo build'] });
-  assert.deepEqual(cmds({ 'Cargo.toml': '', 'clippy.toml': '', 'rustfmt.toml': '' }), { test: ['cargo test'], lint: ['cargo clippy'], format: ['cargo fmt'], build: ['cargo build'] });
-  assert.deepEqual(cmds({ 'go.mod': 'module x\n' }), { test: ['go test ./...'], lint: ['go vet ./...'], build: ['go build ./...'] });
+  assert.deepEqual(cmds({ 'Cargo.toml': '[package]\nname = "x"\n' }), { test: ['cargo test'], testOne: ['cargo test <name>'], build: ['cargo build'] });
+  assert.deepEqual(cmds({ 'Cargo.toml': '', 'clippy.toml': '', 'rustfmt.toml': '' }), { test: ['cargo test'], testOne: ['cargo test <name>'], lint: ['cargo clippy'], format: ['cargo fmt'], build: ['cargo build'] });
+  assert.deepEqual(cmds({ 'go.mod': 'module x\n' }), { test: ['go test ./...'], testOne: ['go test -run <name> ./...'], lint: ['go vet ./...'], build: ['go build ./...'] });
   assert.deepEqual(cmds({ 'go.mod': 'module x\n', '.golangci.yml': '' }).lint, ['golangci-lint run']);
+});
+
+test('시험 하나만: 시험 도구를 그대로 부르는 test 스크립트일 때만, 각 도구 문서의 꼴로', () => {
+  const one = (script, extra = {}) => cmds({ ...pkg({ test: script }), ...extra }).testOne;
+  assert.deepEqual(one('jest --coverage'), ['npx jest <file>']);
+  assert.deepEqual(one('playwright test'), ['npx playwright test <file>']);
+  assert.deepEqual(one('bun test'), ['bun test ./<file>'], 'bun 은 ./ 가 있어야 파일로 읽는다');
+  assert.deepEqual(one('node --test'), ['node --test <file>']);
+  assert.deepEqual(one('node --test scripts/test/'), ['node --test <file>']);
+  // 모르면 넣지 않는다: 이어 붙인 명령, 설정 경로, 환경 변수 앞붙이, 다른 도구·하위 명령, mocha(.mocharc spec 과 합쳐진다)
+  for (const s of ['tsc && vitest run', 'vitest run --config vitest.unit.ts', 'jest -c jest.e2e.js', 'cross-env CI=1 jest', 'vitest bench',
+    'node --test --import tsx', 'mocha', 'turbo test', 'npm run test:unit', 'jest "src"']) assert.equal(one(s), undefined, s);
+  assert.equal(cmds({ 'pyproject.toml': '[tool.pytest.ini_options]\n', 'tox.ini': '[tox]\n' }).testOne, undefined, 'tox 는 모른다');
+  assert.equal(cmds({ Makefile: 'test:\n' }).testOne, undefined, 'make 는 모른다');
+});
+
+test('시험 하나만 글: 자리표시를 그 언어 말로 바꾼다', () => {
+  const c = { test: ['npm test'], testOne: ['npx vitest run <file>', 'go test -run <name> ./...'] };
+  assert.match(renderRule('commands', 'ko', [], [], [], c), /\n- 시험 하나만: `npx vitest run <파일>` · `go test -run <이름> \.\/\.\.\.`$/);
+  assert.match(renderRule('commands', 'en', [], [], [], c), /\n- One test only: `npx vitest run <file>` · `go test -run <name> \.\/\.\.\.`/);
+  assert.doesNotMatch(renderRule('commands', 'ko', [], [], [], { test: ['npm test'] }), /하나만/, '모르면 줄을 넣지 않는다');
 });
 
 test('여러 생태계가 있으면 한 줄에 함께(종류마다 3개까지), 빈 저장소는 없음', () => {
@@ -78,8 +99,8 @@ test('여러 생태계가 있으면 한 줄에 함께(종류마다 3개까지), 
 
 test('사용자 CLAUDE.md 에 이미 적힌 명령은 뺀다(harness-fit 구역 안은 사용자 글이 아니다)', () => {
   const dir = repo({ ...pkg({ test: 'jest', build: 'tsc' }), 'CLAUDE.md': `# x\n- 시험은 \`npm test\` 로\n\n${START}\n- 빌드: \`npm run build\`\n${END}\n` });
-  assert.deepEqual(detectCommands(dir), { commands: { build: ['npm run build'] }, listed: ['npm test'] });
-  assert.deepEqual(detect(dir).commands, { build: ['npm run build'] }, 'detect 가 싣는다');
+  assert.deepEqual(detectCommands(dir), { commands: { testOne: ['npx jest <file>'], build: ['npm run build'] }, listed: ['npm test'] });
+  assert.deepEqual(detect(dir).commands, { testOne: ['npx jest <file>'], build: ['npm run build'] }, 'detect 가 싣는다');
 });
 
 test('이 저장소 명령 글: 찾은 종류만, 시험 줄에 끝내기 전 안내, 명령이 없으면 통째로 뺀다', () => {
@@ -92,8 +113,8 @@ test('이 저장소 명령 글: 찾은 종류만, 시험 줄에 끝내기 전 �
   assert.deepEqual(Object.keys(texts), ['commands', 'github-flow', 'lean'], '명령이 맨 위');
   assert.deepEqual(Object.keys(ruleTexts({ lang: 'ko', flow: 'none', rules: ['commands', 'lean'], hooks: [] })), ['lean']);
   // overlap.mjs 의 줄 번호(--skip commands:<n>)는 파일 순서 그대로
-  assert.deepEqual(ruleLines('ko', ['commands'], c).commands.map((l) => l.n), [1, 5]);
-  assert.equal(renderRule('commands', 'ko', [], [5], [], c), '## 이 저장소 명령\n- 시험: `npm test` — 코드를 고쳤으면 끝내기 전에 돌린다.');
+  assert.deepEqual(ruleLines('ko', ['commands'], c).commands.map((l) => l.n), [1, 6]);
+  assert.equal(renderRule('commands', 'ko', [], [6], [], c), '## 이 저장소 명령\n- 시험: `npm test` — 코드를 고쳤으면 끝내기 전에 돌린다.');
 });
 
 test('구조 지침에서 뻔한 일반론 3줄을 뺐다', () => {
@@ -107,7 +128,7 @@ test('구조 지침에서 뻔한 일반론 3줄을 뺐다', () => {
 test('뺀 줄: 훅·스킬이 맡거나 이미 CLAUDE.md 에 있는 줄을 이유와 자리와 함께 낸다', () => {
   const sel = { lang: 'ko', flow: 'none', rules: ['lean', 'security'], hooks: ['pin-deps'], skills: ['caveman'], skipLines: { lean: [1] } };
   const d = ruleDropped(sel);
-  assert.deepEqual(d.lean.map((x) => [x.by, x.who, x.at]), [['existing', [], 1], ['skill', ['caveman'], 2]]);
+  assert.deepEqual(d.lean.map((x) => [x.by, x.who, x.at]), [['existing', [], 1], ['skill', ['caveman'], 1]]);
   assert.deepEqual(d.security.map((x) => [x.by, x.who]), [['hook', ['pin-deps']]]);
   const rows = ruleTexts(sel).security.split('\n');
   assert.ok(d.security[0].at <= rows.length, '자리는 들어간 글의 줄 번호');

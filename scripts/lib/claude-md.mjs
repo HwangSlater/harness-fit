@@ -15,7 +15,18 @@ export const END = '<!-- harness-fit:end -->';
 // 스킬은 여럿을 | 로 이을 수 있다: {{!skill:caveman|ponytail}} = 둘 다 없을 때만
 export const TAG = /\s*\{\{(?:(!?)(hook|skill):([\w|-]+)|judge)\}\}\s*$/;
 // 줄 가운데 `{{cmd:test}}` 는 저장소에서 읽은 그 종류의 명령으로 채운다(scripts/lib/commands.mjs). 명령이 없으면 그 줄은 넣지 않는다.
-const CMD = /\{\{cmd:(\w+)\}\}/;
+// `{{cmd:testOne|file=파일}}` 처럼 이름=말을 붙이면 명령 속 자리표시 `<file>` 을 그 언어 말 `<파일>` 로 바꾼다(말은 규칙 파일에 둔다).
+const CMD = /\{\{cmd:(\w+)((?:\|\w+=[^|}]+)*)\}\}/;
+// → 명령을 채운 줄. 명령 자리가 없으면 그대로, 그 종류의 명령을 못 찾았으면 null(줄을 넣지 않는다).
+export const fillCmd = (text, cmds = {}) => {
+  const c = text.match(CMD);
+  if (!c) return text;
+  const list = cmds[c[1]] || [];
+  if (!list.length) return null;
+  const words = Object.fromEntries(c[2].split('|').filter(Boolean).map((x) => x.split('=')));
+  const say = (cmd) => cmd.replace(/<(\w+)>/g, (m, k) => (words[k] ? `<${words[k]}>` : m));
+  return text.replace(CMD, list.map((x) => `\`${say(x)}\``).join(' · '));
+};
 
 // skip: 넣지 않을 「- 」 줄 번호(1부터, 파일에 적힌 순서 — scripts/overlap.mjs 가 보여 주는 번호). 프로젝트·전역 CLAUDE.md 에 이미 같은 말이 있는 줄이다(setup 때 Claude 가 견줌).
 // cmds: { test: ['npm test'], … }(이 저장소 명령). 모든 줄이 빠지면 그 규칙은 통째로 넣지 않는다.
@@ -41,10 +52,8 @@ export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds =
       if (m[1] === '!') dropped.push({ at: out.length, text: line.replace(TAG, ''), by: m[2], who });
       continue;
     }
-    const c = text.match(CMD);
-    const list = c ? cmds[c[1]] || [] : null;
-    if (list && !list.length) continue;
-    const filled = list ? text.replace(CMD, list.map((x) => `\`${x}\``).join(' · ')) : text;
+    const filled = fillCmd(text, cmds);
+    if (filled == null) continue;
     if (bullet) {
       if (drop.has(n)) {
         dropped.push({ at: out.length, text: filled, by: 'existing', who: [] });

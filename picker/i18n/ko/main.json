@@ -195,6 +195,7 @@
   "ruleFoot": "{lines}줄 · 약 {tok} 토큰 · 표시 밖 원래 글은 그대로 둬요",
   "ruleFootShort": "{lines}줄 · 약 {tok} 토큰",
   "ruleIn": "CLAUDE.md 에 들어갈 글",
+  "ownNotes": "헷갈리는 곳·저장소에 없는 결정·두 번 바로잡은 것은 Claude가 읽어서 알 수 없으니 CLAUDE.md 표시 밖에 직접 적어 두세요. 예: 「`src/legacy/` 는 아직 쓰지만 새 코드는 따라 하지 않는다.」",
   "ruleNone": "(넣을 지침이 없어요)",
   "ruleViewLabel": "보기 방식",
   "viewShort": "줄여 보기",
@@ -243,5 +244,8 @@
   "hooksBlockOnlyD": "명령·파일 쓰기를 차단하는 훅만 켜고, 알려 주기만 하는 훅(커밋 해시 알리기 등)은 꺼요",
   "hooksBlockOnlyDone": "차단하는 훅 {n}개만 켰어요",
   "kindNotice": "알림만",
-  "coverNoPlugin": "harness-fit 플러그인이 없어 훅이 돌지 않으니, 켜도 그 줄은 글로 남겨요"
+  "coverNoPlugin": "harness-fit 플러그인이 없어 훅이 돌지 않으니, 켜도 그 줄은 글로 남겨요",
+  "dListK": "목록 예산",
+  "dLongDesc": "설명이 길어 목록 예산을 많이 써요(약 {n}자)",
+  "sumBudget": "스킬 목록이 예산의 {pct}% — 넘을 수 있어요"
 }

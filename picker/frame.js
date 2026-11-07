@@ -3,6 +3,7 @@
 import { h, icon } from './dom.js';
 import { num } from './parts.js';
 import { shareOpen } from './team.js';
+import { budgetLine } from './budget-view.js';
 import { costOf, pct, ruleCount, ruleLines, skillTokens, ruleTokens, weightWord, comboBy, flowBy, skillBy } from './stats.js';
 
 // tab: 막대 이름 · where: 들어가는 곳 · count: 이름 옆 작은 값
@@ -80,6 +81,7 @@ export function sum(c) {
       h('span.k', {}, t('costK')),
       h('b', {}, t('aboutN', { n: num(S, total) }), h('small', {}, ` ${t('tokens')}`)),
       h('span.d', {}, t('costSplit', { s: num(S, skillTokens(S, sel.skills)), r: num(S, ruleTokens(S, sel.rules, sel.flow)), pct: pct(S, total), word: t(weightWord(total)) }))),
+    budgetLine(c),
     h('div.sact', {},
       ui.busy ? progress(c) : null,
       // 적용은 확인 단계의 단추만 한다. 요약 카드는 확인 단계로 데려간다.

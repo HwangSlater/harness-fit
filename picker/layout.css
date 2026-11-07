@@ -75,7 +75,7 @@ main { min-width: 0; }
 .overlap { margin-top: var(--s4); }
 .overlap .hint { margin: 0 0 var(--s2); }
 .overlap .hint b { color: var(--ink); }
-.preview { min-width: 0; }
+.preview, .pvcol { min-width: 0; }
 .pv { min-height: 200px; max-height: calc(100vh - 400px); overflow: auto; padding: var(--s3); background: var(--subtle); font-family: var(--mono); font-size: var(--fs-sm); line-height: 19px; }
 .pv .ln { white-space: pre-wrap; overflow-wrap: anywhere; }
 .pv .mk, .pv .drop { color: var(--ink-2); } /* --neutral-mute 는 글자에 3.2:1 이라 테두리에만 */
@@ -131,6 +131,9 @@ footer { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s
 .cost .k, .cost .d { display: block; color: var(--ink-2); font-size: var(--fs-sm); }
 .cost b { display: block; font-size: var(--fs-big); line-height: var(--lh-big); font-weight: 600; font-variant-numeric: tabular-nums; }
 .cost b small { color: var(--ink-2); font-size: var(--fs-body); font-weight: 400; }
+/* 스킬 목록 예산 경고 한 줄(요약 카드) — 누르면 확인 단계 알림으로 */
+.sbudget { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap); padding: 0 var(--s4); border-top: 1px solid var(--line); background: var(--warn-soft); color: var(--warn-ink); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
+.sbudget:hover { text-decoration: underline; }
 .sact { display: grid; justify-items: center; padding: 0 var(--s4) var(--s2); }
 .sact .link { font-size: var(--fs-sm); }
 

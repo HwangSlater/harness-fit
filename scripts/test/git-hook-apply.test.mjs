@@ -20,8 +20,11 @@ before(() => {
   // apply() 는 플러그인이 켜졌는지 본다 — 플러그인 안에서 도는 것처럼
   saved = process.env.CLAUDE_PLUGIN_ROOT;
   process.env.CLAUDE_PLUGIN_ROOT = path.join(tmp, 'harness-fit');
+  // 스킬 목록 예산 경고(skill-budget)는 이 PC 의 스킬 수에 따라 달라진다 — 이 시험은 git 훅 경고만 보므로 예산을 넉넉히
+  process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET = '100000000';
 });
 after(() => {
+  delete process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET;
   if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
   else process.env.CLAUDE_PLUGIN_ROOT = saved;
   fs.rmSync(tmp, { recursive: true, force: true });
