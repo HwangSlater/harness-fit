@@ -9,6 +9,6 @@
 - 화면에 넣는 카탈로그 글(외부 저장소에서 옴)은 textContent 로만. innerHTML 금지. 데이터 요청은 X-Harness-Token 헤더 + Host 검사.
 - 외부 스킬은 커밋 해시로 고정해 받고 실행하지 않는다. 라이선스가 확실한 것만 복사, 나머지는 원 저장소 설치 안내.
 - 카탈로그 갱신: 조사 → node scripts/build-catalog.mjs <조사.json> <SKILL.md 폴더> → node scripts/scan-skill-files.mjs. 검색어는 catalog/queries.json.
-- 버전을 올릴 때: .claude-plugin/plugin.json version · config/sources.json pluginRef · git 태그를 함께.
+- 버전을 올릴 때: .claude-plugin/plugin.json version · package.json version · config/sources.json pluginRef · git 태그를 함께. 태그는 주석 태그로, 메시지는 첫 줄 「vX.Y.Z: 요약」 + 바뀐 점 글머리표 + 최소 Claude Code 버전(릴리스 커밋 메시지와 같게). 커밋과 태그 만들기는 따로 실행한다(전역 훅이 한 명령 안의 태그 옵션을 커밋 옵션으로 잘못 읽는다).
 - 화면을 바꾸면 사용자 역할 평가(처음 쓰는 사람·팀 리드)로 클릭해 보고 확인한다.
 - 시험: npm test. 해 보기: node cli/harness-fit.js (지금 폴더 저장소로 고르기 화면을 연다).
