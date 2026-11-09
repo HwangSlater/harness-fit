@@ -4,15 +4,15 @@
 // 가정(문서에 없음): 번들 스킬·MCP 는 세지 않는다. 하위 폴더의 .claude/skills(모노레포)는 그 폴더 파일을 열 때 들어오므로 세지 않는다.
 // 읽지 못한 파일·폴더는 건너뛴다(목록이 조금 작게 나올 뿐 적용을 막지 않는다).
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { listPlugins } from './installed.mjs';
 import { skillMeta } from './skill-meta.mjs';
 import { entryChars, budgetOf, trimPlan, trimTier, DESC_CAP, DEFAULT_BUDGET } from '../../picker/budget.js';
-import { PLUGIN_ROOT } from './catalog.mjs';
+import { PLUGIN_ROOT, readJson, entries, subdirs, pickerConfig } from './paths.mjs';
+import { CHARS_PER_TOKEN } from './tokens.mjs'; // 가정: 문맥 창 1%(200k 토큰 → 2,000 토큰)가 기본 8,000자와 맞도록 토큰 하나를 4자로 본다
+import { claudeHome } from '../../hooks/lib/claude-home.mjs';
 
 const HEAD_BYTES = 64 << 10; // 머리말 + 첫 문단이면 충분하다(본문 전체는 읽지 않는다)
-const CHARS_PER_TOKEN = 4; // 가정: 문맥 창 1%(200k 토큰 → 2,000 토큰)가 기본 8,000자와 맞도록 토큰 하나를 4자로 본다
 
 const readHead = (file) => {
   let fd;
@@ -26,10 +26,7 @@ const readHead = (file) => {
     if (fd !== undefined) try { fs.closeSync(fd); } catch {}
   }
 };
-const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')); } catch { return null; } };
-const dirs = (dir) => { try { return fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; } };
-// 스킬 폴더는 링크(심볼릭 링크·Windows 정션)로 둔 경우가 많다 — 이 PC 사용자 스킬 13개 중 6개. 링크면 가리키는 곳이 폴더인지 본다.
-const isDir = (base, d) => d.isDirectory() || (d.isSymbolicLink() && (() => { try { return fs.statSync(path.join(base, d.name)).isDirectory(); } catch { return false; } })());
+// 스킬 폴더는 링크(심볼릭 링크·Windows 정션)로 둔 경우가 많다 — 이 PC 사용자 스킬 13개 중 6개. paths.mjs subdirs 가 링크도 따라간다.
 
 // 한 곳(skills 폴더 + commands 폴더)의 목록 줄. prefix: 플러그인 이름(「플러그인:」)
 const entriesIn = (base, prefix, cap) => {
@@ -41,14 +38,14 @@ const entriesIn = (base, prefix, cap) => {
     const name = prefix ? `${prefix}:${m.name}` : m.name;
     out.push({ name, chars: entryChars(name, m.description, m.whenToUse, cap) });
   };
-  for (const d of dirs(path.join(base, 'skills'))) if (isDir(path.join(base, 'skills'), d)) add(readHead(path.join(base, 'skills', d.name, 'SKILL.md')), d.name);
-  for (const f of dirs(path.join(base, 'commands'))) if (f.isFile() && f.name.endsWith('.md')) add(readHead(path.join(base, 'commands', f.name)), f.name.slice(0, -3));
+  for (const d of subdirs(path.join(base, 'skills'))) add(readHead(path.join(d.path, 'SKILL.md')), d.name);
+  for (const f of entries(path.join(base, 'commands'))) if (f.isFile && f.name.endsWith('.md')) add(readHead(f.path), f.name.slice(0, -3));
   return out;
 };
 
 // 사용자 → 프로젝트 → 로컬 설정을 겹친다(뒤가 이긴다). env·enabledPlugins 는 키마다 합친다.
 const mergedSettings = (root, home) => {
-  const files = [path.join(home, '.claude', 'settings.json'), path.join(root, '.claude', 'settings.json'), path.join(root, '.claude', 'settings.local.json')];
+  const files = [path.join(claudeHome(home), 'settings.json'), path.join(root, '.claude', 'settings.json'), path.join(root, '.claude', 'settings.local.json')];
   const out = { env: {}, enabledPlugins: {} };
   for (const s of files.map(readJson)) {
     if (!s || typeof s !== 'object') continue;
@@ -75,12 +72,12 @@ export const budgetFrom = (settings, env, contextTokens) => {
 // 지금 목록: { current, count, budget, budgetSource, maxDesc, places: [{ where, n, chars }], present: [프로젝트 .claude/skills 폴더 이름] }
 // 플러그인은 installed_plugins.json 에 이 프로젝트(또는 사용자 범위)로 깔렸고 설정 enabledPlugins 에서 false 가 아닌 것.
 // contextTokens 를 주지 않으면 config/picker.json 의 값(화면의 「기억 공간의 N%」와 같은 값)
-const configTokens = () => readJson(path.join(PLUGIN_ROOT, 'config', 'picker.json'))?.contextTokens;
-export const currentListing = (root, { home = os.homedir(), env = process.env, contextTokens = configTokens() } = {}) => {
+// home: 시험이 임시 홈을 넘긴다. 안 주면 CLAUDE_CONFIG_DIR → ~/.claude.
+export const currentListing = (root, { home, env = process.env, contextTokens = pickerConfig().contextTokens } = {}) => {
   const settings = mergedSettings(root, home);
   const maxDesc = posInt(settings.skillListingMaxDescChars) ?? DESC_CAP;
   const places = [
-    ['user', path.join(home, '.claude'), ''],
+    ['user', claudeHome(home), ''],
     ['project', path.join(root, '.claude'), ''],
     ...listPlugins(root, home).filter((p) => settings.enabledPlugins[p.id] !== false).map((p) => [`plugin:${p.id}`, p.dir, p.id.split('@')[0]]),
   ];
@@ -92,7 +89,7 @@ export const currentListing = (root, { home = os.homedir(), env = process.env, c
     const list = entriesIn(base, prefix, maxDesc);
     rows.push({ where, n: list.length, chars: list.reduce((a, x) => a + x.chars, 0) });
   }
-  const present = dirs(path.join(root, '.claude', 'skills')).filter((d) => isDir(path.join(root, '.claude', 'skills'), d)).map((d) => d.name);
+  const present = subdirs(path.join(root, '.claude', 'skills')).map((d) => d.name);
   return {
     current: rows.reduce((a, r) => a + r.chars, 0),
     count: rows.reduce((a, r) => a + r.n, 0),

@@ -2,24 +2,11 @@
 // 이번 호출로 새로 들어가는 줄만 본다. 셸로 쓴 파일은 커밋할 때 같은 함수로 다시 본다(rules/commit.mjs INSPECT).
 import { addedRows, targetFile, fileAfter } from '../lib/lines.mjs';
 import { findLangUnsafe, langTarget } from '../lib/lang-unsafe.mjs';
-import { allowFor, allowHint } from '../lib/allow.mjs';
-import { list } from './code.mjs';
+import { allowFor } from '../lib/allow.mjs';
+// 찾은 것 → 문구, 커밋 계획에서 찾기. 쓰기 검사와 커밋 검사가 같이 쓴다(lib/messages.mjs).
+import { trimmedSet, langWhere as where, langMessage, langCommitHits } from '../lib/messages.mjs';
 
-const trimmedSet = (lines) => new Set(lines.map((l) => l.trim()).filter(Boolean));
-const where = (h, t) => (h.no ? t('lang.at', { what: h.label, no: h.no }) : h.label);
-
-// 찾은 것 → 문구. 쓰기 검사와 커밋 검사가 같은 문구를 쓴다.
-export const langMessage = (id, hits, t) => t(`${id}.write`, { hits: list(hits, t), hint: allowHint(id, t) });
-
-// 커밋 계획(lib/staged.mjs)에서: 그 언어 파일마다 이번 커밋이 더하는 줄
-export const langCommitHits = (id, plan, t, allows) =>
-  plan.files.filter((f) => langTarget(id, f)).flatMap((f) => {
-    const added = plan.added.get(f) || [];
-    if (!added.length) return [];
-    const after = plan.after(f);
-    const text = after ?? added.join('\n');
-    return findLangUnsafe(id, text, after == null ? null : trimmedSet(added), (rows) => allowFor(allows, id, f, rows), after != null).map((h) => `${f}: ${where(h, t)}`);
-  });
+export { langMessage, langCommitHits };
 
 const writeRule = (id) => ({
   id,

@@ -35,7 +35,7 @@
   "git.branchName": "Branch name `{name}` does not match the convention. e.g. {examples} (pattern: {pattern})",
   "git.branchNameNoExample": "Branch name `{name}` does not match the convention. (pattern: {pattern})",
   "git.noVerify": "Do not skip pre-commit checks with `--no-verify` (or `git commit -n`). Fix what the check reports instead.",
-  "web.preferGh": "Read GitHub ({url}) with `gh` instead of scraping the page, e.g. `gh repo view`, `gh api repos/<owner>/<repo>/contents/<path>`, `gh issue view`.",
+  "web.preferGh": "harness-fit: when `gh` is available, reading GitHub ({url}) with it is more accurate and uses fewer tokens than fetching the page (this fetch was not blocked), e.g. `gh repo view`, `gh api repos/<owner>/<repo>/contents/<path>`, `gh issue view`.",
   "config.broken": "harness-fit: {file} is not valid JSON or has the wrong shape (rules must be an object), so all hooks are off. Fix it or re-apply with /harness-fit:setup.",
   "hook.crashed": "harness-fit: a hook crashed, so this action runs without hooks. If it keeps happening, re-apply with /harness-fit:setup or update the plugin.",
   "hook.ruleCrashed": "harness-fit: the {ids} hook crashed, so this action runs without it. If it keeps happening, re-apply with /harness-fit:setup or update the plugin.",

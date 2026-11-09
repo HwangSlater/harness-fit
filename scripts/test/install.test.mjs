@@ -1,8 +1,8 @@
 // 스킬 받기 시험. 네트워크 대신 fetch 를 바꿔 끼운다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { installSkill, setSkillName, reservedNames } from '../lib/install-skill.mjs';
 import { loadAll } from '../lib/catalog.mjs';
@@ -16,7 +16,7 @@ const stub = (tree, failOn) => (url) => {
   return Promise.resolve(ok(`내용 ${url}`));
 };
 const project = () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-install-'));
+  const root = tmpDir('harness-install-');
   return { root, dest: (id) => path.join(root, '.claude', 'skills', id) };
 };
 

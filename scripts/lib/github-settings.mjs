@@ -8,10 +8,8 @@
 //   notes    { pullRequest: { ko, en } }  그 방식에서만 덧붙일 설명
 // 항목·선택 계산은 picker/github-plan.js(화면과 같이 쓴다).
 // gh·git 은 run(cmd, args, { input }) 한 함수로만 부른다(시험은 가짜 run 을 넣는다. 네트워크 없이).
-import fs from 'node:fs';
-import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { PLUGIN_ROOT } from './catalog.mjs';
+import { pickerConfig } from './paths.mjs';
 import { latestBackup, undo } from './backup.mjs';
 import { PROTECT_KEYS, SHORT, SQUASH_ONLY, defaultChoice, cleanChoice, changesFor } from '../../picker/github-plan.js';
 
@@ -26,7 +24,7 @@ const BRANCH_NAME = /^[\w.-]+(\/[\w.-]+)*$/;
 
 const timeoutMs = () => {
   try {
-    return JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8')).githubTimeoutMs;
+    return pickerConfig().githubTimeoutMs;
   } catch {
     return undefined;
   }

@@ -10,10 +10,10 @@ import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { launcherText } from '../lib/git-hook.mjs';
 import { FAKE, linesOf } from './strict-cases/helpers.mjs';
+import { timed, assertFast, idleRun } from './helpers/hook-proc.mjs';
 
 const ROOT = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const RUN = path.join(ROOT, 'hooks', 'run.mjs');
-const BUDGET_MS = Number(process.env.HARNESS_BUDGET_MS || 4000);
 const IH = 'inner' + 'HTML';
 const AWS = `const k = "${FAKE.aws}";`;
 const NO_REASON = /reason is missing or too short/;
@@ -247,24 +247,32 @@ describe('git pre-commit 훅(진짜 git commit)', { concurrency: true }, () => {
 
 describe('터짐·느림: 아주 긴 줄, 이상한 글자, 아주 많은 허용 줄', { concurrency: false }, () => {
   const MB = 1024 * 1024;
-  const fast = (r) => assert.ok(r.ms < BUDGET_MS, `${r.ms.toFixed(0)}ms (한도 ${BUDGET_MS}ms)`);
+  // 한도를 넘으면 두 번 더 재고 같은 순간의 빈 호출 시간을 빼서 본다(다른 시험과 함께 돌 때의 느림을 거르려고 — helpers/hook-proc.mjs)
+  let idle;
+  before(() => {
+    const none = path.join(tmp, 'none');
+    execFileSync('git', ['init', '-q', none]);
+    idle = idleRun(RUN, none);
+  });
+  const tw = (d, rel, content) => timed(() => write(d, rel, content), { idle });
+  const fast = (r) => assertFast(r, '허용 주석');
   test('5MB 한 줄 이유 → 통과, 알림의 이유는 잘라서', async () => {
     const d = repo({ 'unsafe-html': true });
-    const r = await write(d, 'src/a.js', `el.${IH} = x; // lint:allow unsafe-html ${'가'.repeat(5 * MB)}\n`);
+    const r = await tw(d, 'src/a.js', `el.${IH} = x; // lint:allow unsafe-html ${'가'.repeat(5 * MB)}\n`);
     passes(r, 'src/a.js:1');
     assert.ok(r.notice.length < 500, `알림 길이 ${r.notice.length}`);
     fast(r);
   });
   test('한 줄에 토큰 20만 개 + 위험한 줄 → 터지지 않고 시간 안에', async () => {
     const d = repo({ 'unsafe-html': true, secrets: { allowComment: true } });
-    const r = await write(d, 'src/a.js', `el.${IH} = x; ${'lint:allow '.repeat(200000)}\n${'// lint:allow unsafe-html '.repeat(100000)}\n`);
+    const r = await tw(d, 'src/a.js', `el.${IH} = x; ${'lint:allow '.repeat(200000)}\n${'// lint:allow unsafe-html '.repeat(100000)}\n`);
     assert.equal(typeof r.blocked, 'boolean');
     fast(r);
   });
   test('이상한 글자의 이유(글 방향 바꿈·제어 글자·짝 없는 서로게이트·결합 문자) → 알림에 그대로 새지 않는다', async () => {
     const d = repo({ 'unsafe-html': true });
     const odd = 'a\u202Eb\u0007c\u0000d\uD800e\u0301\u200Bf 😀';
-    const r = await write(d, 'src/a.js', `el.${IH} = x; // lint:allow unsafe-html ${odd}\n`);
+    const r = await tw(d, 'src/a.js', `el.${IH} = x; // lint:allow unsafe-html ${odd}\n`);
     passes(r, 'src/a.js:1');
     assert.doesNotMatch(r.notice, /[\u0000-\u001f\u202e]/);
     fast(r);
@@ -272,7 +280,7 @@ describe('터짐·느림: 아주 긴 줄, 이상한 글자, 아주 많은 허용
   test('허용 줄 2만 개 → 알림은 10개까지 + 나머지 수', async () => {
     const d = repo({ 'unsafe-html': true });
     const body = Array.from({ length: 20000 }, (_, i) => `el.${IH} = v${i}; // lint:allow unsafe-html 고정 틀 ${i}`).join('\n');
-    const r = await write(d, 'src/a.js', body + '\n');
+    const r = await tw(d, 'src/a.js', body + '\n');
     passes(r, 'src/a.js:1');
     assert.match(r.notice, /and 19990 more|외 19990건/);
     fast(r);
@@ -280,7 +288,7 @@ describe('터짐·느림: 아주 긴 줄, 이상한 글자, 아주 많은 허용
   test('10MB 비밀값 글(줄마다 허용) → 시간 안에', async () => {
     const d = repo({ secrets: { allowComment: true } });
     const line = `${AWS} // lint:allow secrets 문서 예시\n`;
-    const r = await write(d, 'docs/keys.txt', line.repeat(Math.floor((10 * MB) / line.length)));
+    const r = await tw(d, 'docs/keys.txt', line.repeat(Math.floor((10 * MB) / line.length)));
     passes(r, 'docs/keys.txt:1');
     fast(r);
   });

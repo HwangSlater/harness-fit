@@ -129,9 +129,15 @@ test('검사 건너뛰기(--no-verify)', () => {
   assert.deepEqual(bash('git commit -m "feat: x"'), []);
 });
 
-test('GitHub 는 gh 로', () => {
+test('GitHub 는 gh 로: 막지 않고 Claude 에게 알린다(notice)', () => {
   setRules({ 'prefer-gh': true });
-  const fetch = (url) => evaluate({ tool_name: 'WebFetch', cwd: repo, tool_input: { url, prompt: 'x' } });
-  assert.equal(fetch('https://github.com/owner/repo').length, 1);
-  assert.deepEqual(fetch('https://docs.github.com/en'), []);
+  const fetch = (url) => {
+    const hints = [];
+    return { denied: evaluate({ tool_name: 'WebFetch', cwd: repo, tool_input: { url, prompt: 'x' } }, [], [], hints), hints };
+  };
+  const gh = fetch('https://github.com/owner/repo');
+  assert.deepEqual(gh.denied, []);
+  assert.equal(gh.hints.length, 1);
+  assert.match(gh.hints[0], /gh/);
+  assert.deepEqual(fetch('https://docs.github.com/en'), { denied: [], hints: [] });
 });

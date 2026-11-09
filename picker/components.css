@@ -96,6 +96,11 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .lrow .main b { display: block; font-weight: 600; }
 .lrow .main .d { display: block; color: var(--ink-2); font-size: var(--fs-sm); line-height: var(--lh-sm); }
 .lrow .main .d.one { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* 누르면 창이 뜨는 줄(지침): 제목·설명 칸이 단추 */
+.lrow.click { cursor: pointer; }
+.lrow.click:hover { background: var(--hover); }
+button.main { display: block; min-height: var(--tap); padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+button.main:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r); }
 .lrow .k { flex: none; width: 120px; color: var(--ink-2); }
 .lrow .meta { flex: none; color: var(--ink-2); font-size: var(--fs-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .lrow.off .main b { color: var(--ink-2); }
@@ -140,7 +145,6 @@ svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
 .dlg.tall { height: min(var(--dlg-h), calc(100vh - 2 * var(--dlg-gap))); } /* 묶음을 바꿔도 창 크기가 출렁이지 않게 */
 .dlg::backdrop { background: var(--scrim); }
 @keyframes dlg-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-html.dlg-open { overflow: hidden; }
 .dlg-h { flex: none; display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s3) var(--s2) var(--s3) var(--s5); border-bottom: 1px solid var(--line); }
 .dlg-h > div { flex: 1; min-width: 0; padding-top: 6px; }
 .dlg-h h2 { font-size: var(--fs-h); line-height: var(--lh-h); font-weight: 600; }
@@ -178,6 +182,10 @@ html.dlg-open { overflow: hidden; }
 .item .plain { margin-top: 2px; }
 .item .meta { margin-top: 2px; color: var(--ink-2); font-size: var(--fs-sm); }
 .item .more { grid-column: 1; }
+/* 알아 둘 점: 흐린 둘째 줄 + 작은 이름표(경고 색이 아니다) */
+.keep { margin-top: 2px; color: var(--ink-2); font-size: var(--fs-sm); line-height: var(--lh-sm); }
+.keep .kl { color: var(--ink); font-weight: 600; }
+.keep .kl::after { content: " ·"; color: var(--ink-2); font-weight: 400; }
 .scopebtn { font-size: var(--fs-sm); margin-bottom: -10px; }
 .scopefull { margin-top: var(--s2); padding: var(--s2) var(--s3); border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--subtle); color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .scopefull dt { color: var(--ink); font-weight: 600; }
@@ -233,12 +241,15 @@ html.dlg-open { overflow: hidden; }
 .flash.info { border-color: var(--info-line); background: var(--info-soft); }
 .flash > .btn { flex: none; align-self: center; }
 .flash b { display: block; font-weight: 600; }
-/* 스킬 목록 예산 알림: 숫자 줄 · 고를 수 있는 두 가지 */
-.flash .sp > p + p, .flash .bopts { margin-top: var(--s2); }
+/* 확인 단계 알림: 한 줄(제목 · 덧말 · 자세히) + 펼친 설명. 자세히 단추는 줄 높이를 늘리지 않고 누르는 넓이만 44px */
+.flash .one { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); }
+.flash .one b { display: inline; }
+.flash .aside { color: var(--ink-2); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.link.more { min-height: var(--tap); margin-block: calc((var(--tap) - var(--lh-body)) / -2); font-size: var(--fs-sm); }
+.more-b { margin-top: var(--s2); color: var(--ink-2); font-size: var(--fs-sm); line-height: var(--lh-sm); }
+.flash.compact > .btn { align-self: flex-start; }
+.more-b > p + p { margin-top: var(--s2); }
 .flash .bnums { color: var(--ink); font-variant-numeric: tabular-nums; }
-.bopts { display: grid; gap: var(--s2); }
-.bopt { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3); }
-.bopt > p { flex: 1 1 220px; min-width: 0; }
 .cmds { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); margin-bottom: var(--s1); }
 .cmds code { padding: 2px 6px; border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--subtle); }
 .notes { display: grid; gap: var(--s2); margin-bottom: var(--s4); }
@@ -269,6 +280,35 @@ pre.raw, pre.paths { max-height: var(--pre-max); overflow: auto; margin: var(--s
 .steps-ol ol { margin: var(--s1) 0 0; padding-left: var(--s5); color: var(--ink-2); }
 .dlg.sm { width: min(480px, 92vw); }
 .dlg.sm .dlg-b p + p { margin-top: var(--s2); }
+/* 지침 창(md): 설명 · 넣을 줄 · 뺀 줄 */
+.dlg.md { width: min(var(--dlg-md-w), 92vw); }
+.rdesc { overflow-wrap: anywhere; }
+.rsec { margin-top: var(--s4); }
+.rsec h3 { margin-bottom: var(--s2); font-size: var(--fs-body); font-weight: 600; }
+.rlines { max-height: 40vh; overflow: auto; padding: var(--s3); border-radius: var(--r); background: var(--subtle); font-family: var(--mono); font-size: var(--fs-sm); line-height: 19px; }
+.rlines.stale { opacity: var(--stale); }
+.rlines .ln { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rlines .hd { font-weight: 700; }
+.rlines .drop { color: var(--ink-2); }
+.rlines .why { color: var(--accent); font-family: var(--font); }
+.rtg { display: inline-flex; align-items: center; min-height: var(--tap); }
+/* 따라가는 링크(이름표·알림 글 속): 보이는 크기는 글자 그대로, 누르는 넓이만 44px — 줄 높이는 늘리지 않는다 */
+.lk { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); margin-block: calc((var(--tap) - var(--lh-sm)) / -2); padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.lk > span { text-decoration: underline; text-underline-offset: 2px; border-radius: 2px; }
+.lk:hover > span { text-decoration-thickness: 2px; }
+.lk:focus-visible { outline: none; }
+.lk:focus-visible > span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.flash .lk { color: var(--accent); font-weight: 500; }
+.label.links { flex-wrap: wrap; column-gap: .3em; height: auto; min-height: 20px; overflow: visible; white-space: normal; }
+.lkw { display: inline-flex; align-items: center; }
+/* 링크로 찾아온 줄: 잠깐 밝혔다가 서서히 원래대로(움직임 줄이기면 바로) */
+.item { transition: background-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+.item.hit { background: var(--accent-soft); box-shadow: 0 0 0 var(--s2) var(--accent-soft); }
+/* 이미 있는 스킬·훅 작은 창 */
+.found + .found { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line-soft); }
+.found .where { color: var(--ink-2); font-size: var(--fs-sm); }
+.found .rdesc { margin-top: var(--s1); }
+#infoBody > .rsec:first-child { margin-top: 0; }
 a.btn { color: var(--ink); text-decoration: none; }
 a.btn.primary { color: var(--on-accent); }
 .btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
@@ -281,4 +321,5 @@ a.btn.primary { color: var(--on-accent); }
 .team-steps .files { margin: var(--s1) 0 0; padding-left: var(--s4); color: var(--ink-2); }
 @media (max-width: 860px) {
   .optl .field { flex: 1; width: auto; } /* 위의 220px 보다 뒤에 둬야 이긴다 */
+  .dlg.md { width: 100%; } /* 좁은 화면은 다른 창처럼 아래에서 올라오는 꽉 찬 판 */
 }

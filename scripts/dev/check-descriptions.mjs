@@ -3,13 +3,13 @@
 // - saysWhen: 언제 쓰는지 밝히는지(부드러운 검사 — 외부 글이라 고치지 않고 보고만 한다).
 // - 1,536자를 넘으면 Claude Code 가 잘라 넣는다(code.claude.com/docs/en/skills) — 보고만.
 // 받은 글은 실행하지 않고 머리말만 읽는다. 외부 스킬 글은 고치지 않는다.
-// 사용: node scripts/check-descriptions.mjs            (받아서 적고 보고)
-//       node scripts/check-descriptions.mjs --report   (받지 않고 catalog.json 에 적힌 값으로 보고만)
+// 사용: node scripts/dev/check-descriptions.mjs            (받아서 적고 보고)
+//       node scripts/dev/check-descriptions.mjs --report   (받지 않고 catalog.json 에 적힌 값으로 보고만)
 import fs from 'node:fs';
 import path from 'node:path';
-import { PLUGIN_ROOT } from './lib/catalog.mjs';
-import { skillMeta, saysWhen, descReport } from './lib/skill-meta.mjs';
-import { DESC_CAP } from '../picker/budget.js';
+import { PLUGIN_ROOT } from '../lib/catalog.mjs';
+import { skillMeta, saysWhen, descReport } from '../lib/skill-meta.mjs';
+import { DESC_CAP } from '../../picker/budget.js';
 
 const file = path.join(PLUGIN_ROOT, 'catalog', 'catalog.json');
 const sources = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'sources.json'), 'utf8'));

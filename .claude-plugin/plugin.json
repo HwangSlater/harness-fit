@@ -1,6 +1,6 @@
 {
   "name": "harness-fit",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Find the skills, hooks and rules your project actually needs. 프로젝트에 맞는 스킬·훅·규칙을 골라 설치합니다.",
   "author": {
     "name": "HwangSlater",

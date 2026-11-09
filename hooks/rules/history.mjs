@@ -4,8 +4,8 @@
 // git 이 실패하면(저장소가 아님·원격 없음·upstream 없음) 막지 않는다.
 import { git, gitSegments } from '../lib/core.mjs';
 import { commandSegments } from '../lib/cmdline.mjs';
-import { commandWords } from '../lib/staged.mjs';
-import { timelineOf } from './git.mjs';
+import { commandWords } from '../lib/commit-args.mjs';
+import { timelineOf } from '../lib/branches.mjs';
 
 // 이 커밋을 가진 원격 브랜치 하나(origin/HEAD -> … 줄은 뺀다). 없거나 git 이 실패하면 null.
 const remoteWith = (root, rev) => {

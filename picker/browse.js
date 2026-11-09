@@ -1,31 +1,11 @@
 // 「전체 보기」 창 하나: 스킬·자동 검사 같은 짜임(왼쪽 묶음 목록 · 오른쪽 항목 · 위 찾기 칸).
 // 단계 화면의 「자세히 보기」는 모두 이 창을 그 묶음으로 연다(ui.browse = { kind, g, q }).
 import { h, icon } from './dom.js';
-import { toggleSwitch, onCount, link, num, isNew } from './parts.js';
+import { onCount, link, num, isNew } from './parts.js';
 import { STAGES, stageOf, listable, skillBy, hookBy, recSkills, hookGroupsOf, skillTokens } from './stats.js';
 import { skillItem } from './skills.js';
 import { hookItem } from './hooks.js';
-
-// 「자세히 보기」·「전체 보기」 단추: 그 묶음으로 연다
-export const browseBtn = (c, text, kind, g = 'all', key = `browse:${kind}:${g}`) =>
-  h('button.btn', { type: 'button', 'data-key': key, 'aria-haspopup': 'dialog', on: { click: () => c.act.openBrowse(kind, g) } }, text);
-
-// 항목 한 줄(스킬·검사 같은 꼴): 이름·이름표 / 쉬운 한 줄 / 정보 · 스위치 · 옵션 · 자세히(펼침)
-export function itemRow(c, { key, on, name, labels, plain, meta = [], opts = [], scope, onToggle }) {
-  const { ui, t, act } = c;
-  const open = ui.open.has(key);
-  const safe = key.replace(/[^\w-]/g, '_');
-  return h('div.item', {},
-    h('div', {},
-      h('div.nm', {}, h('span', { id: `nm-${safe}` }, name), labels),
-      plain ? h('p.plain', {}, plain) : null,
-      meta.filter(Boolean).map((m) => h('p.meta', {}, m))),
-    h('div.tg', {}, toggleSwitch(t, { key: `tg:${key}`, on, labelId: `nm-${safe}`, onToggle })),
-    h('div.more', {},
-      opts.length ? h('div.opts', {}, opts) : null,
-      link(`sc:${key}`, open ? t('scopeClose') : t('scopeOpen'), () => act.toggleOpen(key), { 'aria-expanded': String(open), class: 'scopebtn' }),
-      open ? h('div.scopefull', {}, scope) : null));
-}
+// 항목 한 줄(itemRow)·「자세히 보기」 단추(browseBtn)는 parts.js — 단계 화면(skills·hooks.js)도 쓰므로 여기 두면 서로 가져오게 된다.
 
 // 두 종류의 묶음 정의
 function kinds(c) {
@@ -43,7 +23,7 @@ function kinds(c) {
       allGroups: stageGroups,
       ids: (gid) => (gid === 'rec' ? rec : sortSkills(pool.filter((k) => stageOf(k) === gid).map((k) => k.id))),
       isOn: (id) => sel.skills.has(id),
-      text: (id) => { const k = skillBy(S, id); return `${k.title} ${k.when} ${k.summary} ${k.id} ${k.repo}`; },
+      text: (id) => { const k = skillBy(S, id); return `${k.title} ${k.effect} ${k.when} ${k.downside} ${k.summary} ${k.id} ${k.repo}`; },
       row: (id) => skillItem(c, id),
       total: pool.length,
       foot: t('browseSkillsFoot', { n: sel.skills.size, tok: num(S, skillTokens(S, sel.skills)) }),
@@ -53,7 +33,7 @@ function kinds(c) {
       groups: hookGroups, allGroups: hookGroups,
       ids: (gid) => (hookGroups.find((g) => g.id === gid)?.hooks || []).map((x) => x.id).sort((a, b) => isNew(S, 'hooks', b) - isNew(S, 'hooks', a)),
       isOn: (id) => sel.hooks.has(id),
-      text: (id) => { const x = hookBy(S, id); return `${x.name} ${x.desc} ${x.bad || ''} ${x.fix || ''} ${x.detail || ''} ${x.id}`; },
+      text: (id) => { const x = hookBy(S, id); return `${x.name} ${x.desc} ${x.bad || ''} ${x.fix || ''} ${x.detail || ''} ${x.downside || ''} ${x.id}`; },
       row: (id) => hookItem(c, hookBy(S, id)),
       total: S.hooks.length,
       foot: t('browseHooksFoot', { n: sel.hooks.size }),

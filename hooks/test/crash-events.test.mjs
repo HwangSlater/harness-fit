@@ -1,30 +1,34 @@
-// 터짐·느림 시험(도구 호출이 아닌 때의 진입점): hooks/stop.mjs · session-start.mjs · prompt-submit.mjs 를 자식 프로세스로 돌려
-// 깨진 입력, 아주 크거나 깨진 대화 기록, 이상한 경로·환경에서도 터지지 않고(종료 코드 0, JSON 하나, 오류 흔적 없음), 시간 한도 안에 끝나는지 본다.
-// 모든 훅을 켠 저장소에서 돈다. 홈은 시험 폴더로 바꾼다(체크리스트 파일이 사용자 홈에 생기지 않게).
+// 터짐·느림 시험(도구 호출이 아닌 때): hooks/stop.mjs · session-start.mjs · prompt-submit.mjs 가
+// 깨진 입력, 깨진 대화 기록, 이상한 경로·환경에서도 터지지 않고(종료 코드 0, JSON 하나, 오류 흔적 없음), 시간 한도 안에 끝나는지 본다.
+// 진입점(자식 프로세스)으로는 깨진 stdin·환경·설정 없음을, 모양이 다른 입력·깨진 기록은 판정(evaluateEvent)을 일꾼 스레드에서 바로 불러 본다(규칙이 하나도 터지지 않아야 한다).
+// 아주 큰 기록(10MB 한 줄·80MB)은 stress/transcript-big.test.mjs. 모든 훅을 켠 저장소에서 돈다. 홈은 시험 폴더로 바꾼다(체크리스트 파일이 사용자 홈에 생기지 않게).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn, execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { EVENT_RULES } from '../lib/events.mjs';
+import { EVENT_HOOK_IDS } from '../lib/entry.mjs';
+import { HOOK, MB, STACK, packs, gitIn, runEntry, timed, assertFast, idleRun, IN_BUDGET_MS } from './helpers/hook-proc.mjs';
+import { judgePool } from './helpers/judge-pool.mjs';
 
-const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const ENTRY = { stop: 'stop.mjs', start: 'session-start.mjs', prompt: 'prompt-submit.mjs' };
-const packs = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'packs.json'), 'utf8'));
+const ON = { stop: 'stop', start: 'session-start', prompt: 'prompt' };
 const ALL_RULES = Object.fromEntries(packs.hooks.map((h) => [h.id, true]));
-const BUDGET_MS = Number(process.env.HARNESS_BUDGET_MS || 4000);
-const STACK = /\n\s+at .+[:(]\d+|node:internal|Error:/;
-const MB = 1024 * 1024;
+const PARALLEL = 4;
 
 let tmp;
 let repo;
 let home;
-const gitIn = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+let idle;
+const saved = {};
 before(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-crash-ev-'));
   home = path.join(tmp, 'home');
   fs.mkdirSync(home);
+  // 판정을 바로 부르는 사례도 사용자 홈을 건드리지 않게
+  for (const k of ['HOME', 'USERPROFILE']) [saved[k], process.env[k]] = [process.env[k], home];
   repo = path.join(tmp, 'repo');
   fs.mkdirSync(repo);
   execFileSync('git', ['init', '-q', '-b', 'main', repo]);
@@ -39,26 +43,22 @@ before(() => {
   fs.mkdirSync(path.join(repo, 'docs'));
   fs.writeFileSync(path.join(repo, 'docs', 'README.md'), '# 문서\n\n' + '- [a](a.md)\n'.repeat(20000) + '](' + 'x'.repeat(MB) + '\n');
   fs.writeFileSync(path.join(repo, 'docs', 'big.md'), '#'.repeat(MB) + '\n');
+  const none = path.join(tmp, 'none');
+  execFileSync('git', ['init', '-q', none]);
+  idle = idleRun(HOOK('stop.mjs'), none);
 });
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(() => {
+  for (const k of Object.keys(saved)) if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
 
-const run = (entry, stdin, { env } = {}) =>
-  new Promise((resolve) => {
-    const t0 = performance.now();
-    const child = spawn(process.execPath, [path.join(ROOT, 'hooks', ENTRY[entry])], { cwd: repo, env: env || { ...process.env, HOME: home, USERPROFILE: home } });
-    const out = [];
-    const err = [];
-    child.stdout.on('data', (d) => out.push(d));
-    child.stderr.on('data', (d) => err.push(d));
-    child.on('close', (status) => resolve({ status, stdout: Buffer.concat(out).toString('utf8'), stderr: Buffer.concat(err).toString('utf8'), ms: performance.now() - t0 }));
-    child.stdin.on('error', () => {});
-    child.stdin.end(typeof stdin === 'string' ? stdin : JSON.stringify(stdin));
-  });
+const run = (entry, stdin, { env, cwd = repo } = {}) =>
+  timed(() => runEntry(HOOK(ENTRY[entry]), typeof stdin === 'string' ? stdin : JSON.stringify(stdin), { cwd, env: env || { ...process.env, HOME: home, USERPROFILE: home } }), { idle });
 
 const ok = (r, label) => {
   assert.equal(r.status, 0, `${label}: 종료 코드 ${r.status} ${r.stderr.slice(0, 300)}`);
   assert.doesNotMatch(r.stderr, STACK, `${label}: 오류 흔적 ${r.stderr.slice(0, 300)}`);
-  assert.ok(r.ms < BUDGET_MS, `${label}: ${r.ms.toFixed(0)}ms (한도 ${BUDGET_MS}ms)`);
+  assertFast(r, label);
   const j = JSON.parse(r.stdout);
   // 터진 규칙이 있으면 그 알림이 나온다 — 여기 입력은 모두 터지지 않아야 한다
   assert.equal(j.systemMessage, undefined, `${label}: 오류 알림 ${r.stdout.slice(0, 300)}`);
@@ -74,34 +74,52 @@ const line = (r) => JSON.stringify(r) + '\n';
 const prompt = line({ type: 'user', message: { role: 'user', content: '해 주세요' }, timestamp: new Date(Date.now() - 60000).toISOString() });
 const say = (text) => line({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text }] }, timestamp: new Date().toISOString() });
 
-test('깨진 입력·깨진 기록·큰 기록에서 터지지 않고 시간 안에 끝난다', async () => {
-  const cases = [];
-  const base = { session_id: 's1', cwd: repo };
+test('진입점: 깨진 stdin 에서 터지지 않고 시간 안에 끝난다', async () => {
+  const failures = [];
+  const jobs = [];
   for (const entry of Object.keys(ENTRY)) {
-    for (const [label, stdin] of [
-      ['빈 입력', ''], ['JSON 아님', 'nope'], ['배열', '[1]'], ['null', 'null'], ['깊은 중첩', '['.repeat(1e5) + ']'.repeat(1e5)],
+    for (const [label, stdin] of [['빈 입력', ''], ['JSON 아님', 'nope'], ['배열', '[1]'], ['null', 'null'], ['깊은 중첩', '['.repeat(1e5) + ']'.repeat(1e5)]]) {
+      jobs.push(async () => ok(await run(entry, stdin), `${entry} · ${label}`));
+    }
+  }
+  // PARALLEL 개씩
+  for (let i = 0; i < jobs.length; i += PARALLEL) await Promise.all(jobs.slice(i, i + PARALLEL).map((j) => j().catch((e) => failures.push(e.message))));
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+// 판정 한 번(진입점과 같은 normalizeInput → evaluateEvent, 일꾼 스레드에서). 던지거나 규칙이 터지거나 한도를 넘으면 실패.
+const judge = async (pool, entry, raw, label) => {
+  const r = await pool.judge({ raw, event: ON[entry], budget: IN_BUDGET_MS, tries: 3 });
+  assert.equal(r.threw, undefined, `${label}: 판정이 던짐 ${r.threw}`);
+  assert.ok(r.shapeOk, `${label}: 결과 모양`);
+  assert.deepEqual(r.errors, [], `${label}: 터진 규칙 ${r.errors.join(', ')}`);
+  assert.ok(r.ms < IN_BUDGET_MS, `${label}: ${r.ms.toFixed(0)}ms (한도 ${IN_BUDGET_MS}ms, 세 번 중 가장 빠른 값)`);
+};
+
+test('판정: 모양이 다른 입력·깨진 기록에서 규칙이 터지지 않고 시간 안에 끝난다', async () => {
+  const failures = [];
+  const base = { session_id: 's1', cwd: repo };
+  const cases = [];
+  for (const entry of Object.keys(ENTRY)) {
+    for (const [label, raw] of [
       ['session_id 숫자', { ...base, session_id: 5 }], ['session_id 객체', { ...base, session_id: { a: 1 } }], ['session_id 경로', { ...base, session_id: '../../../etc' }],
       ['session_id 아주 김', { ...base, session_id: 'a'.repeat(MB) }], ['cwd 없음', { session_id: 's1' }], ['없는 cwd', { ...base, cwd: path.join(tmp, 'no', 'such') }],
       ['transcript 숫자', { ...base, transcript_path: 5 }], ['transcript 폴더', { ...base, transcript_path: tmp }], ['transcript 없음', { ...base, transcript_path: path.join(tmp, 'none.jsonl') }],
       ['transcript NUL', { ...base, transcript_path: 'a\0b' }], ['stop_hook_active 글자', { ...base, stop_hook_active: 'yes' }],
       ['last_assistant_message 객체', { ...base, last_assistant_message: { a: 1 } }],
-    ]) cases.push([`${entry} · ${label}`, entry, stdin]);
+    ]) cases.push([`${entry} · ${label}`, entry, raw]);
   }
   const garbage = transcript('garbage.jsonl', 'not json\n{"type":\n' + line(null) + line([1]) + line({ type: 'assistant', message: { content: 'x' } }) + line({ type: 'assistant', message: { content: [null, 5, { type: 'text', text: 7 }, { type: 'tool_use', input: null }] } }) + prompt + say('끝'));
-  const noNewline = transcript('one-line.jsonl', 'x'.repeat(10 * MB));
-  const big = transcript('big.jsonl', prompt + say('a '.repeat(2 * MB)) + line({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git commit -m x && '.repeat(5000) } }] } }) + say('the '.repeat(MB)));
-  const huge = transcript('huge.jsonl', prompt + (say('가'.repeat(1000)).repeat(80000)));
   const hashes = transcript('hashes.jsonl', prompt + line({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command: 'git commit -m x' } }] } }) + say('abcdef1 '.repeat(MB / 4)));
-  for (const [label, file] of [['깨진 줄', garbage], ['줄바꿈 없는 10MB', noNewline], ['큰 기록', big], ['80MB 기록', huge], ['해시 모양 글 가득', hashes]]) {
-    cases.push([`stop · ${label}`, 'stop', { session_id: 's1', cwd: repo, transcript_path: file }]);
-  }
-  const failures = [];
-  for (const [label, entry, stdin] of cases) {
-    try {
-      ok(await run(entry, stdin), label);
-    } catch (e) {
-      failures.push(e.message);
-    }
+  for (const [label, file] of [['깨진 줄', garbage], ['해시 모양 글 가득', hashes]]) cases.push([`stop · ${label}`, 'stop', { session_id: 's1', cwd: repo, transcript_path: file }]);
+  const cwd = process.cwd();
+  process.chdir(repo); // cwd 가 없는 입력은 진입점처럼 프로세스 폴더를 본다(일꾼도 같은 폴더)
+  const pool = judgePool(PARALLEL); // 일꾼은 바꾼 HOME·USERPROFILE 을 물려받는다
+  try {
+    await Promise.all(cases.map(([label, entry, raw]) => judge(pool, entry, raw, label).catch((e) => failures.push(e.message))));
+  } finally {
+    await pool.close();
+    process.chdir(cwd);
   }
   assert.deepEqual(failures, [], failures.join('\n'));
 });
@@ -133,8 +151,6 @@ test('git 없음(PATH 비움)·git 아님·설정 깨짐에서도 터지지 않�
 
 test('설정이 없는 프로젝트는 규칙 모듈을 불러오지 않고 바로 통과한다', async () => {
   const none = path.join(tmp, 'none');
-  fs.mkdirSync(none);
-  execFileSync('git', ['init', '-q', none]);
   for (const entry of Object.keys(ENTRY)) {
     const r = await run(entry, { session_id: 's3', cwd: none });
     assert.deepEqual(ok(r, entry), {});
@@ -146,9 +162,7 @@ test('설정이 없는 프로젝트는 규칙 모듈을 불러오지 않고 바�
   for (const entry of Object.keys(ENTRY)) assert.deepEqual(ok(await run(entry, { session_id: 's3', cwd: other }), entry), {});
 });
 
-test('lib/entry.mjs 의 때별 훅 id 는 lib/events.mjs 규칙과 같다', async () => {
-  const { EVENT_HOOK_IDS } = await import('../lib/entry.mjs');
-  const { EVENT_RULES } = await import('../lib/events.mjs');
+test('lib/entry.mjs 의 때별 훅 id 는 lib/events.mjs 규칙과 같다', () => {
   for (const on of Object.keys(EVENT_HOOK_IDS)) {
     assert.deepEqual([...EVENT_HOOK_IDS[on]].sort(), [...new Set(EVENT_RULES.filter((r) => r.on === on).map((r) => r.id))].sort(), on);
   }

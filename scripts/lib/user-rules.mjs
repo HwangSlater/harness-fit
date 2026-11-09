@@ -4,55 +4,35 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { claudeHome } from '../../hooks/lib/claude-home.mjs';
+import { walkFiles } from './paths.mjs';
+import { parseFrontmatter } from './skill-meta.mjs';
 
 // 견줄 글은 대화에 들어가므로 모아서 이 크기까지만(나머지는 잘림 표시)
 export const MAX_RULES_CHARS = 20000;
 const MAX_FILES = 200;
 const MAX_DEPTH = 6;
 
-const mdFiles = (dir, depth = 0, out = []) => {
-  if (depth > MAX_DEPTH || out.length >= MAX_FILES) return out;
-  let entries;
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return out;
-  }
-  for (const e of entries) {
-    if (out.length >= MAX_FILES) break;
-    const p = path.join(dir, e.name);
-    let isDir = e.isDirectory();
-    let isFile = e.isFile();
-    if (e.isSymbolicLink()) {
-      try {
-        const st = fs.statSync(p);
-        isDir = st.isDirectory();
-        isFile = st.isFile();
-      } catch {
-        continue;
-      }
-    }
-    if (isDir) mdFiles(p, depth + 1, out);
-    else if (isFile && e.name.endsWith('.md')) out.push(p);
-  }
-  return out;
+const mdFiles = (dir) => walkFiles(dir, { match: (name) => name.endsWith('.md'), maxDepth: MAX_DEPTH, maxFiles: MAX_FILES });
+
+// 앞머리의 paths(있으면 그 경로를 다룰 때만 읽히는 규칙). 한 줄 값은 적힌 그대로, 목록은 「a, b」.
+const pathsOf = (text) => {
+  const { fields, raw } = parseFrontmatter(text);
+  return raw.paths || fields.paths || null;
 };
 
-// 앞머리의 paths(있으면 그 경로를 다룰 때만 읽히는 규칙)
-const pathsOf = (text) => {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!m || !/^paths\s*:/m.test(m[1])) return null;
-  const after = m[1].slice(m[1].search(/^paths\s*:/m)).split(/\r?\n/);
-  const inline = after[0].replace(/^paths\s*:\s*/, '').trim();
-  if (inline) return inline;
-  return after.slice(1).filter((l) => /^\s*-\s*/.test(l)).map((l) => l.replace(/^\s*-\s*/, '').replace(/^["']|["']$/g, '')).join(', ') || null;
+// 홈 아래 경로는 ~ 로 줄여 보여 준다(CLAUDE_CONFIG_DIR 이 홈 밖이면 그대로)
+const tilde = (home, p) => {
+  const r = path.relative(home, p);
+  return r && !r.startsWith('..') && !path.isAbsolute(r) ? path.join('~', r) : p;
 };
 
 // → [{ scope: 'project'|'user', file: 표시용 경로, paths?: '…', text }]. harness-fit 이 쓰는 이름(harness-fit-*)은 뺀다.
-export const listUserRules = (root, home = os.homedir()) => {
+// home: 시험이 임시 홈을 넘긴다. 안 주면 CLAUDE_CONFIG_DIR → ~/.claude.
+export const listUserRules = (root, home) => {
   const sources = [
     ['project', path.join(root, '.claude', 'rules'), (p) => path.relative(root, p)],
-    ['user', path.join(home, '.claude', 'rules'), (p) => path.join('~', path.relative(home, p))],
+    ['user', path.join(claudeHome(home), 'rules'), (p) => tilde(home || os.homedir(), p)],
   ];
   const out = [];
   let budget = MAX_RULES_CHARS;

@@ -53,9 +53,7 @@
         "password-cli",
         "unsafe-html",
         "gha-inject",
-        "prefer-gh",
-        "commit-hash",
-        "work-checklist"
+        "prefer-gh"
       ],
       "rules": [
         "commands",
@@ -102,12 +100,9 @@
         "branch-name",
         "no-verify",
         "unsafe-html",
-        "pin-deps",
         "no-rewrite-pushed",
         "gha-inject",
-        "prefer-gh",
-        "commit-hash",
-        "work-checklist"
+        "prefer-gh"
       ],
       "rules": [
         "commands",
@@ -162,10 +157,7 @@
         "pin-deps",
         "no-rewrite-pushed",
         "gha-inject",
-        "prefer-gh",
-        "commit-hash",
-        "work-checklist",
-        "docs-check"
+        "prefer-gh"
       ],
       "rules": [
         "commands",

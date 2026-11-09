@@ -1,8 +1,8 @@
 // 고르기 화면: 훅 묶음이 상태로 가는지(makeState hookGroups), 화면 파일·글꼴을 목록대로만 보내는지(scripts/lib/static.mjs).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { pickerCfg, tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { loadAll, PLUGIN_ROOT } from '../lib/catalog.mjs';
 import { makeState } from '../lib/picker-state.mjs';
@@ -10,8 +10,8 @@ import { detect } from '../detect.mjs';
 import { STATIC, TYPES, readStatic } from '../lib/static.mjs';
 
 const all = loadAll();
-const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-ui-'));
+const cfg = pickerCfg;
+const dir = tmpDir('harness-ui-');
 const stateIn = (lang, packs = all.packs) => makeState({ all: { ...all, packs }, cfg, det: detect(dir) }, lang);
 
 test('makeState 는 훅 묶음(hookGroups)을 그 언어 이름으로, 훅마다 group 을 보낸다', () => {
@@ -36,8 +36,6 @@ test('새 훅·새 묶음은 데이터만 더하면 상태에 실린다(화면�
   const s = stateIn('ko', packs);
   assert.equal(s.hookGroups.at(-1).name, '새 묶음');
   assert.equal(s.hooks.find((h) => h.id === 'zz-hook').group, 'zz');
-  // hookGroups 가 없는 옛 packs 도 깨지지 않는다
-  assert.deepEqual(stateIn('ko', { ...all.packs, hookGroups: undefined }).hookGroups, []);
 });
 
 test('글꼴은 바이트 그대로 font/woff2 로, 글은 utf8 로 보낸다', () => {

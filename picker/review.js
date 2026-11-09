@@ -7,6 +7,7 @@ import { stepHead, sumRows } from './frame.js';
 import { outcomeItems, warningsOf, pathLines, changeGroups } from './changes.js';
 import { githubBox, githubResult } from './github.js';
 import { budgetBox, skillCommands } from './budget-view.js';
+import { noteFlash } from './review-notes.js';
 
 const short = (t, names, n = 3) => (names.length > n ? t('listMore', { list: names.slice(0, n).join(' · '), n: names.length - n }) : names.join(' · ') || t('sumNone'));
 
@@ -54,7 +55,7 @@ export function reviewStep(c) {
           h('a.link', { href: `#${id}`, 'data-key': `change:${id}`, 'aria-label': t('changeLabel', { name: k }) }, t('change'))))),
       shead(t('s7'), ''),
       h('div.cols', {},
-        h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([title, desc]) => flash({ title, desc }))),
+        h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([id, title, desc]) => noteFlash(c, { key: `warn:${id}`, title, body: h('p', {}, withCode(desc)), attrs: { 'data-key': `warn:${id}` } }))),
         h('div.stack', {},
           teamBox(c),
           githubBox(c))),

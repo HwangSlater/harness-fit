@@ -1,12 +1,11 @@
 // 카탈로그·훅/규칙 묶음·조합을 읽고, 감지 결과로 추천 선택을 만든다.
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { withoutDups, dupHooks, dupSkills, PROBE_FLOW } from '../../picker/dup.js';
+import { fmt } from '../../picker/dom.js';
 import { ruleTexts } from './claude-md.mjs';
+import { PLUGIN_ROOT, readPluginJson as readJson } from './paths.mjs';
 
-export const PLUGIN_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, rel), 'utf8'));
+// PLUGIN_ROOT 는 paths.mjs 로 옮겼다(예전 가져오기를 위해 여기서도 내보낸다)
+export { PLUGIN_ROOT };
 
 export const loadAll = () => ({
   catalog: readJson('catalog/catalog.json'),
@@ -14,8 +13,6 @@ export const loadAll = () => ({
   combos: readJson('catalog/combos.json'),
   sources: readJson('config/sources.json'),
 });
-
-const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 
 // 조건 문자열: "authors>1", "commits<3", "default"
 const holds = (cond, det) => {
@@ -26,6 +23,31 @@ const holds = (cond, det) => {
   const n = Number(m[3]);
   return { '>': v > n, '<': v < n, '>=': v >= n, '<=': v <= n, '==': v === n }[m[2]];
 };
+
+// 형식 훅은 저장소가 이미 그 꼴을 따를 때만 기본으로 켠다(안 따르는 저장소에 켜면 첫 커밋부터 막힌다 — 2026-11-09 사용자 결정).
+// 최근 커밋·브랜치가 FIT_MIN 개보다 적으면 새 저장소로 보고 켠다(지킬 기록이 없다). 의존성 고정은 라이브러리 패키지에서 뺀다.
+const FIT_SHARE = 0.7;
+const FIT_MIN_SUBJECTS = 5;
+const FIT_MIN_BRANCHES = 3;
+const BASE_BRANCHES = ['main', 'master', 'develop'];
+// → { hooks: { 훅 id: { key, vars } }, flows: { 브랜치 전략 id: { 훅 id: { key, vars } } } } — key 는 화면 문구(picker/i18n main.json)
+export const fitOff = (all, det) => {
+  const h = det.history || {};
+  const hooks = {};
+  if ((h.subjects || 0) >= FIT_MIN_SUBJECTS && h.conventional / h.subjects < FIT_SHARE) hooks['commit-msg'] = { key: 'fitCommitMsg', vars: { n: h.subjects, k: h.conventional } };
+  if (det.library) hooks['pin-deps'] = { key: 'fitPinDeps', vars: {} };
+  const names = (h.branches || []).filter((n) => !BASE_BRANCHES.includes(n) && n !== det.defaultBranch);
+  const flows = {};
+  for (const f of all.packs.flows) {
+    const pattern = f.hooks?.['branch-name']?.pattern;
+    if (!pattern || names.length < FIT_MIN_BRANCHES) continue;
+    const re = new RegExp(pattern);
+    const k = names.filter((n) => re.test(n)).length;
+    if (k / names.length < FIT_SHARE) flows[f.id] = { 'branch-name': { key: 'fitBranchName', vars: { n: names.length, k } } };
+  }
+  return { hooks, flows };
+};
+const fitIds = (fit, flowId) => new Set([...Object.keys(fit?.hooks || {}), ...Object.keys(fit?.flows?.[flowId] || {})]);
 
 // 조합 하나를 감지 결과에 맞춰 실제 선택으로 펼친다(스택 스킬·언어별 훅 더하기).
 export const expandCombo = (all, comboId, det) => {
@@ -56,19 +78,23 @@ export const expandCombo = (all, comboId, det) => {
   // 조합의 브랜치 방식이 켜고 끄는 훅도 여기서 맞춘다(pr-merge 처럼 브랜치 방식으로만 들어가는 훅 — 화면 defaultsFor 와 같은 범위)
   const flowObj = all.packs.flows.find((f) => f.id === combo.flow) || null;
   const flowHooks = [...hooks.filter((h) => !(flowObj?.hooksOff || []).includes(h)), ...(flowObj?.hooksOn || [])];
-  const base = { skills: skills.filter((s) => known.has(s)), hooks: [...new Set(flowHooks)] };
+  // fitDropped: 이 저장소 기록과 맞지 않아 기본에서 뺀 형식 훅(화면 훅 단계가 이유를 한 줄로 보여 준다)
+  const fit = fitOff(all, det);
+  const unfit = fitIds(fit, combo.flow);
+  const fitDropped = [...new Set(flowHooks)].filter((h) => unfit.has(h));
+  const base = { skills: skills.filter((s) => known.has(s)), hooks: [...new Set(flowHooks)].filter((h) => !unfit.has(h)) };
   const kept = withoutDups(base, det.existing, known, share, flowObj);
   const already = { hooks: dupHooks(det.existing, share, flowObj).filter((x) => base.hooks.includes(x.id)), skills: dupSkills(det.existing, known, share).filter((x) => base.skills.includes(x.id)) };
   // covered: 같은 일을 하는 기존 훅이 있는 훅 전부 — 조합에 없던 훅도(브랜치 방식이 켜려 할 때 막고, 규칙 글을 「켜짐」 기준으로 만들려고)
   const covered = dupHooks(det.existing, share, flowObj).map((x) => x.id);
-  return { combo: comboId, ...kept, base, already, covered, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules: [...combo.rules], flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {} };
+  return { combo: comboId, ...kept, base, already, covered, fit, fitDropped, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules: [...combo.rules], flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {} };
 };
 
 // 감지 결과 → 추천 조합과 이유(사용자에게 보이는 한 줄들).
 export const recommend = (all, det, lang) => {
   const rule = all.combos.recommend.find((r) => holds(r.if, det));
   // 인원을 사용자가 알려 줬으면 커밋 기록에서 읽은 것처럼 쓰지 않는다.
-  const why = [det.hinted?.team ? (lang === 'ko' ? '여럿이 개발한다고 알려 주심' : 'You said several people will work on it') : fill(rule.why[lang] || rule.why.en, det)];
+  const why = [det.hinted?.team ? (lang === 'ko' ? '여럿이 개발한다고 알려 주심' : 'You said several people will work on it') : fmt(rule.why[lang] || rule.why.en, det, lang)];
   const sel = expandCombo(all, rule.combo, det);
   if (sel.stackSkills.length) why.push(`${det.stack.join(' · ')} → ${sel.stackSkills.join(', ')}`);
   // 이미 있는 것과 겹쳐 뺀 것(auto 에서도 사용자가 알 수 있게)
@@ -81,6 +107,13 @@ export const recommend = (all, det, lang) => {
   if (det.hasDevelop) {
     applyFlow(all, sel, 'git-flow');
     why.push(lang === 'ko' ? 'develop 브랜치가 있음 → Git Flow' : 'develop branch found → Git Flow');
+  }
+  // 저장소 기록과 맞지 않아 기본에서 뺀 형식 훅(auto 보고에도 같은 한 줄 — 화면 훅 단계와 같은 문구)
+  const strings = readJson(`picker/i18n/${lang === 'ko' ? 'ko' : 'en'}/main.json`);
+  const flowOn = all.packs.flows.find((f) => f.id === sel.flow)?.hooksOn || [];
+  const wanted = new Set([...all.combos.combos.find((c) => c.id === sel.combo).hooks, ...flowOn]);
+  for (const [id, v] of Object.entries({ ...sel.fit.hooks, ...(sel.fit.flows[sel.flow] || {}) })) {
+    if (wanted.has(id)) why.push(`${nameOf({ id }, 'hook')}: ${fmt(strings[v.key], v.vars, lang)}`);
   }
   return { ...sel, lang, why };
 };
@@ -116,6 +149,8 @@ export const applyFlow = (all, sel, flowId) => {
   // 시험 입력은 GitHub Flow 옵션 기준이라, 다른 방식이 옵션을 넣는 훅은 겹침에서 뺀다(picker/dup.js PROBE_FLOW)
   if (flowId !== PROBE_FLOW) sel.covered = (sel.covered || []).filter((h) => !(h in (flow.hooks || {})));
   const dup = new Set(sel.covered || []);
-  sel.hooks = [...new Set([...sel.hooks.filter((h) => !flow.hooksOff.includes(h)), ...flow.hooksOn.filter((h) => !dup.has(h))])];
+  // 이 저장소 기록과 맞지 않는 형식 훅(fitOff)도 브랜치 전략이 켜지 않는다
+  const unfit = fitIds(sel.fit, flowId);
+  sel.hooks = [...new Set([...sel.hooks.filter((h) => !flow.hooksOff.includes(h)), ...flow.hooksOn.filter((h) => !dup.has(h) && !unfit.has(h))])];
   return sel;
 };

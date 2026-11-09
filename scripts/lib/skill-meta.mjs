@@ -9,27 +9,35 @@ const unquote = (v) => {
   return s;
 };
 
-// 머리말 글 → { 키: 글 }. 값 모양이 틀려도 오류를 내지 않고 읽을 수 있는 만큼만 읽는다.
+// 머리말 글 → { fields: { 키: 글 }, raw: { 키: 한 줄 값 그대로 }, body }. 목록 값(`- a`)은 「a, b」. 값 모양이 틀려도 오류를 내지 않고 읽을 수 있는 만큼만 읽는다.
 export const parseFrontmatter = (text) => {
   const m = String(text ?? '').replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
-  if (!m) return { fields: {}, body: String(text ?? '') };
+  if (!m) return { fields: {}, raw: {}, body: String(text ?? '') };
   const lines = m[1].split(/\r?\n/);
   const fields = {};
+  const raw = {};
   for (let i = 0; i < lines.length; i++) {
     const kv = lines[i].match(/^([\w-]+):[ \t]*(.*)$/);
     if (!kv) continue;
     const [, key, rest] = kv;
     const more = [];
-    while (i + 1 < lines.length && (/^[ \t]+\S/.test(lines[i + 1]) || (lines[i + 1].trim() === '' && /^[ \t]+\S/.test(lines[i + 2] || '')))) more.push(lines[++i]);
+    // 값이 빈 키 아래의 목록(`- 값`)은 들여 쓰지 않아도 이어지는 줄이다(YAML 이 받는 꼴)
+    const cont = (l) => /^[ \t]+\S/.test(l) || (!rest.trim() && /^-[ \t]/.test(l));
+    while (i + 1 < lines.length && (cont(lines[i + 1]) || (lines[i + 1].trim() === '' && cont(lines[i + 2] || '')))) more.push(lines[++i]);
     const block = rest.trim().match(/^([>|])[-+]?$/);
-    if (block) {
+    const items = !rest.trim() && more.length && more.every((l) => !l.trim() || /^\s*-(?:\s|$)/.test(l));
+    if (items) {
+      // 목록 값 → 「a, b」(규칙 파일 paths 처럼 글로만 보여 주는 값)
+      fields[key] = more.filter((l) => l.trim()).map((l) => unquote(l.replace(/^\s*-\s*/, ''))).filter(Boolean).join(', ');
+    } else if (block) {
       const ls = more.map((l) => l.trim());
       fields[key] = block[1] === '|' ? ls.join('\n').trim() : ls.join(' ').replace(/\s+/g, ' ').trim();
     } else {
       fields[key] = unquote([rest, ...more.map((l) => l.trim())].join(' ').trim());
+      if (!more.length) raw[key] = rest.trim(); // 한 줄 값을 따옴표째(사용자 규칙 paths 는 적힌 그대로 보여 준다)
     }
   }
-  return { fields, body: String(text).slice(m.index + m[0].length) };
+  return { fields, raw, body: String(text).slice(m.index + m[0].length) };
 };
 
 // 본문 첫 문단(머리 # 줄은 건너뜀) — description 이 없을 때 대신 쓰이는 글

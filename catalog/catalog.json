@@ -2289,7 +2289,7 @@
    ],
    "needs": [],
    "summary": {
-    "ko": "코드베이스를 보고 맞는 훅·서브에이전트·스킬·MCP 를 추천한다(find-your-skill 과 가장 비슷)",
+    "ko": "코드베이스를 보고 맞는 훅·서브에이전트·스킬·MCP 를 추천한다(harness-fit 과 가장 비슷)",
     "en": "Analyzes a codebase and recommends hooks, subagents, skills and MCP servers"
    },
    "always": 97,

@@ -35,7 +35,7 @@
   "git.branchName": "브랜치 이름 `{name}` 이 규칙과 맞지 않아요. 예: {examples} (규칙: {pattern})",
   "git.branchNameNoExample": "브랜치 이름 `{name}` 이 규칙과 맞지 않아요. (규칙: {pattern})",
   "git.noVerify": "`--no-verify`(`git commit -n`) 로 커밋 전 검사를 건너뛰지 않아요. 검사가 실패하면 원인을 고치세요.",
-  "web.preferGh": "GitHub 페이지({url})는 긁지 말고 `gh` 로 읽으세요. 예: `gh repo view`, `gh api repos/<owner>/<repo>/contents/<경로>`, `gh issue view`.",
+  "web.preferGh": "harness-fit: GitHub 페이지({url})는 `gh` 가 있으면 그것으로 읽는 편이 정확하고 토큰도 덜 들어요(이번 가져오기는 막지 않았어요). 예: `gh repo view`, `gh api repos/<owner>/<repo>/contents/<경로>`, `gh issue view`.",
   "config.broken": "harness-fit: {file} 이 올바른 JSON 이 아니거나 모양이 달라(rules 는 {} 꼴) 모든 훅이 꺼져 있어요. 고치거나 /harness-fit:setup 으로 다시 적용해 주세요.",
   "hook.crashed": "harness-fit: 훅이 오류로 멈춰서 이번 작업은 훅 없이 진행돼요. 되풀이되면 /harness-fit:setup 으로 다시 적용하거나 플러그인을 업데이트해 주세요.",
   "hook.ruleCrashed": "harness-fit: {ids} 훅이 오류로 멈춰서 이번 작업은 그 훅 없이 진행돼요. 되풀이되면 /harness-fit:setup 으로 다시 적용하거나 플러그인을 업데이트해 주세요.",

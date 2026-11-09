@@ -2,7 +2,7 @@
 // 「원격에 없다」는 원격 추적 브랜치(refs/remotes, 마지막 fetch 기준) 어디에도 없는 것. 원격 기록이 하나도 없으면(처음 올리기) 보지 않는다.
 // 같은 명령에서 push 앞의 git commit 은 아직 없는 커밋이라 하나씩 더해 센다(--amend·--dry-run 은 커밋 수를 늘리지 않는다).
 import { git, gitSegments, shortFlags } from '../lib/core.mjs';
-import { timelineOf } from './git.mjs';
+import { timelineOf } from '../lib/branches.mjs';
 
 const MAX_LISTED = 6;
 // push 에서 값을 받는 옵션(다음 낱말은 원격·refspec 이 아니다) — git.mjs parsePush 와 같은 목록

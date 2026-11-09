@@ -5,8 +5,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { git, shortFlags, gitSegments } from '../lib/core.mjs';
-import { ADD_SUB, commitStagesAll } from '../lib/staged.mjs';
-import { branchCreated, worktreeCreated, parseSwitch, branchTimeline, anyBranchExists } from '../lib/branches.mjs';
+import { ADD_SUB, commitStagesAll } from '../lib/commit-args.mjs';
+import { branchCreated, worktreeCreated, parseSwitch, timelineOf, anyBranchExists } from '../lib/branches.mjs';
 import { commitMsg, commitMessage } from './message.mjs';
 import { noVerify } from './no-verify.mjs';
 
@@ -35,14 +35,10 @@ export const addAll = {
   },
 };
 
-const currentBranch = (root) => (git(root, ['symbolic-ref', '--short', 'HEAD']) || '').trim();
 const hasCommits = (root) => git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']) !== null;
 
-// 명령 안에서 switch·checkout 으로 브랜치가 바뀌면 그 뒤 commit·push 는 바뀐 브랜치에서 돈다.
-export const timelineOf = (cmd, shell, root) => {
-  const switches = ['switch', 'checkout'].flatMap((sub) => gitSegments(cmd, sub, shell).map((s) => ({ ...s, sub }))).sort((a, b) => a.start - b.start);
-  return branchTimeline(root, currentBranch(root), switches);
-};
+// 명령 안의 브랜치 흐름(lib/branches.mjs — push·history 규칙도 같이 쓴다)
+export { timelineOf };
 
 // push 에서 값을 받는 옵션. 그 다음 낱말은 원격·refspec 이 아니다.
 const PUSH_VALUE_OPTS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec']);

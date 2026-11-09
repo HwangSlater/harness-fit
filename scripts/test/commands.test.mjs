@@ -1,12 +1,10 @@
 // 이 저장소 명령(CLAUDE.md 지침 「이 저장소 명령」), 뺀 줄 보기·줄을 대신 맡는 훅, 훅 종류(차단·알림), 영어 단·복수.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { detectCommands } from '../lib/commands.mjs';
+import { pickerCfg as cfg, tmpDir, writeFiles, ruleTitle, ruleLine, ruleRawLine } from './helpers.mjs';
 import { renderRule, ruleTexts, ruleDropped, ruleHookTags, START, END } from '../lib/claude-md.mjs';
-import { loadAll, PLUGIN_ROOT } from '../lib/catalog.mjs';
+import { loadAll } from '../lib/catalog.mjs';
 import { makeState, readStrings } from '../lib/picker-state.mjs';
 import { detect } from '../detect.mjs';
 import { ruleLines } from '../overlap.mjs';
@@ -14,15 +12,7 @@ import { fmt } from '../../picker/dom.js';
 import { blockingHooks } from '../../picker/stats.js';
 
 const all = loadAll();
-const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
-const repo = (files) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-cmd-'));
-  for (const [f, text] of Object.entries(files)) {
-    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
-    fs.writeFileSync(path.join(dir, f), typeof text === 'string' ? text : JSON.stringify(text));
-  }
-  return dir;
-};
+const repo = (files) => writeFiles(tmpDir('harness-cmd-'), files);
 const cmds = (files) => detectCommands(repo(files)).commands;
 const pkg = (scripts, extra = {}) => ({ 'package.json': { name: 'x', scripts, ...extra } });
 
@@ -87,9 +77,17 @@ test('시험 하나만: 시험 도구를 그대로 부르는 test 스크립트�
 
 test('시험 하나만 글: 자리표시를 그 언어 말로 바꾼다', () => {
   const c = { test: ['npm test'], testOne: ['npx vitest run <file>', 'go test -run <name> ./...'] };
-  assert.match(renderRule('commands', 'ko', [], [], [], c), /\n- 시험 하나만: `npx vitest run <파일>` · `go test -run <이름> \.\/\.\.\.`$/);
-  assert.match(renderRule('commands', 'en', [], [], [], c), /\n- One test only: `npx vitest run <file>` · `go test -run <name> \.\/\.\.\.`/);
-  assert.doesNotMatch(renderRule('commands', 'ko', [], [], [], { test: ['npm test'] }), /하나만/, '모르면 줄을 넣지 않는다');
+  for (const lang of ['ko', 'en']) {
+    // 규칙 파일이 정한 말(`{{cmd:testOne|file=파일|name=이름}}`, 없으면 그대로)
+    const raw = ruleRawLine('commands', lang, 'cmd:testOne');
+    const words = Object.fromEntries([...raw.matchAll(/\|(\w+)=([^|}]+)/g)].map((m) => [m[1], m[2]]));
+    const say = (k) => `<${words[k] || k}>`;
+    const want = `${raw.split('{{')[0]}\`npx vitest run ${say('file')}\` · \`go test -run ${say('name')} ./...\``;
+    const out = renderRule('commands', lang, [], [], [], c);
+    assert.ok(out.split('\n').includes(want), `${lang}: ${out}`);
+    assert.ok(!renderRule('commands', lang, [], [], [], { test: ['npm test'] }).includes(raw.split('{{')[0].trim()), '모르면 줄을 넣지 않는다');
+  }
+  assert.equal(renderRule('commands', 'ko', [], [], [], c).split('\n').at(-1), ruleLine('commands', 'ko', 'cmd:testOne', c), '줄 순서는 파일 그대로');
 });
 
 test('여러 생태계가 있으면 한 줄에 함께(종류마다 3개까지), 빈 저장소는 없음', () => {
@@ -105,8 +103,11 @@ test('사용자 CLAUDE.md 에 이미 적힌 명령은 뺀다(harness-fit 구역 
 
 test('이 저장소 명령 글: 찾은 종류만, 시험 줄에 끝내기 전 안내, 명령이 없으면 통째로 뺀다', () => {
   const c = { test: ['npm test'], build: ['npm run build', 'make build'] };
-  assert.equal(renderRule('commands', 'ko', [], [], [], c), '## 이 저장소 명령\n- 시험: `npm test` — 코드를 고쳤으면 끝내기 전에 돌린다.\n- 빌드: `npm run build` · `make build`');
-  assert.match(renderRule('commands', 'en', [], [], [], c), /^## Commands in this repo\n- Test: `npm test` — run it before finishing/);
+  for (const lang of ['ko', 'en']) {
+    const want = [ruleTitle('commands', lang), ruleLine('commands', lang, 'cmd:test', c), ruleLine('commands', lang, 'cmd:build', c)].join('\n');
+    assert.equal(renderRule('commands', lang, [], [], [], c), want);
+    assert.ok(want.includes('`npm run build` · `make build`'), '같은 종류 명령은 한 줄에');
+  }
   assert.equal(renderRule('commands', 'ko', [], [], [], {}), '');
   assert.doesNotMatch(renderRule('commands', 'ko', [], [], [], c), /\{\{/, '표시는 남지 않는다');
   const texts = ruleTexts({ lang: 'ko', flow: 'github-flow', rules: ['lean', 'commands'], hooks: [], commands: c });
@@ -114,7 +115,7 @@ test('이 저장소 명령 글: 찾은 종류만, 시험 줄에 끝내기 전 �
   assert.deepEqual(Object.keys(ruleTexts({ lang: 'ko', flow: 'none', rules: ['commands', 'lean'], hooks: [] })), ['lean']);
   // overlap.mjs 의 줄 번호(--skip commands:<n>)는 파일 순서 그대로
   assert.deepEqual(ruleLines('ko', ['commands'], c).commands.map((l) => l.n), [1, 6]);
-  assert.equal(renderRule('commands', 'ko', [], [6], [], c), '## 이 저장소 명령\n- 시험: `npm test` — 코드를 고쳤으면 끝내기 전에 돌린다.');
+  assert.equal(renderRule('commands', 'ko', [], [6], [], c), [ruleTitle('commands', 'ko'), ruleLine('commands', 'ko', 'cmd:test', c)].join('\n'));
 });
 
 test('구조 지침에서 뻔한 일반론 3줄을 뺐다', () => {
@@ -161,7 +162,7 @@ test('화면 상태: 명령이 없으면 「이 저장소 명령」을 숨기고
 
 test('훅마다 종류(block·notice)가 있고, 알리기만 하는 훅은 notice', () => {
   for (const h of all.packs.hooks) assert.ok(['block', 'notice'].includes(h.kind), `${h.id}: kind`);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'commit-hash', 'work-checklist']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'commit-hash', 'prefer-gh', 'work-checklist']);
 });
 
 test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만', () => {
@@ -170,10 +171,10 @@ test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만',
   const on = blockingHooks(S, sel);
   const kind = Object.fromEntries(S.hooks.map((h) => [h.id, h.kind]));
   for (const id of on) assert.equal(kind[id], 'block', id);
-  for (const id of ['secrets', 'danger-cmd', 'commit-msg', 'docs-check', 'python-unsafe']) assert.ok(on.has(id), id);
+  for (const id of ['secrets', 'danger-cmd', 'commit-msg', 'python-unsafe']) assert.ok(on.has(id), id);
   for (const id of ['commit-hash', 'work-checklist', 'answer-lang']) assert.ok(!on.has(id), `알림 훅 ${id}`);
   assert.ok(!on.has('swift-unsafe'), '다른 스택 전용 훅');
-  assert.ok(!on.has('squash-push'), '어느 조합도 기본으로 켜지 않는 훅');
+  for (const id of ['squash-push', 'docs-check']) assert.ok(!on.has(id), `어느 조합도 기본으로 켜지 않는 훅 ${id}`);
   for (const id of ['protect-branch', 'branch-name', 'pr-merge']) assert.ok(!on.has(id), `브랜치 전략 「정하지 않음」이 끄는 ${id}`);
   assert.ok(blockingHooks(S, { flow: 'github-flow', share: false }).has('pr-merge'));
 });

@@ -8,7 +8,8 @@ import { skillsStep } from './skills.js';
 import { hooksStep } from './hooks.js';
 import { rulesStep } from './rules.js';
 import { reviewStep, finished } from './review.js';
-import { renderPanel, wirePanel } from './panel.js';
+import { renderPanel, wireDialog, panelActions } from './panel.js';
+import { renderInfo, infoActions } from './info-dialog.js';
 import { githubOn, choiceOf } from './github.js';
 import { dupsFor, defaultsFor, matesFor, flowBy, blockingHooks } from './stats.js';
 import { hookKey, fromCombo, fromRecommended, snapshot, startSelection, sameSel } from './selection.js';
@@ -23,7 +24,7 @@ let S; // 서버 상태
 let sel; // { combo, flow, skills, hooks, rules, explore: Set, note, share, github, githubChoice, hookOpts }
 const ui = {
   step: 'combo', visited: new Set(), focusStep: false,
-  panel: null, opener: null, browse: { kind: 'skills', g: 'all', q: '' }, open: new Set(), raw: null,
+  panel: null, opener: null, info: null, infoOpener: null, hit: null, browse: { kind: 'skills', g: 'all', q: '' }, open: new Set(), raw: null,
   touched: new Set(), custom: false, switched: null, fresh: null, preview: null, previewStale: false,
   busy: false, progress: null, done: undefined, applied: null, pathsOpen: false, ruleView: 'full',
   github: null, // GET /api/github 의 답(null = 확인 중)
@@ -175,45 +176,13 @@ function syncDups(before) {
 // 조합을 바꿔도 이미 답한 팀원 공유는 그 답대로
 const keepShare = (answer) => ui.shareAnswered && sel.share !== answer && setShare(answer);
 
+// 창 열기·닫기·전체 보기·원문(panel.js)
+Object.assign(act, panelActions({ ui, t, render: () => render(), lastClicked: () => lastClicked, state: () => S }));
+// 이미 있는 스킬·훅 작은 창(info-dialog.js — 큰 창 위에 겹쳐 뜬다)
+Object.assign(act, infoActions({ ui, render: () => render(), lastClicked: () => lastClicked }));
+
 Object.assign(act, {
-  openPanel(d) {
-    if (!ui.panel) ui.opener = document.activeElement?.dataset?.key || lastClicked; // 닫으면 이 단추로 초점을 돌려준다
-    ui.panel = d;
-    ui.panelFresh = true;
-    render();
-  },
-  openBrowse(kind, g) {
-    ui.browse = { kind, g, q: '' };
-    ui.raw = null;
-    act.openPanel({ kind: 'browse' });
-  },
-  browseGroup(g) {
-    ui.browse.g = g;
-    ui.panelFresh = true;
-    render();
-    document.querySelector(`#panel [data-key="bn:${CSS.escape(g)}"]`)?.focus();
-  },
-  browseSearch(q) {
-    ui.browse.q = q;
-    ui.panelFresh = true;
-    render();
-  },
   toggleOpen: (key) => (ui.open.has(key) ? ui.open.delete(key) : ui.open.add(key), render()),
-  closePanel() {
-    if (!ui.panel) return;
-    ui.panel = null;
-    render();
-  },
-  async loadRaw(id) {
-    ui.raw = { id, text: null };
-    render();
-    try {
-      ui.raw = { id, text: (await api(`/api/skill?id=${encodeURIComponent(id)}`)).text };
-    } catch (e) {
-      ui.raw = { id, text: t('error', { error: errText(t, e) }) };
-    }
-    render();
-  },
   setRuleView: (v) => ((ui.ruleView = v), render()),
   // 「뺀 줄 보기」: 훅·스킬이 맡거나 이미 CLAUDE.md 에 있어 뺀 줄을 미리 보기에 줄 그어 보여 준다(전체 보기에서)
   toggleDropped: () => ((ui.showDropped = !ui.showDropped), ui.showDropped && (ui.ruleView = 'full'), render()),
@@ -246,7 +215,7 @@ Object.assign(act, applyActions({ ui, t, current: () => sel, ctx: () => ctx(), p
 Object.assign(act, budgetActions({ ui, current: () => sel, edited }));
 
 // 적용·그만두기를 기다리는 동안과 끝난 뒤에는 선택을 바꾸는 동작을 모두 막는다(화면도 inert).
-const ALWAYS = new Set(['go', 'loadRaw', 'toggleOpen', 'togglePaths', 'setRuleView', 'toggleDropped', 'closePanel', 'browseGroup', 'browseSearch']);
+const ALWAYS = new Set(['go', 'loadRaw', 'toggleOpen', 'togglePaths', 'setRuleView', 'toggleDropped', 'closePanel', 'browseGroup', 'browseSearch', 'browseTo', 'openInfo', 'closeInfo']);
 for (const [name, fn] of Object.entries(act)) {
   if (!ALWAYS.has(name)) act[name] = (...a) => (ui.busy || ui.done !== undefined ? undefined : fn(...a));
 }
@@ -288,6 +257,7 @@ function render() {
   renderFrame(c);
   main.replaceChildren(h(`section.step${ui.focusStep ? '.enter' : ''}`, { 'aria-labelledby': `t-${ui.step}` }, STEP_VIEWS[ui.step](c)), F.cta(c), F.footer(c));
   const shown = renderPanel(c, { fresh: !!ui.panelFresh });
+  const info = renderInfo(c);
   ui.panelFresh = false;
   const dlg = $('panel');
   if (ui.focusStep) {
@@ -301,10 +271,13 @@ function render() {
   }
   window.scrollTo(0, y);
   // 창을 처음 열면 찾기 칸(있으면)이나 제목으로, 닫으면 연 단추로 초점을 돌려준다.
+  // 작은 창(info)을 열면 그 제목으로, 닫으면 연 링크로
+  if (info?.opening) return $('infoTitle').focus({ preventScroll: true });
+  if (info?.closed) return byKey(ui.panel ? dlg : document, ui.infoOpener)?.focus({ preventScroll: true });
   if (shown?.opening) return ((dlg.querySelector('[data-autofocus]') || $('panelTitle')).focus({ preventScroll: true }));
   if (!ui.panel && wasOpen) return byKey(document, ui.opener)?.focus({ preventScroll: true });
   // 다시 그려도 같은 조작 요소(data-key)에 초점을 둔다. 글을 쓰는 중이면 커서 자리도 지킨다.
-  const el = byKey(ui.panel ? dlg : document, key);
+  const el = byKey(ui.info ? $('info') : ui.panel ? dlg : document, key);
   if (el) {
     el.focus({ preventScroll: true });
     if (caret && 'setSelectionRange' in el) el.setSelectionRange(...caret);
@@ -316,7 +289,8 @@ function show(id) {
   if (!STEP_VIEWS[id]) return history.replaceState(null, '', '#combo'), show('combo');
   if (ui.step !== id) ui.visited.add(ui.step);
   ui.step = id;
-  ui.panel = null; // 뒤로 가기로 단계를 바꾸면 떠 있던 창은 닫는다(돌아갈 단추가 없다)
+  ui.panel = null;
+  ui.info = null; // 뒤로 가기로 단계를 바꾸면 떠 있던 창은 닫는다(돌아갈 단추가 없다)
   ui.focusStep = true;
   render();
 }
@@ -331,7 +305,8 @@ $('tabs').addEventListener('keydown', (e) => {
   e.preventDefault();
   tabs[(to + tabs.length) % tabs.length].focus();
 });
-wirePanel(() => act.closePanel());
+wireDialog('panel', () => act.closePanel());
+wireDialog('info', () => act.closeInfo());
 // 마지막으로 누른 조작 요소(초점을 받지 않는 환경에서도 창을 닫은 뒤 돌아갈 곳을 알게)
 let lastClicked = null;
 document.addEventListener('click', (e) => (lastClicked = e.target.closest?.('[data-key]')?.dataset.key || lastClicked), true);

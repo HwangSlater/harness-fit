@@ -1,18 +1,18 @@
 // 개발용: 조사 결과(JSON) + 받아 둔 SKILL.md 들로 catalog/catalog.json 을 만든다.
 // - 토큰은 원문에서 잰다: 상시 비용 = name+description, 호출 비용 = 본문 전체. 목록 예산용 설명 글자 수(descChars)도 함께.
 // - 저장소마다 지금 커밋 해시를 고정한다(설치할 때 이 해시로 받는다 — 나중에 바뀐 내용이 몰래 들어오지 않게).
-// 사용: node scripts/build-catalog.mjs <research.json> <dl 폴더>
+// 사용: node scripts/dev/build-catalog.mjs <research.json> <dl 폴더>
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { estimateTokens } from './lib/tokens.mjs';
-import { skillMeta, saysWhen } from './lib/skill-meta.mjs';
+import { estimateTokens } from '../lib/tokens.mjs';
+import { skillMeta, saysWhen } from '../lib/skill-meta.mjs';
 
-const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const [researchFile, dlDir] = process.argv.slice(2);
 if (!researchFile || !dlDir) {
-  console.error('사용: node scripts/build-catalog.mjs <research.json> <dl 폴더>');
+  console.error('사용: node scripts/dev/build-catalog.mjs <research.json> <dl 폴더>');
   process.exit(1);
 }
 const research = JSON.parse(fs.readFileSync(researchFile, 'utf8'));
@@ -59,7 +59,7 @@ for (const s of research.skills) {
     always: text ? estimateTokens(`${fm.name || s.id}: ${desc}`) : null,
     onUse: text ? estimateTokens(text) : null,
     install: repoBy[s.repo]?.license ? 'copy' : 'plugin',
-    // 목록 예산(picker/budget.js) — scripts/check-descriptions.mjs 와 같은 셈
+    // 목록 예산(picker/budget.js) — scripts/dev/check-descriptions.mjs 와 같은 셈
     ...(text ? { descChars: (fm.whenToUse ? `${desc} ${fm.whenToUse}` : desc).length, saysWhen: saysWhen(fm) } : {}),
   });
 }

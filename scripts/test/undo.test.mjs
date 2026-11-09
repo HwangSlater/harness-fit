@@ -1,14 +1,14 @@
 // 되돌리기 안전 시험(네트워크 없이: 스킬은 고르지 않는다).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir, gitInit, gitIn } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { apply, undo } from '../apply.mjs';
+import { apply, undo } from '../lib/apply-run.mjs';
 import { BACKUP_DIR } from '../lib/backup.mjs';
 
 const sel = { lang: 'ko', combo: 'team', skills: [], hooks: ['secrets', 'protect-branch'], rules: ['collab'], flow: 'github-flow', explore: [], note: '', share: false };
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'harness-undo-'));
+const tmp = () => tmpDir('harness-undo-');
 const read = (dir, f) => fs.readFileSync(path.join(dir, f), 'utf8');
 
 test('적용 뒤 사용자가 고친 CLAUDE.md·.gitignore 는 넣은 부분만 빼고 남긴다', async () => {
@@ -77,7 +77,7 @@ test('스킬 경로에 . 이나 .. 을 넣어 폴더째 지우게 하지 못한�
 
 test('다시 받은 스킬도 지문이 남아, 그 뒤 고친 것은 되돌릴 때 따로 남긴다', async () => {
   const dir = tmp();
-  const { retry } = await import('../apply.mjs');
+  const { retry } = await import('../lib/apply-run.mjs');
   const real = globalThis.fetch;
   const tree = { tree: [{ type: 'blob', path: 'skills/productivity/handoff/SKILL.md', size: 1 }] };
   const ok = (body) => ({ ok: true, json: async () => body, arrayBuffer: async () => new TextEncoder().encode(String(body)).buffer });
@@ -98,9 +98,8 @@ test('다시 받은 스킬도 지문이 남아, 그 뒤 고친 것은 되돌릴 
 
 test('미래 날짜·git 이 추적하는 백업은 심어 둔 것으로 보고 무시한다', async () => {
   const dir = tmp();
-  const { execFileSync } = await import('node:child_process');
-  const git = (...a) => execFileSync('git', ['-C', dir, ...a], { stdio: 'ignore' });
-  git('init', '-q');
+  const git = gitIn(dir);
+  gitInit(dir);
   const plant = (stamp) => {
     const d = path.join(dir, BACKUP_DIR, stamp);
     fs.mkdirSync(d, { recursive: true });

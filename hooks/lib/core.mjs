@@ -49,6 +49,14 @@ export const notice = (message) => {
   process.exit(0);
 };
 
+// 막지 않고 Claude 문맥에 글을 더한다(PreToolUse additionalContext). message 가 있으면 사용자에게도 알린다.
+export const hint = (context, message = '') => {
+  const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: context } };
+  if (message) out.systemMessage = message;
+  process.stdout.write(JSON.stringify(out));
+  process.exit(0);
+};
+
 export const deny = (reason) => {
   process.stdout.write(
     JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }),
@@ -101,7 +109,7 @@ export const pickLang = (cfgLang) => {
   return /^ko/i.test(sys) ? 'ko' : 'en';
 };
 
-// 문구: messages/<lang>.json. {이름} 자리를 vars 로 채운다. 없는 키는 영어 → 키 이름 순으로 대신한다.
+// 문구: messages/<lang>.json. {이름} 자리를 vars 로 채운다(값이 없으면 빈칸 — 화면 picker/dom.js fmt 와 같다). 없는 키는 영어 → 키 이름 순으로 대신한다.
 const cache = {};
 const loadMessages = (lang) => {
   if (!cache[lang]) {
@@ -115,7 +123,7 @@ const loadMessages = (lang) => {
 };
 export const translator = (lang) => (key, vars = {}) => {
   const text = loadMessages(lang)[key] ?? loadMessages('en')[key] ?? key;
-  return text.replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
+  return text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 };
 
 // 검사가 오류로 멈췄다는 알림 한 줄(run.mjs · entry.mjs 가 함께 쓴다). errors: 터진 규칙 id 들, '*' 는 바깥에서 터짐.

@@ -11,7 +11,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { git } from '../lib/core.mjs';
 import { gitSegments, shortFlags, stripQuoted, commandSegments } from '../lib/cmdline.mjs';
-import { COMMIT_VALUE_FLAGS, gitWords, commandWords, GIT_WORD } from '../lib/staged.mjs';
+import { COMMIT_VALUE_FLAGS, gitWords, commandWords, GIT_WORD } from '../lib/commit-args.mjs';
 
 const HOOKED = 'commit|push|merge|pull|rebase|am';
 const NO_VERIFY = /^--no-veri(?:f|fy)?$/;

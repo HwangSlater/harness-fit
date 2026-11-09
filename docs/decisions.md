@@ -1,159 +1,372 @@
 # 결정
 
-> 최종 수정: 2026-11-07 · 무엇을 왜 그렇게 정했는지
+> 최종 수정: 2026-11-09 · 지금 유효한 결정만, 분야별로. 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
 
-## 2026-11-02 사용자 결정
-- **고르기 화면**: 시안 1(조합 카드 + 스킬·훅·규칙 체크 목록)을 바탕으로 변주한다. 시안은 저장소 밖에 둔다.
-- **배포 형태**: Claude Code 플러그인(`/plugin marketplace add` → `/harness-fit`).
-- **언어**: 처음부터 한국어·영어 둘 다. 화면·훅 안내·규칙 조각의 문구는 언어별 파일로 나누고 코드에 직접 쓰지 않는다. 언어는 사용자 설정(`.claude/harness.json` 의 `lang`)을 따르고, 없으면 시스템 언어.
-- **카탈로그 신선도**: 스냅샷 + 실시간 보충 검색(`docs/plan.md` 원칙 4). star 1000 이상은 키워드 검색(`--stars=">=1000"`)으로 찾는다.
+한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 긴 근거·측정값·옛 이름은 archive 의 원문에 있다.
 
-- **고르기 화면 2차(사용자 선택: 2차 시안 a)**: 맨 위 요약 타일 4칸(스킬·훅·약속 개수, 매 대화 비용을 「Claude 기억 공간의 N%」로) → ① 조합(「이런 분께」·6단계 막대) ② 개발 단계 지도(쉬운 이름·「언제 쓰나」, 눌러서 빼기·더하기) ③ 막는 실수(「이렇게 하면 → 이렇게 막아요」) ④ 브랜치 그림 ⑤ CLAUDE.md 약속 ⑥ 요청 칸 ⑦ 생기는 것. 영어 id·전문 용어만 보이던 1차가 「무슨 뜻인지 모르겠다」는 지적을 받아 바꿈. 쉬운 이름은 `catalog/titles.json`.
-- **요청 칸(사용자 요청)**: 「이렇게 해 줘」를 적으면 적용 결과와 함께 Claude 에게 넘어가고, Claude 가 훅 옵션이나 CLAUDE.md(관리 구역 밖)에 반영한 뒤 바꾼 것을 알린다. 파일에 바로 쓰지 않는 이유: 요청은 해석이 필요하다.
+## 훅 원칙
 
-- **사용성 평가 반영(2026-11-02, 사용자 요청 「전부 고치기」)**: 사용자 역할 에이전트 2명(처음 쓰는 주니어·팀 리드)이 화면을 직접 눌러 평가했다. 원칙은 「화면이 약속한 것 = 실제 결과」.
-  - 브랜치 방식은 훅을 실제로 켜고 끈다(`packs.json` flows 의 `hooksOn`/`hooksOff`, 서버 `applyFlow` 와 화면 `pickFlow` 가 같은 데이터를 쓴다). 정하지 않음 → 보호 브랜치·이름 규칙 끔, 트렁크 → 보호 브랜치는 강제 push 만.
-  - CLAUDE.md 문장은 켠 훅에 맞춰 만든다: 규칙 조각의 줄 끝 `{{hook:id}}`(켜졌을 때만)·`{{!hook:id}}`(꺼졌을 때만). 렌더는 `scripts/lib/claude-md.mjs`.
-  - 브랜치 이름 규칙은 시작 부분만 강제하고 대문자·숫자·하위 경로 허용(`feature/JIRA-123`).
-  - 팀원 공유는 프로젝트 `.claude/settings.json` 의 `extraKnownMarketplaces`·`enabledPlugins` 로(팀원이 열면 설치를 권함). 기존 설정은 보존, 깨진 파일은 건드리지 않음. 팀 조합이면 기본 켬.
-  - 팀원이 받는 플러그인은 태그로 고정한다(`config/sources.json` 의 `pluginRef`, 버전을 올릴 때 같이 바꾼다). 마켓 소스는 브랜치·태그(`ref`)만 받고 커밋 sha 고정은 지원하지 않는다(2026-11-02 문서 확인). 화면에 저장소와 버전을 보여 준다.
-  - 조합을 바꾸면 직접 고친 내용이 사라지므로 「이전 선택으로 돌리기」를 띄운다. 브랜치 방식 때문에 바뀐 검사는 조합 기본값과 비교해 누적으로, 브랜치 구역 바로 아래에 알린다.
-  - 요청 칸 내용은 `.claude/harness-request.md` 로도 남긴다(터미널 세션이 없어도 사라지지 않게).
-  - 실행 파일이 든 스킬은 적용 전에 알린다(`scripts/scan-skill-files.mjs` 가 고정 커밋 기준 목록을 catalog 에 적음). 훅과 같은 일을 하는 스킬(`overlapsHook`)은 고를 목록에서 뺀다.
-- **전체 검토 반영(2026-11-02, 사용자 요청 「고치고 재검토」)**: 보안·데이터 일치·화면 세 갈래 검토에서 나온 것을 고쳤다.
-  - 되돌리기는 「적용한 뒤 사용자가 고친 것」을 지우지 않는다: 쓴 내용의 지문(sha256)을 백업 목록에 남기고, 달라졌으면 CLAUDE.md 는 관리 구역만·.gitignore 는 넣은 줄만 빼고 나머지는 두고 알린다. 백업 목록 경로는 프로젝트 안인지, 폴더 이름은 시각 꼴인지 확인한다(`scripts/lib/backup.mjs`).
-  - 받지 못한 스킬은 「들어갔다」고 말하지 않고, `--retry` 로 그 스킬만 같은 백업에 더해 받는다(되돌리기는 여전히 처음 상태로).
-  - 다시 적용해도 사용자가 harness.json 에 넣은 훅 옵션은 남긴다(Git 전략이 정하는 키만 새 값). 요청 칸 반영은 켜져 있는 훅의 옵션만 바꾸고, 꺼진 훅은 켜지 않는다.
-  - 훅: 명령을 낱말 단위로 읽어 옵션 순서·대소문자·묶음(`-fu`)·`git -c` 앞붙임을 가리지 않고, 따옴표 속 글(커밋 메시지)은 옵션으로 보지 않는다. 비밀값 허용 주석은 그 줄의 모든 검사에, 커밋 검사는 파일마다(테스트 파일 예외가 쓰기와 같게).
-  - 화면: 적용 중에는 선택을 잠그고 끝 화면은 확인한 순간의 사본으로 그린다. 미리보기는 마지막 요청의 답만 받는다.
-- **`.harness-source.json` 은 「받아 온 외부 코드」 표시로도 쓰인다**: 사용자 전역 stop-gate 가 이 파일이 있는 스킬 폴더의 위반을 「고치지 말고 프로젝트 `.claude/lint.json` 의 external 에 이유와 함께 적으라」로 안내한다(2026-11-02 사용자 결정 — 훅에서 통째로 빼지 않고 프로젝트 예외로). 파일 이름·위치를 바꾸면 이 안내가 깨지므로 같이 바꾼다.
-- **빈 저장소는 먼저 묻는다(사용자 요청)**: 스택을 알 파일이 없으면(`detect` 의 `thin`) Claude 가 화면을 열기 전에 「맞춤 추천을 할 수 없다, 기본 조합으로 갈지 / 무엇을 만드는지 알려 줄지」 묻는다(SKILL.md). 설명을 받으면 `--stack`·`--team` 으로 넘기고(`detect.mjs` 의 `KNOWN_STACKS` 에 있는 이름만), 화면 맨 위에 「알려 주신 내용으로 추천」, 인원은 커밋 기록처럼 쓰지 않는다. 그냥 진행해도 화면에 「기본 조합으로 시작」을 띄운다. 설명은 늘 받지 않는다 — 저장소에 있는 정보를 다시 묻지 않으려고.
-- **무엇이 스킬·훅·규칙으로 들어가는지 늘 보이게(사용자 지적 「훅인지 규칙인지 안 적혀 있다」)**: 2~5번 구역 제목 옆에 「스킬 · .claude/skills/」「훅 · .claude/harness.json」「규칙 · CLAUDE.md」 표시. 끝 화면은 경로 목록 대신 확인 창과 같은 종류별 묶음(`parts.js` 의 `changeGroups`), 터미널 보고도 `labels` 로 종류별 한 줄씩. 한국어 「약속」은 영어판·업계 표현에 맞춰 「규칙」으로 통일. 훅처럼 들리던 스킬 이름 「커밋 전 자동 검사」 → 「커밋 전 검사 도구 설치」.
-- **구조 · 재사용 규칙(2026-11-05 사용자 요청 「재활용을 생각해 독립적으로 짜게」)**: CLAUDE.md 규칙 묶음 `structure`(`rules/structure.{ko,en}.md`)를 새로 두고, 혼자 빠르게·팀 협업·꼼꼼하게에서 기본으로 켠다. 스킬 `code-simplification`(복잡한 코드 단순화)도 같은 세 조합의 기본에 넣었다. 가볍게는 「안전장치만」이라 넣지 않는다. 모든 줄이 판단이라 글로 둔다(값 바로 적기 훅 `hardcode` 는 2026-11-06 뺐다 — 아래 「훅은 약속한 것을 빠짐없이」).
-- **검사로 막을 수 있으면 글로 두지 않는다(2026-11-05 사용자 지적 「정적 도구로 할 수 있는 걸 규칙에 넣어 놓치게 하면 곤란」)**: 규칙 줄은 모두 `{{hook:id}}`·`{{!hook:id}}`·`{{!skill:id}}`·`{{judge}}` 중 하나를 단다(`scripts/test/rules.test.mjs`). 훅이 켜졌을 때 「훅이 막는다」고 알리는 줄은 두지 않는다 — 훅이 막을 때 이유를 알려 주므로, 매 대화 읽히는 글로 또 적으면 겹친다.
-- **이미 있는 것과 겹치면 넣지 않는다(2026-11-05 사용자 요청 「중복으로 적용하게 하면 안 된다」)**:
-  - 훅: 기존 훅(전역·프로젝트 settings, 켜진 플러그인)에 `catalog/probes.json` 시험 입력을 실제로 넣어(사용자 선택 — 이름·코드를 읽어 짐작하는 것보다 정확), block 을 다 막고 pass 를 다 통과시키면 같은 훅으로 보고 끈다(`scripts/lib/existing-hooks.mjs`). pass 입력이 있어야 다른 이유로 다 막는 훅을 같은 훅으로 잘못 보지 않는다. 저장소 쪽 훅은 Claude Code 안에서만 돌린다(Claude Code 의 폴더 신뢰 확인을 건너뛰지 않게).
-  - 스킬: 같은 이름은 스크립트가, 하는 일이 같은 다른 이름은 setup 때 Claude 가 `scripts/overlap.mjs` 를 보고 `--similar` 로. CLAUDE.md 줄은 Claude 가 프로젝트·전역 CLAUDE.md 와 견주어 `--skip`(파일에 적힌 줄 번호).
-  - 이 PC 에만 있는 것(전역)은 팀원 공유를 켜면 겹침으로 보지 않는다 — 팀원에게는 없다. 겹침 판단은 서버와 화면이 같은 `picker/dup.js` 를 쓴다.
-  - 기존 훅이 막아 주는 것은 규칙 글에서 「켜짐」으로 친다(꺼짐 전용 줄이 그 훅과 겹치지 않게).
-  - 같은 훅으로 보는 것은 harness-fit 훅이 도는 때(PreToolUse, 2026-11-06 부터 Stop·SessionStart·UserPromptSubmit 도)뿐. PostToolUse 는 쓴 뒤에 알려 줄 뿐 막지 못해, 같은 것으로 보고 쓰기 전 차단을 끄면 더 약해진다(검토에서 이 PC 의 code-lint 때문에 실제로 꺼지던 일).
-  - 시험 입력은 GitHub Flow 옵션 기준이라, 다른 브랜치 방식이 옵션을 넣는 훅(protect-branch·branch-name)은 그 방식에서 겹침으로 보지 않는다(`picker/dup.js` PROBE_FLOW) — 덜 막는 쪽으로 틀리지 않게.
-- **약속대로 안 될 때는 적용하면서 알린다(2026-11-05 검토)**: 플러그인이 없으면(npx) 훅이 돌지 않으므로 CLAUDE.md 를 「훅 꺼짐」 글로 쓰고 알린다(글도 검사도 없는 상태를 막으려고). `.claude/` 를 git 이 무시하면 팀원 공유가 닿지 않는다고, settings.json 이 깨졌으면 공유를 못 적었다고 알린다. harness-fit 이 넣지 않은 같은 이름 스킬 폴더는 덮어쓰지 않는다(retry 와 같은 규칙). harness.json 이 깨지면 조용히 모두 끄지 않고 사용자에게 알린다(막지는 않음).
-- **GitHub Flow 는 main 에 바로 push 도 막는다(2026-11-05)**: 「PR 로 합친다」를 글 대신 검사로. Git Flow 는 로컬에서 release 를 합쳐 push 하므로 켜지 않는다.
-  - harness-fit 안의 같은 일을 하는 스킬은 `catalog/overlaps.json` 묶음으로, 조합 기본값엔 하나만(꼼꼼하게에서 differential-review 를 뺌 — find-bugs 와 같은 일). 화면에서 같은 묶음 스킬을 더하면 「비슷한 스킬이 이미 들어 있어요」.
+### 훅은 약속한 것을 빠짐없이, 짐작하는 훅은 두지 않는다 (사용자 원칙, 2026-11-05·11-06)
+- 결정: 판단이 필요 없는 규칙은 글이 아니라 훅으로 막는다. 짐작으로만 잡히는 hardcode·injection·log-secrets 훅은 뺐고, 그 줄은 지침(`{{judge}}`)·스킬 글로 남겼다.
+- 이유: 글은 놓친다. 짐작하는 훅은 헛막음을 낸다.
+- 어디서: `catalog/packs.json`, `rules/*.md`
 
-- **훅은 약속한 것을 빠짐없이, 글은 핵심만(2026-11-06 사용자 원칙)**: 규칙 글·스킬은 판단이 필요한 핵심만 짧게(길면 잊는다). 훅은 늘 지켜야 하는 것을 막고, 줄 하나를 통째로 다 막을 때만 그 줄을 지운다(`{{!hook:id}}`). 짐작으로만 잡을 수 있는 훅은 두지 않는다 — `hardcode`·`injection`·`log-secrets` 를 뺐고 그 줄은 판단(`{{judge}}`)·스킬(`{{!skill:…}}`) 글로 남겼다. 일부만 막는 훅(secrets·danger-cmd·password-cli)은 detail 에 「적어 둔 꼴만」이라 밝히고 규칙 줄은 지우지 않는다. 쓰기 훅은 셸로 쓴 파일을 못 보므로 `git commit` 때 같은 함수로 다시 보고(`hooks/rules/commit.mjs`), 같은 명령 앞부분이 파일을 쓰면 미리 볼 수 없어 나눠 실행하게 한다. 「훅은 모두 엄격하게 시험한다」: packs.json 의 훅마다 detail 의 꼴마다 막음·통과 사례를 Bash·PowerShell 로 실제 진입점(`hooks/run.mjs`)에 넣어 보고(`hooks/test/strict.test.mjs`), 사례가 3개씩 없으면 시험이 실패한다. 실제 프로젝트에서 헛막음은 `node scripts/dev/fp-scan.mjs <폴더>` 로 본다. 꼴을 넓힐 때마다 헛막음을 다시 본다 — `SECRET_KEY` 꼴을 넓히자 `api_key_header = "X-Api-Key"` 가 걸려, 값을 가리키는 이름(_header·_name·_env·_url …)·켜고 끄는 값(`=yes`·`=1`)·JS·TS 따옴표 속 글은 뺐다. 약속 밖으로 남긴 것은 detail 에 적는다: merge·cherry-pick·revert 가 main 에 만드는 커밋(Git Flow 는 main 에서 합친다. GitHub Flow 는 그 push 를 막는다). 훅이 줄의 일부만 막으면 그 나머지를 훅이 켜졌을 때 남는 줄(`{{hook:id}}`)로 나눈다 — 올린 커밋을 reset·filter-branch 로 고쳐 강제 push(no-rewrite-pushed 는 amend·rebase 만), package.json 밖 의존성(pin-deps), 브랜치 이름(protect-branch 가 아니라 branch-name 몫).
-- **커밋 내용 검사는 git 의 pre-commit 으로, 막을 수 있는 건 GitHub 서버 설정으로(2026-11-06 사용자 결정)**: PreToolUse 는 명령이 돌기 전에 보므로 `python test_shop.py; git add .; git commit …` 처럼 앞 명령이 파일을 쓸 수 있으면 커밋 내용을 미리 알 수 없어 나눠 실행하게 막았다(헛막음). git 의 pre-commit 은 실제로 올라간 내용을 보므로 짐작이 없다 — 적용할 때 저장소 hooks 폴더에 설치하고, 이미 다른 pre-commit·`core.hooksPath`(husky 등)가 있으면 건드리지 않고 PreToolUse 검사를 그대로 둔다(알림). 규칙 줄이 훅으로 다 막히지 않는 두 곳은 「글을 늘릴지」만 따지지 않고 대안을 찾았다: Git Flow 의 main·develop 직접 커밋은 protect-branch 가 cherry-pick·revert 도 막게 넓히고, GitHub Flow 의 「squash 로 합치고 브랜치 지우기」·「PR 로만 합치기」는 GitHub 저장소 설정(squash 만 허용·합친 브랜치 자동 삭제·브랜치 보호)으로 서버에서 막는다 — 웹 화면·`gh api`·사람이 합쳐도 걸린다. 저장소 설정은 모두에게 영향을 주므로 적용 때 사용자가 켜야만 하고(기본 끔), 되돌리기는 이전 값으로 되돌린다.
-- **사람마다 답이 다른 설정은 사용자가 고른다(2026-11-06 사용자 원칙)**: 우리가 하나로 정하지 않는다. 권장값을 기본으로 두고, 무엇이 달라지는지(맞바꾸는 것) 한 줄로 보여 준 뒤 사용자가 고른다. 예: GitHub 저장소 설정은 한 스위치로 몰지 않고 항목마다(Git Flow 의 main PR 요구는 로컬에서 release 를 합쳐 push 하는 흐름과 부딪혀 기본 끔, 관리자에게도 적용은 기본 켬 — 관리자인 나도 바로 push 못 함, 리뷰 승인 수 0·1·2), 훅 옵션은 고르기 화면에서 훅마다(커밋 메시지 언어, 큰 파일 줄 수, 보호할 브랜치 등 — 훅 코드가 실제로 읽는 옵션만 보여 준다, 시험으로 강제). 브랜치 방식이 넣는 옵션은 기본값이고, 사용자가 바꾼 값이 이긴다.
-- **사용자 전역 훅에서 옮길 것, 답 언어는 옵션(2026-11-06 사용자 결정)**: 100% 잡는 것만 옮긴다 — push 전 커밋 묶기(팀마다 달라 기본 끔), 커밋 해시 알리기(끝낼 때), Swift `try!`·`print(`, Python `shell=True`·`eval(`(언어별), 작업 체크리스트(막지 않고 보여 주기만), docs 문서 형식 검사. 답 언어 검사(korean-check)는 낱말 수로 판단해 100%가 아니지만 놓쳐도 위험하지 않아 「사용자가 고른 언어로 답하게」 하는 옵션으로 둔다(기본 끔, 다국어 사용자를 위해 언어를 고른다). 시험 안 돌림·기록 남길지 묻기·하드코딩처럼 짐작이 필요한 것은 옮기지 않는다. 훅이 많아져 고르기 화면은 묶음(비밀·위험 / git 기록 / 코드 / 언어·도구별 / 일하는 방식 / 토큰 아끼기)으로 고르게 한다 — 시안 3개(`Downloads/find-your-skill-시안/훅-고르기/`)를 보여 주고 고른 것으로 만든다.
-- **전역 훅에서 옮긴 훅 7개(2026-11-06, 위 결정을 만듦)**: 때마다 진입점 하나(`hooks/stop.mjs`·`session-start.mjs`·`prompt-submit.mjs`, 틀은 `hooks/lib/entry.mjs` — run.mjs 와 같이 설정 없으면 규칙 모듈도 안 불러오고, 오류면 통과하고 알림, Stop 은 `stop_hook_active` 면 통과). 기존 훅 겹침 시험도 같은 때로 넓혔다(`catalog/probes.json` 의 event·setup·transcript·checklist·expect, `scripts/lib/probe-run.mjs`) — 그 시험은 임시 저장소·임시 홈에서 돌려 사용자 홈을 건드리지 않고, PostToolUse 는 여전히 셈하지 않는다.
-  - `squash-push`(git, 모든 조합 기본 꺼짐): push 할 브랜치에 원격 추적 브랜치 어디에도 없는 커밋이 2개 이상이면 막는다. 같은 명령의 앞선 `git commit` 도 센다. 원격 기록이 없는 첫 push·태그·지우기는 보지 않는다.
-  - `commit-hash`(work, 혼자·팀·꼼꼼 기본): Stop 때 사람 턴 시작 뒤 reflog 의 커밋(브랜치에 남은 것, 최근 6개)마다 해시가 커밋 뒤 답에 있는지. 셸 명령이 없던 턴은 안 보고, 같은 사람 턴에서 한 번만 묻는다(되먹임의 `[harness-fit · commit-hash]` 표시).
-  - `swift-unsafe`·`python-unsafe`(lang, 그 스택이 감지되면 혼자·팀·꼼꼼 기본 — combos.json stackAddons 의 hooks): 주석·글자를 가린 뒤(`hooks/lib/code-mask.mjs`, 글자 속 `\( )`·f-글자 `{ }` 는 코드) 새 줄의 `try!`·`print(`·`debugPrint(` / `shell=True`·`eval(`·`exec(`. 시험 코드·받아 온 코드는 뺀다(시험은 앱을 죽여도 시험 실패일 뿐이라). 커밋 때 다시 보고 lint:allow 를 받는다. Python 의 exec( 는 eval( 과 같은 위험이라 함께 넣었다.
-  - `work-checklist`(work, 혼자·팀·꼼꼼 기본, 막지 않음): `~/.claude/harness-fit/checklists/<프로젝트 이름-경로 지문>/<세션>.md` — 사용자 전역 `~/.claude/checklists/` 와 겹치지 않게.
-  - `docs-check`(work, 꼼꼼 기본, 옵션 dateLine): 기계로 가릴 수 있는 것만 — docs/ 에는 .md·그림만(쓰기 때), 바뀐 문서의 `# 제목`·날짜 줄(날짜 = 파일을 고친 날)·목차 링크·목차의 끊긴 링크(Stop 때, 커밋 안 한 변경 + 이번 턴 커밋). 전역 docs-reminder 의 「바로잡는 말이면 묻기」는 짐작이라 옮기지 않았다.
-  - `answer-lang`(work, 모든 조합 기본 꺼짐, 옵션 lang: ko·en·ja·zh): 전역 korean-check 의 낱말 수 기준을 글자 모양별로 넓혔다. 짐작이라 detail 에 밝혔다.
-- **고르기 화면은 GitHub 바탕, 토스처럼 단계별로(2026-11-06 사용자 결정)**: 바탕 시안 A(GitHub Marketplace)·B(Vercel)·D(Notion) 중 A. 긴 한 쪽 대신 한 화면에 질문 하나(큰 제목 + 아래 「다음」), 마지막 확인 화면에서 항목마다 「바꾸기」로 돌아간다. 단계마다 주소(#)가 있어 뒤로 가기가 되고, 아무 단계로나 바로 갈 수 있어야 한다(「왔다갔다 편하게」). 훅 구획은 시안 3b(묶음 칩 + 오른쪽 자세히 판). A의 머리 막대·왼쪽 차례는 엉성하다는 지적으로 다시 짰고, 오가는 방식은 위쪽 단계 탭 + 오른쪽 요약 카드(A2-2)로 정했다. 이어서: 브랜치 방식은 조합 화면 아래로 합친다. 조합 카드마다 「켜지는 것 보기」를 둔다. 스킬·훅은 칩을 누르면 바로 켜고 끄며, 묶음마다 「자세히 보기」를 두되 따로 창을 만들지 않고, 넓은 「전체 보기」 창 하나(왼쪽 묶음 목록 + 오른쪽 항목, 검색)를 그 묶음에서 연다 — 스킬·자동 검사·「켜지는 것 보기」 모두 같은 창 꼴. 창은 가운데 띄우되 넓게(약 1040px, 휴대폰은 아래에서 올라오는 판). 스위치는 Primer ToggleSwitch 처럼 작게. 단추·칩·카드·줄·간격은 한 벌로 통일한다. 「고른 것」 요약은 조합과 브랜치 방식을 한 줄로 묶는다. 스킬은 조합이 켠 것과 「추가로 추천」을 나누고 전체 보기도 둔다. CLAUDE.md 규칙은 작은 줄로 두고, 실제로 적힐 글을 미리 보여 준다(줄여 보기/전체 보기). 글꼴은 Spoqa Han Sans Neo(국내 서비스에서 널리 쓰고 AI 화면에 흔하지 않은 것, SIL OFL — 한글 2,350자 묶음 woff2 3벌을 화면 파일과 함께 둔다), 스위치는 작게 길 안에 쏙 들어가게. 한 화면에 더 많이 보이게 촘촘히 — 시안 `Downloads/find-your-skill-시안/리뉴얼/mockups/`.
-- **혼자 쓰는 저장소는 브랜치 방식을 권하지 않고, git 커밋 전 검사는 사람이 한 커밋도 본다(2026-11-06 사용자 결정)**: 혼자 쓰는 저장소의 기본 브랜치 방식은 지금처럼 「정하지 않음」. 저장소의 git pre-commit 은 누가 커밋하든(사람·Claude) 돈다 — 지금 동작 그대로 기본으로 둔다(git 의 `--no-verify` 로 건너뛸 수 있는 것은 git 의 약속).
-- **훅이 오류로 멈추면 통과하고 알린다(2026-11-06 사용자 결정)**: 막으면 그 프로젝트에서 Claude 가 명령도 수정도 못 해 설정 파일조차 고칠 수 없고, git 커밋 전 검사라면 사람의 커밋도 멈춘다. 그래서 막지 않되, 조용히 꺼지지 않게 「○○ 검사가 오류로 멈춰서 이번 작업은 그 검사 없이 진행돼요」를 알린다(PreToolUse 는 systemMessage, pre-commit 은 stderr). 다른 검사가 막을 것을 찾으면 그대로 막는다. 모양이 틀린 입력(숫자 file_path 등)은 오류가 아니라 빈 값으로 읽는다(`hooks/lib/core.mjs normalizeInput`).
-- **다시 열면 지난번 선택에서 시작(2026-11-06 사용자 결정)**: 이미 적용한 프로젝트에서 고르기 화면을 열면 새 추천이 아니라 지난번에 적용한 것(끈 훅은 꺼진 채)에서 시작한다. 적용할 때 `.claude/harness.json` 에 `selection`(조합·브랜치 방식·스킬·CLAUDE.md 규칙·팀 공유·날짜)과 `known`(그때 카탈로그 id)을 남기고, 켠 훅과 옵션은 `rules` 가 정본(훅은 lang·rules 만 읽는다). 그 뒤 새로 생긴 것은 꺼진 채 「새로 생김」 표시(더하기 목록 맨 앞), 「추천으로 되돌리기」는 「이전 선택으로 돌리기」로 되살릴 수 있다. auto 도 지난번 선택을 지키고 새것은 이름만 알린다(`--fresh` 면 새 추천). v0.2.2 이하 파일(selection 없음)은 CLAUDE.md 규칙·공유를 조합 기본값으로 채운다.
-- **훅이 잘못 막은 줄 하나는 허용 주석으로 넘긴다(2026-11-06 사용자 결정)**: 훅 전체를 끄지 않게, 그 줄이나 바로 위 주석 줄에 `lint:allow <훅 id> <이유>`(이유 3자 이상, 없으면 그대로 막고 「이유가 필요해요」). 쓸 때마다 훅 id·file:줄·이유를 알린다(PreToolUse 는 systemMessage, pre-commit 은 stderr — 커밋은 막지 않음). 받는 훅은 줄을 보는 쓰기 검사와 그 커밋 때 검사뿐: unsafe-html·gha-inject·file-size(파일 맨 위 10줄 안)는 기본으로 받고, secrets 는 옵션 `allowComment`(기본 꺼짐)를 켜야 받는다 — 진짜 키에 주석 하나 달아 넘기기 쉬워서. pin-deps 는 package.json 에 주석을 못 달아, protected-files 는 줄이 아니라 파일을 봐서, 명령 훅은 줄 글이 없어 받지 않는다. 바로 위 줄은 주석만 있는 줄이어야 한다(코드 줄 끝 허용이 아래 줄까지 번지지 않게). 0.2.x 의 `harness:allow`·id `secret` 도 같은 규칙으로 받는다. 코드는 `hooks/lib/allow.mjs`, 시험은 `hooks/test/allow.test.mjs`. 옛 꼴 `harness:allow`(v0.2.0부터)도 계속 받는다(사용자 결정 — 이미 달린 주석이 갑자기 막히지 않게).
-- **화면·알림 용어(2026-11-06 사용자 승인)**: 같은 분야가 쓰는 말로 맞춘다(Claude Code 한국어 문서·GitHub 한국어 문서·VS Code 한국어 언어 팩 확인). 자동 검사→훅, CLAUDE.md 규칙→CLAUDE.md 지침(Claude Code 는 CLAUDE.md 내용을 「지침」, `.claude/rules/` 를 「규칙」이라 부른다), 브랜치 방식·Git 전략→브랜치 전략, 막는 훅 이름은 「차단」(금지·막기 대신), GitHub Actions 구멍 막기→주입 차단, 합치기→병합(스쿼시 병합), 글 속 push→푸시, 켬·끔→켜짐·꺼짐, 추천→권장, 말투는 훅 알림까지 모두 해요체. 그대로: 스킬·플러그인·커밋·브랜치·저장소·토큰·되돌리기·적용(설정 전체)/설치(스킬)·PR·조합.
-- **브랜치 전략을 고르면 팀원 공유를 적용 전에 묻고, 「이대로 적용」은 확인 단계를 거친다(2026-11-06 사용자 결정)**: 브랜치 전략은 팀이 함께 지켜야 뜻이 있으므로 「팀원도 같은 검사를 쓰게 할까요?」를 확인 단계에서 꼭 묻는다(답하기 전엔 적용 단추가 잠김). 「네」면 팀원이 할 일(커밋·푸시할 파일, Claude Code 에서 저장소를 열면 뜨는 설치 안내, git 커밋 전 검사는 공유되지 않는 점)을 적용 전·후에 보여 준다. 요약 카드의 「이대로 적용」은 바로 적용하지 않고 확인 단계로 간다.
-- **CLAUDE.md 지침에 저장소 명령을 넣고 뻔한 줄은 뺀다(2026-11-06 사용자 결정, 시안 1안)**: package.json·Makefile·pyproject 에서 읽은 이 저장소의 시험·검사·빌드 명령을 「이 저장소 명령」 묶음으로 넣고, 구조 묶음에서 Claude 가 적지 않아도 하는 일반론 3줄(화면·상태 섞지 않기, 외부 라이브러리 감싸기, 미리 추상화하지 않기)을 뺀다 — 공식 권장 「지워도 Claude 가 실수하지 않을 줄이면 지운다」. 스킬 설명(catalog.json)은 「~한다」 꼴 그대로 둔다(사용자 결정).
-- **스킬 목록 예산을 적용 전에 알린다(2026-11-07 사용자 승인 3가지)**: 근거 code.claude.com/docs/en/skills·env-vars — 늘 문맥에 드는 것은 스킬 이름 + description(+ when_to_use, 한 줄 1,536자에서 잘림)뿐이고, 목록 예산(문맥 창의 1%, 모르면 8,000자, `SLASH_COMMAND_TOOL_CHAR_BUDGET`·`skillListingBudgetFraction`·`skillListingMaxDescChars`)을 넘으면 덜 쓴 스킬부터 설명이 빠진다 — 새로 넣은 스킬(0번)이 먼저. 셈(토큰인지 글자인지, 번들 스킬 포함 여부)은 문서에 없어 화면은 「넘을 수 있어요」로만 말한다. ① `scripts/lib/skill-budget.mjs` 가 사용자·프로젝트 skills·commands 와 켜진 플러그인(installed_plugins.json 의 이 프로젝트·사용자 범위 + 설정 enabledPlugins 가 false 아님)을 세고(`disable-model-invocation: true` 뺌, 링크 폴더 포함, 못 읽는 파일은 건너뜀), 예산은 환경 변수 > 설정 env > fraction × 20만 토큰 × 4자 > 8,000자. 새로 생기는 카탈로그 스킬 폴더만 더해(`picker/budget.js`, 서버·화면 같은 함수) 80% 이상이면 확인 단계·요약 카드에 알리고 결과 JSON 에 `warnings: ['skill-budget']` + `skillBudget`. 「권장대로 줄이기」 차례: 같은 일을 하는 스킬이 함께 골라진 것(묶음에서 가장 짧은 것은 남김) → 직접 더한 것 → 조합 스킬 → 스택 맞춤(저장소에 가장 맞아 마지막) 순, 같은 차례면 설명이 긴 것부터, 80% 아래까지. 지금 있는 것만으로 이미 80% 이상이면 앞의 두 차례만 뺀다(조합까지 빼도 알림이 안 사라져서). 뺀 것은 되돌리기가 있다. 예산 늘리기는 글로만 안내하고 사용자 설정은 바꾸지 않는다. ② 끝 화면·setup 보고에 받은 스킬을 `/이름` 으로, 「`/context` 의 Skills 줄에서 실제 크기」. ③ 카탈로그 설명은 `scripts/check-descriptions.mjs` 가 고정 커밋 SKILL.md 에서 재어 `descChars`·`saysWhen` 을 적고 보고만 한다(외부 글은 고치지 않음, `build-catalog.mjs` 도 같은 셈). 늘 드는 토큰 상위 10% 스킬은 전체 보기 「자세히」에 「설명이 길어 목록 예산을 많이 써요」. 이 PC 측정: 사용자 스킬 13개 6,118자(링크 폴더 6개 포함 — 전에는 `listSkills` 도 링크 폴더를 못 봤다), ECC 플러그인을 켠 프로젝트는 419개 123,384자(스킬 311개 102,198자 + 명령).
-- **지침은 CLAUDE.md 표시 구역에 그대로 두고 `.claude/rules/` 로 옮기지 않는다(2026-11-07 사용자 결정)**: 실제 CLI(2.1.318) 시험과 공식 문서 확인 결과, `paths` 규칙은 Read·Write·Edit·`cat` 일 때만 읽히고 Grep 으로는 안 읽히며 대화를 압축하면 빠진다 — 보안 지침이 빠진 채 코드를 고치는 구간이 생기는데 아끼는 양은 팀 협업 기준 약 250토큰이고 코드를 여는 대화에선 0. `paths` 없이 파일로만 옮기면 되돌리기가 깔끔해지지만 `.claude/` 를 git 에서 뺀 저장소는 지침이 팀원에게 가지 않고, 사용자가 무엇이 들어갔는지 보기 어려우며, 옮겨 오기 위험(두 번 들어가거나 사라짐)과 파일 12~15개 수정이 든다. 대신 사용자가 쓴 `.claude/rules/**/*.md`(프로젝트·`~/.claude`)도 겹침 견주기와 「이 저장소 명령」 중복 확인에 넣는다(`scripts/lib/user-rules.mjs`, overlap 결과 `userRules`). Claude Code 가 `paths` 규칙을 압축 뒤에도 남기게 바뀌면 다시 본다.
-- **버전 태그에 바뀐 점을 적는다(2026-11-07 사용자 결정)**: 주석 태그 메시지를 「vX.Y.Z: 요약」 + 바뀐 점 + 최소 Claude Code 버전으로 쓴다. 이미 올린 태그는 v0.3.0·v0.3.1 만 같은 커밋에 메시지를 넣어 다시 올렸고(원격 태그를 지우고 다시 올림, 가리키는 커밋은 그대로), 그 앞 태그는 한 줄 메시지 그대로 둔다. GitHub 릴리스도 만든다 — 저장소 첫 화면에 최신 버전이 보이고 구독한 사람에게 알림이 간다. 릴리스 글은 태그보다 자세히, 항목마다 「바꾼 이유 · 바뀐 점」과 하지 않은 것의 이유까지 쓴다(사용자 요청 「이런 이유로 수정했고 추가했다」). 옛 버전(v0.1.0~v0.2.2)은 한 줄뿐이라 릴리스를 만들지 않았다.
+### 훅은 모두 엄격하게 테스트한다 (2026-11-06)
+- 결정: 훅마다 detail 의 꼴마다 막음·통과 사례를 Bash·PowerShell 로 실제 진입점에 넣어 본다. 사례가 3개씩 없으면 테스트가 실패한다. 꼴을 넓힐 때마다 헛막음을 다시 본다.
+- 예: `SECRET_KEY` 꼴을 넓히자 `api_key_header = "X-Api-Key"` 가 걸려, 값을 가리키는 이름·켜고 끄는 값·JS·TS 따옴표 속 글은 뺐다.
+- 어디서: `hooks/test/strict.test.mjs`, `node scripts/dev/fp-scan.mjs <폴더>`
 
-## 설계 결정 (Claude)
-- **훅은 Node 하나로**: 사용자 PC 에 Claude Code 가 있으면 Node 가 있다. 외부 패키지 없이 `node:` 내장 모듈만 쓴다(설치 단계 없음, 공급망 위험 없음).
-- **훅 디스패처 하나**: 이벤트마다 스크립트 하나만 등록하고, 켜진 규칙만 돌린다. 규칙을 켜고 끄는 것은 프로젝트 `.claude/harness.json`. 훅을 여러 개 등록하면 도구 호출마다 Node 가 여러 번 떠서 느려진다.
-- **기존 코드는 막지 않는다**: 파일 검사 규칙은 새로 들어간 줄만 본다(전역 훅 `~/.claude/hooks/lib/rules.mjs` 와 같은 원칙).
-- **정적 검사로 지킬 수 있는 규칙은 글이 아니라 훅으로(2026-11-05 사용자 원칙 「글은 놓친다」)**: (2026-11-06: 이 중 hardcode 는 짐작이라 뺐고, `npm install` 로 들어간 범위는 이제 커밋 때 package.json 으로 본다 — 위 「훅은 약속한 것을 빠짐없이」) `hardcode`(코드에 바로 적은 색·주소·사용자 경로), `unsafe-html`(innerHTML·eval 류), `pin-deps`(package.json 범위 버전)를 훅으로 옮기고, 규칙 글은 `{{hook:id}}`/`{{!hook:id}}` 로 나눴다. 「새로 들어간 줄」은 Edit 이면 old_string 에 없던 줄, Write 면 원래 파일에 없던 줄(`hooks/lib/lines.mjs`). 잘못 막지 않으려고 설정·상수·토큰·테스트·빌드 결과 파일, CSS 변수 정의, localhost·example.com·이름 공간 주소, 고정 글자 innerHTML 대입, 정화 함수를 거친 줄은 뺀다. 허용 주석은 (2026-11-06: `lint:allow <id> <이유>` 로 바뀜 — 위 「허용 주석으로 넘긴다」) `harness:allow <id> <이유>`(비밀값과 같은 꼴). `pin-deps` 는 peerDependencies 를 보지 않는다(같이 쓸 수 있는 범위를 밝히는 자리라 범위가 맞다). `npm install <패키지>` 명령 검사는 넣지 않았다 — save-exact 는 프로젝트·사용자 .npmrc, 환경 변수, yarn·pnpm·bun 설정 어디서든 켤 수 있어 명령만 보고는 잘못 막는다. 혼자 빠르게·팀 협업·꼼꼼하게에 hardcode·unsafe-html, 팀 협업·꼼꼼하게에 pin-deps(가볍게는 그대로). 구조 규칙의 「정리는 따로 커밋」 줄은 협업 규칙과 겹쳐 뺐다.
-- **훅 5개 더(2026-11-06)**: (같은 날 injection·log-secrets 는 짐작이라 뺐다) 글로만 두던 규칙을 검사로 — `injection`(값을 이어 붙인 SQL·셸 명령), `log-secrets`(로그에 비밀값·환경 변수·헤더 통째로), `gha-inject`(워크플로 run: 의 바깥 값, pull_request_target + PR 코드 checkout, 해시로 고정 안 한 남의 액션), `no-rewrite-pushed`(원격에 있는 커밋을 amend·rebase), `pr-merge`(squash·브랜치 지우기 없는 gh pr merge). 코드 쪽은 정규식 하나로 짐작하지 않고 따옴표·주석을 가려 읽은 뒤(`hooks/lib/code-scan.mjs`) 「호출 인자에 글자와 값이 함께 있는 꼴」만 본다 — SQL 은 글자에 SQL 낱말이 있을 때만, 미리 만든 변수·`token` 하나·참거짓·길이는 보지 않는다(덜 잡더라도 잘못 막지 않게). 워크플로는 쓴 뒤 파일 전체를 보되 쓰기 전에 있던 것은 막지 않는다. pr-merge 는 GitHub Flow 에만 딸린 훅이라 조합 목록이 아니라 브랜치 방식으로 들어가고, 조합을 펼칠 때 그 조합의 브랜치 방식 hooksOn/hooksOff 도 맞춘다(`expandCombo`, 화면 `defaultsFor` 와 같은 범위). 강제 push 는 보호 브랜치 검사에 둔다.
-- **설치 방식은 라이선스로 나눈다**: MIT·Apache-2.0·BSD·ISC·MPL·CC-BY(-SA) 는 그 스킬 폴더만 커밋 해시로 고정해 복사(상시 토큰이 가장 적음 — 플러그인 전체를 깔면 안 쓰는 스킬 설명까지 들어간다). 라이선스 표기가 없거나 불분명하면 복사하지 않고 원 저장소 설치 명령을 안내한다.
-- **조합은 '일하는 방식'으로, 스택은 자동으로**: 가볍게·혼자 빠르게·팀 협업·꼼꼼하게 4개. 스택별 스킬(React→react-best-practices 등)은 감지 결과로 더한다. 스택마다 조합을 만들면 고를 것이 너무 많아진다.
-- **추천 기준**: 최근 6개월 커밋한 사람이 2명 이상이면 팀 협업 + GitHub Flow, 아니면 혼자 빠르게. develop 브랜치가 있으면 Git Flow. (처음엔 「커밋 3개 미만 → 가볍게」도 있었으나, 새 사용자는 새 저장소에서 시작하는 경우가 많아 뺐다.)
-- **고르기 화면 보안**: 127.0.0.1·임의 포트, 데이터·적용 요청은 사용자 지정 헤더의 일회용 토큰(다른 사이트는 CORS 때문에 못 붙임), Host 검사(DNS 리바인딩), CSP, 외부 글은 textContent 로만. 화면이 보낸 선택은 카탈로그에 있는 id 만 남긴다.
-- **토큰**: 진입 스킬은 `disable-model-invocation: true` 라 실행 전에는 설명도 문맥에 안 들어간다. 적용은 화면에서 바로 하고 Claude 는 결과 JSON 한 덩어리만 읽는다.
-- **CLAUDE.md 겹침은 사용자 글하고만 견준다(2026-11-06)**: 다시 적용할 때 관리 구역(`harness-fit:start`~`end`)까지 견주면 지난번에 넣은 줄이 모두 「이미 있음」으로 빠진다. `scripts/overlap.mjs` 가 관리 구역을 뺀 프로젝트 CLAUDE.md 를 `projectClaudeMd` 로 주고(구역이 없으면 주지 않음 — 대화에 든 글과 같아서), setup 은 그것과 견준다. 근거: code.claude.com/docs/en/memory — CLAUDE.md 의 블록 HTML 주석은 문맥에 넣기 전에 지워진다. 그래서 대화에 든 CLAUDE.md 에서는 구역 표시가 안 보여 Claude 가 「구역 안은 빼라」를 지킬 수 없다.
-- **실행 파일은 `cli/`(2026-11-06)**: 플러그인 맨 위 `bin/` 은 켜져 있는 동안 Bash 의 PATH 에 들어가고, claude.ai·Cowork 는 `bin/` 이 있는 플러그인을 설치하지 않는다(code.claude.com/docs/en/plugins-reference 「Standard layout」 Executables). harness-fit 의 npx 진입점은 Claude 가 부를 명령이 아니라서 `cli/harness-fit.js` 로 옮겼다(package.json `bin` 이 가리킴).
-- **훅 명령은 exec 꼴(2026-11-06)**: `"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/run.mjs"]`. 셸을 거치지 않아 띄어쓰기·한글이 든 경로도 따옴표 없이 한 인자로 간다(code.claude.com/docs/en/hooks 「Exec form and shell form」 — 경로 자리표시가 있으면 args 를 쓰라고 권함). `args` 는 Claude Code v2.1.139 부터(changelog). 기존 훅 겹침 시험(`existing-hooks.mjs`)도 남의 exec 꼴 훅을 셸 없이 돌린다.
-- **받은 스킬 이름은 폴더 이름으로 맞춘다(2026-11-06)**: 명령 이름은 SKILL.md 의 `name` 이 정하고, 프로젝트 스킬이 번들 스킬·기본 명령과 같은 이름이면 그 명령을 대신한다(code.claude.com/docs/en/skills 「How a skill gets its command name」·이름 겹침 표). 실제로 sentry 스킬의 `name: security-review` 가 `/security-review` 를 가렸다. 받을 때 `name` 만 카탈로그 id 로 바꾸고(원래 이름은 `.harness-source.json` 의 `renamedFrom`), id 가 `config/reserved-skill-names.json`(code.claude.com/docs/en/commands 의 명령·번들 스킬·별칭) 에 있으면 받지 않는다. 카탈로그 id 가 목록과 겹치지 않는지 시험이 본다.
-- **setup 스킬 머리말(2026-11-06)**: description 에 하는 일과 쓰는 때를 함께, `argument-hint: "[auto|undo]"`(code.claude.com/docs/en/skills 「Frontmatter reference」). `disable-model-invocation: true` 는 그대로(파일을 바꾸는 일이라 사용자가 부를 때만). `allowed-tools` 는 넣지 않는다 — 막는 기능이 아니라 미리 허락하는 기능이고 그 턴에만 유효해, 묻고 난 뒤 적용하는 흐름에는 도움이 없고 `Bash(node *)` 는 아무 node 코드나 허락하게 된다. 스킬이 안 보이면 `/reload-skills`(code.claude.com/docs/en/commands) 또는 새 세션.
-- **MultiEdit 는 matcher·종류 표에서 뺐다(2026-11-06)**: 지금 도구 목록에 없다(code.claude.com/docs/en/tools-reference). `edits` 가 든 입력은 `normalizeInput` 이 그대로 받아 준다.
-- **저장소 명령은 있는 것만, 지침 미리 보기는 적용과 같은 기준(2026-11-06)**: 「이 저장소 명령」(`rules/commands.*.md` 의 `{{cmd:종류}}`)은 `scripts/lib/commands.mjs` 가 package.json scripts(packageManager·잠금 파일로 npm·pnpm·yarn·bun — bun 은 `bun test` 가 스크립트가 아니라 늘 `bun run`)·Makefile 대상·pyproject(tox·hatch 스크립트·pytest·ruff·mypy, uv·poetry·pdm 잠금 파일이면 그 도구로)·Cargo(clippy·rustfmt 는 설정 파일이 있을 때만)·go.mod 에서 읽는다. 사용자 CLAUDE.md(관리 구역 밖)에 이미 적힌 명령은 뺀다. 명령은 서버가 읽은 값만 쓰고 화면이 보낸 값은 받지 않는다(CLAUDE.md 에 들어갈 글이라). 찾은 것이 없으면 지침 목록·조합 기본값에서 숨긴다. 「뺀 줄 보기」·「줄을 대신 맡는 훅」은 `renderRuleDetail` 의 뺀 줄(훅·스킬·이미 있음)과 `{{!hook:id}}` 에서 내고, `/api/preview` 의 지침 글은 적용과 같이 플러그인이 없으면 「훅 꺼짐」 글로 낸다(전에는 미리 보기만 훅 켜짐 기준이었다). 훅 종류 `kind`: 명령·쓰기를 막으면 block, 알리거나 끝낼 때 되묻기만 하면 notice(커밋 해시 알리기·작업 체크리스트·답 언어 맞추기). 「차단하는 것만」은 block 훅 중 이 저장소에 맞는 것만 켠다(이미 있는 훅과 겹침·지금 브랜치 전략이 끄는 것·다른 스택 전용·어느 조합도 기본으로 켜지 않는 것은 뺌). 화면 문구는 `picker/i18n/<lang>/*.json` 로 나눴고(파일 400줄 한도), 영어 수 문구는 `{n|one|other}` 로 단·복수를 고른다(Intl.PluralRules).
+### Node 하나, 때마다 진입점 하나
+- 결정: 외부 패키지 없이 `node:` 내장만. 이벤트마다 스크립트 하나만 등록하고 켜진 규칙만 돌린다. `.claude/harness.json` 이 없으면 규칙 모듈도 안 불러온다. Stop 은 `stop_hook_active` 면 통과.
+- 이유: 설치 단계·공급망 위험이 없다. 훅을 여럿 등록하면 도구 호출마다 Node 가 여러 번 떠서 느려진다.
+- 어디서: `hooks/hooks.json`, `hooks/run.mjs`·`stop.mjs`·`session-start.mjs`·`prompt-submit.mjs`, 틀 `hooks/lib/entry.mjs`
 
-- **스킬에 모델을 정하지 않는다(2026-11-07)**: SKILL.md 의 `model`·`effort` 는 그 턴에만 걸리고 다음 사용자 메시지에서 원래 모델로 돌아간다(code.claude.com/docs/en/skills). 외부 스킬은 남의 파일이고 필요한 모델은 만든 사람이 알므로 끼워 넣지 않는다(적혀 있으면 그대로). `/harness-fit:setup` 은 겹치는 지침 고르기·새 저장소 SKILL.md 의 프롬프트 주입 보기 같은 판단이 섞여 있고, 고르기 화면을 기다리는 동안 턴이 넘어가 실제 보고 턴엔 원래 모델로 돌아오므로 줄어드는 비용도 거의 없다 — 사용자 모델 그대로.
+### 훅 한 번의 낭비를 줄이고 테스트를 나눈다 (2026-11-09)
+- 결정: 진입점이 읽은 설정을 판정에 넘긴다(전에는 두 번 읽음). PreToolUse 는 도구 종류(셸·쓰기·웹)에 켠 id 가 있는 규칙 모듈만 불러오고, 그 종류에 켠 규칙이 없으면 git 도 띄우지 않는다. 규칙을 돌리는 고리(옵션 읽기·터진 규칙 모으기·이유 없는 허용 주석 안내)는 PreToolUse·다른 때·git pre-commit 이 하나를 같이 쓴다. `evaluate.mjs` 는 모든 규칙을 불러 바로 판정하는 꼴로 남겨 테스트·scripts 가 쓴다. 훅 한 번 실행이 30~60ms 줄었다.
+- 테스트: 진입점으로는 프로세스가 터지지 않는지를 대표 사례로, 모양·환경·ReDoS 수백 개는 판정을 일꾼 스레드에서 바로(규칙이 하나도 터지지 않아야 해 전보다 엄격), 10MB 이상은 `npm run test:stress`(`npm test` 에 든다), 고치는 중에는 `npm run test:quick`. 시간 한도는 넘으면 두 번 더 재고 같은 순간의 빈 호출을 빼서 본다 — 다른 테스트와 함께 돌면 0.3초 호출이 4초를 넘겨 헛실패했다.
+- 어디서: `hooks/lib/pretool.mjs`(RULE_MODULES — 실제 모듈과 같은지 `hooks/test/pretool.test.mjs`), `hooks/lib/dispatch.mjs`, `hooks/lib/evaluate.mjs`, `hooks/test/stress/`
 
-- **CLAUDE.md 지침을 공식 권장에 맞춘다(2026-11-07, 사용자가 세부를 맡김 — 항목·줄마다 따져 정함)**: 근거 code.claude.com/docs/en/memory·best-practices — 200줄 아래, 머리말 + 짧은 줄, 「확인할 수 있게 구체적으로」(「변경을 시험한다」가 아니라 「커밋 전에 `npm test`」), 시험·검사 명령과 시험 하나만 돌리는 법, 「저장소를 읽어서 알 수 없는 것만」, Claude 가 어차피 하는 것은 빼고, 꼭 일어나야 하는 것은 훅으로. 가장 값진 줄(헷갈리는 곳·저장소에 없는 결정·두 번 바로잡은 것)은 사람만 안다.
-  - 가. 용어: 한국어 규칙 글의 「합친다」→「병합한다」, 「squash 로 합치고」→「스쿼시 병합하고」, 글 속 push→푸시(`git push` 같은 코드는 그대로). Claude 가 읽기에 덜 분명해지는 말은 없다(GitHub 한국어 화면의 「스쿼시 및 병합」과 같은 말). 영어 글은 이미 merge·push 라 그대로. 「~한다」 꼴과 `{{…}}` 표시는 그대로.
-  - 나. 시험 하나만(`testOne`, `rules/commands.*.md` 둘째 줄): 시험 도구를 확실히 알 때만 — test 스크립트가 도구를 그대로 부를 때(`&&`·파이프·따옴표·환경 변수 앞붙이·`--config`·`-c`·`--project` 같은 설정 옵션이 있으면 바로 부르면 다르게 돌 수 있어 넣지 않음). 문서로 확인한 꼴: `vitest run <파일>`(이름 거르기)·`jest <파일>`·`playwright test <파일>`·`bun test ./<파일>`(./ 없으면 이름 거르기)·`node --test <파일>`(다른 옵션이 없을 때만)·`pytest <파일>`(pytest 를 바로 부를 때만, uv·poetry·pdm 앞붙이)·`cargo test <이름>`·`go test -run <이름> ./...`. 패키지 관리자별로 npx·pnpm exec·yarn·bunx. 넣지 않음: mocha(명령줄 파일이 .mocharc 의 spec 에 더해져 다른 시험도 돈다 — mochajs.org/running/configuring), tox·hatch·make(인자 넘기는 꼴이 설정마다 다름), `go test <파일>.go`(같은 패키지 파일이 빠져 깨짐). 자리표시 `<file>`·`<name>` 은 규칙 파일 표시 `{{cmd:testOne|file=파일|name=이름}}` 로 그 언어 말이 된다(`fillCmd`, overlap 과 같은 함수). 화면 지침 목록의 설명 칸에는 자리표시가 든 글이라 넣지 않고 미리 보기에만.
-  - 다. 일반 줄(보안·구조·토큰·협업) — 물음: ① 말하지 않아도 Claude 가 하는가 ② 확인할 수 있는가.
+### 훅 명령은 exec 꼴 (2026-11-06)
+- 결정: `"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/run.mjs"]`. 기존 훅 겹침 테스트도 남의 exec 꼴 훅을 셸 없이 돌린다.
+- 이유: 셸을 거치지 않아 띄어쓰기·한글 경로도 한 인자로 간다(code.claude.com/docs/en/hooks). `args` 는 Claude Code v2.1.139 부터 — 그래서 최소 버전.
+- 어디서: `hooks/hooks.json`, `scripts/lib/existing-hooks.mjs`
 
-    | 줄(전) | 판단 | 이유 |
-    | --- | --- | --- |
-    | 키·토큰은 코드에 쓰지 않는다 | 그대로 | secrets 훅은 적어 둔 꼴만 잡아(일부만 덮음) 줄을 지우지 않는다. 이미 확인 가능 |
-    | 되돌릴 수 없는 명령은 실행 전에 묻는다 | 고침: 지우기·DB 마이그레이션·배포 예 | 안전 동작. 권한 우회 모드에선 Claude Code 가 묻지 않고, danger-cmd 훅은 일부 꼴만 막는다. 예를 들어야 무엇이 해당하는지 확인된다 |
-    | 사용자 입력을 SQL·셸·경로·HTML 에 그대로 넣지 않는다 | 고침: 자리표시자·인자 배열·이스케이프 | 안전 동작(훅은 짐작이라 뺐다). 「그대로」는 판단이 갈려, 하는 방법을 적어 검토로 확인되게 |
-    | 「내 것만 보이는지」 권한 검사 | 고침: 서버에서 「요청한 사람의 데이터인지」 | 화면에서만 숨기는 실수를 막는 말 한마디. 괄호 설명은 토큰 때문에 뺐다 |
-    | 로그·오류에 비밀값·개인정보 | 그대로 | 안전 동작, 이미 구체적 |
-    | 새 라이브러리는 유지보수 상태·라이선스를 보고 고른다 | 고침: 최근 릴리스 날짜·라이선스를 확인해 답에 적는다 | 「보고 고른다」는 했는지 알 수 없다. 답에 적게 해 확인 가능 |
-    | 의존성 정확한 버전 / package.json 밖도 고정 | 그대로 | pin-deps 훅 표시대로(켜지면 앞 줄이 빠짐) |
-    | 세 번째 쓰면 함수로 뽑는다 | 그대로 | Claude Code 기본은 「비슷한 세 줄이 섣부른 추상화보다 낫다」 쪽이라 말하지 않으면 안 한다. 숫자가 있어 확인 가능 |
-    | 숫자·문구·색·주소는 상수·설정 한 곳에 | 고침: 새 값은 이미 있는 상수·설정 파일에 더한다 | 「한 곳」이 어딘지 몰라 새 파일을 만들기 쉽다 |
-    | 고치기 전에 호출처를 찾고, 안 쓰게 된 코드는 지운다 | 고침: 앞 절 뺌 — 고친 뒤 아무도 부르지 않게 된 함수·파일·import 는 지운다 | 이름·인자를 바꿀 때 호출처 검색은 Claude 가 이미 한다. 남는 죽은 코드는 자주 남긴다 |
-    | 큰 파일은 필요한 부분만 읽고, 다시 읽지 않는다 | 고침: 500줄 넘는 파일은 먼저 검색으로 위치를 찾고 그 부분만 | 「크다」를 숫자로. 「다시 읽지 않기」는 Claude Code 가 파일 상태를 기억해 이미 한다 — 뺐다 |
-    | 여러 파일 조사는 서브에이전트에 | 뺌 | Claude Code 가 넓은 검색을 Explore 에 맡기는 지침을 이미 갖고 있고, 서브에이전트가 늘 싸지도 않다(새 문맥·요약 손실) |
-    | 답은 짧게: 바꾼 것·확인한 것·남은 것 | 그대로 | 꼴이 정해져 있어 확인 가능 |
-    | 커밋엔 무엇을 왜 쓰고 한 가지 이유만 | 고침: 이유가 다른 변경(기능·버그 수정·정리·이름 바꾸기)은 커밋을 나눈다 | 「왜」에 맞춘 메시지는 Claude Code 커밋 지침에 이미 있다. 나누는 기준만 남겼다 |
-    | PR 설명에 무엇·왜·어떻게 확인 | 고침: 바꾼 까닭과 확인에 쓴 명령·결과 | 기본 PR 꼴(요약·시험 계획)에 「까닭」과 실제 명령·결과가 빠지기 쉽다. pr-writer 표시는 그대로 |
-    | 푸시한 커밋 다시 쓰지 않기 두 줄 | 용어만 | no-rewrite-pushed 표시대로 |
+### 훅이 오류로 멈추면 통과하고 알린다 (사용자 결정, 2026-11-06)
+- 결정: 막지 않고 「○○ 훅이 오류로 멈춰서…」를 알린다(PreToolUse 는 systemMessage, pre-commit 은 stderr). 다른 훅이 막을 것은 그대로 막는다. 깨진 harness.json 도 조용히 끄지 않고 알린다. 모양이 틀린 입력은 오류가 아니라 빈 값으로 읽는다.
+- 이유: 막으면 Claude 가 설정 파일조차 못 고치고, 사람의 커밋도 멈춘다.
+- 어디서: `hooks/lib/entry.mjs`, `hooks/lib/core.mjs` 의 `normalizeInput`
 
-    GitHub Flow·Node(vitest) 저장소에서 혼자 빠르게·팀 협업·꼼꼼하게의 지침은 28·32·31줄 그대로(시험 하나만 +1, 서브에이전트 줄 −1), 토큰은 한국어 430→483·498→560·472→527, 영어 312→362·366→421·349→396(구체적으로 쓴 값). 시험 도구를 모르는 저장소는 한 줄 줄어든다.
-  - 라. 사람만 아는 것: 지침 단계 미리 보기 아래와 끝 화면(지침을 넣었을 때만)에 같은 한 줄(`ownNotes`) + 예 「`src/legacy/` 는 아직 쓰지만 새 코드는 따라 하지 않는다.」. setup 보고 끝에 한 줄(대신 써 주지 않는다), README 두 벌 4단계 설명에 한 문장. 확인 단계에는 넣지 않았다(이미 알림이 많고, 적는 것은 적용 뒤의 일).
+### 기존 코드는 막지 않는다
+- 결정: 파일 검사는 새로 들어간 줄만 본다(Edit 은 old_string 에 없던 줄, Write 는 원래 파일에 없던 줄).
+- 어디서: `hooks/lib/lines.mjs`
+
+### 명령은 낱말 단위로 읽는다 (2026-11-02 전체 검토)
+- 결정: 옵션 순서·대소문자·묶음(`-fu`)·`git -c` 앞붙임을 가리지 않고, 따옴표 속 글(커밋 메시지)은 옵션으로 보지 않는다. 셸마다 따옴표 규칙이 달라 tool_name 으로 셸을 정한다.
+- 어디서: `hooks/lib/cmdline.mjs`, `hooks/lib/quotes.mjs`
+
+### 줄 하나는 `lint:allow` 로 넘긴다 (사용자 결정, 2026-11-06)
+- 결정: 그 줄 끝이나 바로 위 주석만 있는 줄에 `lint:allow <id> <이유>`(이유 3자 이상). 쓸 때마다 id·file:줄·이유를 알리고 커밋은 막지 않는다. 받는 훅: unsafe-html·gha-inject·file-size(맨 위 10줄)·Swift·Python, secrets 는 옵션 `allowComment`(기본 꺼짐)일 때만.
+- 이유: 훅 전체를 끄지 않게. secrets 는 진짜 키를 주석 하나로 넘기기 쉬워서. 옛 `harness:allow`·id `secret` 도 받는다(사용자 결정 — 이미 단 주석이 갑자기 막히지 않게).
+- 어디서: `hooks/lib/allow.mjs`, `hooks/test/allow.test.mjs`
+
+### 사람마다 답이 다른 설정은 사용자가 고른다 (사용자 원칙, 2026-11-06)
+- 결정: 권장값을 기본으로 두고 맞바꾸는 것을 한 줄로 보여 준 뒤 사용자가 고른다. 훅 옵션은 훅 코드가 실제로 읽는 것만 보여 준다(테스트로 강제). 브랜치 전략이 넣는 옵션은 기본값이고, 사용자가 바꾼 값이 이긴다(다시 적용해도 남는다).
+- 어디서: `picker/hook-options.js`, `scripts/test/hook-options.test.mjs`
+
+### 전역 훅에서 옮긴 훅 7개 (사용자 결정, 2026-11-06 · 기본값은 2026-11-09 사용자 승인으로 바뀜)
+- 결정: 100% 잡는 것만 옮겼다 — squash-push, commit-hash, swift-unsafe·python-unsafe(그 스택일 때), work-checklist(막지 않음), docs-check. answer-lang 은 짐작이지만 놓쳐도 위험하지 않아 옵션(ko·en·ja·zh).
+- 기본값: swift-unsafe·python-unsafe 만 그 스택일 때 켠다. squash-push·commit-hash·work-checklist·docs-check·answer-lang 은 모든 조합에서 기본 꺼짐(고를 수는 있음) — 아래 「조합 기본값을 저장소에 맞춘다」.
+- 옮기지 않음: 테스트 안 돌림·기록 남길지 묻기·하드코딩·「바로잡는 말이면 묻기」 — 짐작이 필요해서. 「끝내기 전 확인」 실험(전역 Stop 훅)도 harness-fit 에 넣지 않았다.
+- 어디서: `hooks/rules/`, `catalog/combos.json`(언어별 훅은 `stackAddons` 의 hooks)
+
+### 옮긴 훅의 세부 (2026-11-06)
+- commit-hash: Stop 때 사람 턴 시작 뒤 reflog 의 커밋(최근 6개)마다 해시가 답에 있는지. 셸 명령이 없던 턴은 안 보고, 한 사람 턴에 한 번만 묻는다.
+- swift·python: 주석·글자를 가린 뒤(`hooks/lib/code-mask.mjs`) 새 줄만. 테스트 코드·받아 온 코드는 뺀다. Python `exec(` 는 `eval(` 과 같은 위험이라 함께.
+- work-checklist: `<설정 폴더>/harness-fit/checklists/<프로젝트 이름-경로 지문>/<세션>.md` — 설정 폴더는 `CLAUDE_CONFIG_DIR`, 없으면 `~/.claude`. 사용자 전역 `~/.claude/checklists/` 와 겹치지 않게.
+- docs-check: 기계로 가릴 수 있는 것만 — docs/ 에는 .md·그림만, 바뀐 문서의 `# 제목`·날짜 줄·목차 링크(Stop 때).
+
+### 훅 종류: block 과 notice (2026-11-06·11-09)
+- 결정: 명령·쓰기를 막으면 block, 알리거나 끝낼 때 되묻기만 하면 notice(commit-hash·work-checklist·answer-lang·prefer-gh). 「차단하는 것만」은 block 훅 중 이 저장소에 맞는 것만 켠다 — 이미 있는 훅과 겹침·지금 브랜치 전략이 끄는 것·다른 스택 전용·어느 조합·브랜치 전략도 기본으로 켜지 않는 훅(docs-check·squash-push)은 뺀다.
+- 어디서: `catalog/packs.json` 의 `kind`, `picker/stats.js` 의 `blockingHooks`
+
+### prefer-gh 는 막지 않고 알린다 (사용자 승인, 2026-11-09)
+- 결정: WebFetch 로 github.com 을 열면 막지 않고 Claude 문맥에 「gh 로 읽는 편이 낫다」 한 줄(PreToolUse `additionalContext`). 규칙에 `notice: true` 를 달면 판정이 막는 글 대신 hints 로 모으고 run.mjs 가 additionalContext 로 낸다.
+- 이유: 막으면 gh 가 없거나 로그인하지 않은 PC 에서 GitHub 를 아예 못 읽는다.
+- 어디서: `hooks/run.mjs`, `catalog/packs.json`
+
+### 정적 훅의 경계 (2026-11-05·11-06)
+- pin-deps 는 peerDependencies 를 보지 않는다(같이 쓸 수 있는 범위를 밝히는 자리). `npm install <패키지>` 명령은 보지 않는다 — save-exact 는 .npmrc·환경 변수·yarn·pnpm·bun 설정 어디서든 켤 수 있어서. `npm install` 로 들어간 범위는 커밋 때 package.json 으로 본다.
+- gha-inject: 워크플로는 쓴 뒤 파일 전체를 보되 쓰기 전에 있던 것은 막지 않는다.
+- MultiEdit 는 matcher 에서 뺐다(지금 도구 목록에 없음). `edits` 가 든 입력은 `normalizeInput` 이 받아 준다.
+
+### 이미 있는 훅과 겹치면 끈다 (사용자 요청·선택, 2026-11-05)
+- 결정: 기존 훅(전역·프로젝트 settings, 켜진 플러그인)에 테스트 입력을 실제로 넣어, block 을 다 막고 pass 를 다 통과시키면 같은 훅으로 보고 harness-fit 쪽을 끈다. 같은 때(PreToolUse·Stop·SessionStart·UserPromptSubmit)끼리만 견주고 PostToolUse 는 셈하지 않는다.
+- 이유: 이름·코드로 짐작하는 것보다 정확(사용자 선택). PostToolUse 를 같게 보면 쓰기 전 차단이 꺼져 더 약해진다. 테스트는 임시 저장소·임시 홈에서(사용자 설정 폴더에 아무것도 남기지 않게), 저장소 쪽 훅은 Claude Code 안에서만(폴더 신뢰 확인을 건너뛰지 않게).
+- 어디서: `catalog/probes.json`, `scripts/lib/existing-hooks.mjs`, `scripts/lib/probe-run.mjs`, `scripts/test/probe-isolation.test.mjs`
+
+### 겹침 판단의 예외
+- 테스트 입력은 GitHub Flow 옵션 기준이라, 다른 브랜치 전략에서는 protect-branch·branch-name 을 겹침으로 보지 않는다(덜 막는 쪽으로 틀리지 않게, `PROBE_FLOW`).
+- 팀원 공유를 켜면 이 PC 에만 있는 것(전역)은 겹침으로 보지 않는다. 서버와 화면이 같은 `picker/dup.js` 를 쓴다.
+- 기존 훅이 막아 주는 것은 지침 글에서 「켜짐」으로 친다.
+
+## 고르기 화면
+
+### GitHub 바탕, 한 화면에 질문 하나 (사용자 결정, 2026-11-06)
+- 결정: 바탕은 시안 A(GitHub Marketplace). 6단계, 단계마다 주소(#)·뒤로 가기, 위쪽 단계 탭 + 오른쪽 요약 카드로 아무 단계로나 간다. 스킬·훅은 칩으로 바로 켜고 끄고, 넓은 「전체 보기」 창 하나(약 1040px, 휴대폰은 아래에서 올라오는 판)를 같이 쓴다.
+- 이유: 긴 한 쪽은 오가기 불편했다(「왔다갔다 편하게」).
+- 어디서: `picker/steps.js`, 디자인 정본 `Downloads/find-your-skill-시안/리뉴얼/DESIGN.md`(승인 시안 A2-6)
+
+### 글꼴은 Spoqa Han Sans Neo (사용자 결정, 2026-11-06)
+- 이유: 국내 서비스에서 널리 쓰고 AI 화면에 흔하지 않다. SIL OFL.
+- 어디서: `picker/fonts/`(한글 2,350자 woff2 3벌, 서버가 바이트로 낸다)
+
+### 화면이 약속한 것 = 실제 결과 (사용자 요청 「전부 고치기」, 2026-11-02)
+- 결정: 브랜치 전략은 flows 의 `hooksOn`/`hooksOff` 로 훅을 실제로 켜고 끈다(서버 `applyFlow`·화면 `pickFlow` 가 같은 데이터). 정하지 않음 → protect-branch·branch-name·pr-merge 끔. Git Flow → pr-merge 끔. 트렁크 → branch-name·pr-merge 끔, protect-branch 는 `allowCommit`(바로 커밋 허용, 강제 푸시·원격 지우기는 막음).
+- 지침 미리 보기는 적용과 같은 기준(플러그인이 없으면 「훅 꺼짐」 글).
+- 어디서: `catalog/packs.json` flows, `scripts/lib/catalog.mjs`, `picker/steps.js`
+
+### 브랜치 전략 카드는 git 그래프 그림 (사용자가 시안 1안 고름, 2026-11-09)
+- 결정: GitHub 네트워크 그래프처럼 채운 점 + 3px 선 + 갈래 색(main 파랑·develop 보라·feature 초록·release 노랑, `--branch-*` 토큰). 범례 대신 갈래마다 작은 이름(main·develop·feature·release·v1.0)을 그림 안에, hotfix 는 뺐다. Git Flow 의 release 는 develop 에서 나와 한 점에서 main(v1.0)과 develop 으로 갈라져 들어간다. 비율을 지켜 최대 280px, 고름은 카드 테두리로만. release 노랑은 흰 바탕 글자 대비를 위해 #9a6700.
+- 어디서: `picker/flow-art.js`
+
+### 쉬운 이름과 「언제 쓰나」 (2026-11-02)
+- 결정: 영어 id·전문 용어 대신 쉬운 이름을 보인다.
+- 이유: 1차 화면이 「무슨 뜻인지 모르겠다」는 지적을 받았다.
+- 어디서: `catalog/titles.json`
+
+### 스킬·훅마다 쉬운 한 줄과 「알아 둘 점」 (사용자 요청, 2026-11-09)
+- 결정: 스킬 81개 모두 `effect`(무엇이 달라지나, 한 문장)를, 실제 대가가 있을 때만 `downside`(알아 둘 점)를 한·영으로 둔다(76개, 근거 있는 대가가 없는 5개는 비움 — 지어내지 않는다). 훅 23개 모두 `downside`(헛막음·늘어나는 단계·알림 훅의 토큰)를 두고, 넘기는 방법(옵션·`lint:allow`)을 같이 적는다. 기술 낱말만 늘어놓던 훅 `desc` 12개를 풀어 썼다.
+- 꼴: 해요체, 홍보 낱말 없음, 피할 수 없는 기술 낱말은 같은 문장에 괄호로 풀이. 토큰 수는 글에 적지 않고 `{onUse}` 자리로 두어 화면이 catalog.json 값으로 채운다. 글 속에서 가리킨 「이름」은 실제로 있어야 한다(테스트).
+- 화면: 전체 보기 창의 스킬 줄은 effect → 「쓰는 때」 → 토큰·출처 → 「알아 둘 점」, 훅 줄은 설명 → 차단하는 때 → 「알아 둘 점」. 알아 둘 점은 흐린 글 + 작은 이름표(경고 색 아님 — 위험 알림이 아니라 고를 때 볼 사실). 칩의 풍선 글도 effect.
+- 이유: 「용어가 어려워 못 알아들을 것 같다, 이런 효과가 있다고 짧게, 단점이 있으면 그것도」.
+- 어디서: `catalog/titles.json`, `catalog/packs.json`, `scripts/test/explain.test.mjs`
+
+### 무엇이 스킬·훅·지침으로 들어가는지 늘 보이게 (사용자 지적, 2026-11-02)
+- 결정: 단계 머리에 들어가는 곳(`.claude/skills/`·`.claude/harness.json`·`CLAUDE.md`)을 적고, 확인 창·끝 화면·터미널 보고를 종류별 묶음으로 낸다. 훅처럼 들리던 스킬 이름은 「커밋 전 검사 도구 설치」로.
+- 어디서: `picker/changes.js` 의 `changeGroups`, `picker/steps.js`
+
+### 조합은 일하는 방식 4개, 스택은 자동
+- 결정: 가볍게·혼자 빠르게·팀 협업·꼼꼼하게. 스택별 스킬·언어별 훅은 감지 결과로 더한다. 가볍게는 「안전장치만」.
+- 이유: 스택마다 조합을 만들면 고를 것이 너무 많아진다.
+- 어디서: `catalog/combos.json` 의 `stackAddons`, `expandCombo`
+
+### 조합 기본값을 저장소에 맞춘다 (검토 뒤 사용자 승인, 2026-11-09)
+- 개인 습관 훅은 기본 꺼짐: commit-hash·work-checklist·docs-check 를 모든 조합에서 뺐다(고를 수는 있음). 커밋 해시·체크리스트는 업계 관례가 아니라 개인 습관이고 체크리스트는 Claude Code 할 일 목록과 겹친다. 문서 형식 검사는 제목·날짜 줄·목차까지 막아 엄격하다.
+- 형식 훅은 저장소가 이미 그 꼴일 때만: `scripts/detect.mjs` 가 merge 아닌 최근 커밋 제목 30개와 로컬·원격 브랜치 이름을 읽고(`history`), `fitOff` 가 commit-msg 훅과 같은 정규식으로 70% 미만이면 commit-msg 를, 브랜치 전략마다 그 꼴로 main·master·develop·기본 브랜치를 뺀 이름이 70% 미만이면 branch-name 을 기본에서 뺀다. 커밋 5개·브랜치 3개 미만이면 새 저장소로 보고 켠다. 훅 단계·auto 보고에 뺀 이유 한 줄. 사용자가 켜면 그대로 켜진다.
+- pin-deps 는 꼼꼼하게에서만, 라이브러리 패키지는 뺀다: `main`·`exports`·`types`·`typings` 가 있고 `private: true` 가 아니면 라이브러리. 라이브러리가 정확한 버전으로 고정하면 쓰는 쪽에 같은 패키지가 여러 벌 깔리고 보안 패치도 못 받는다. 앱도 고정은 팀 취향이라 팀 협업 기본에서 뺐다.
+- 이유: 안 따르는 저장소에 켜면 첫 커밋·첫 브랜치부터 막혀 「도구가 고장 났다」로 읽힌다.
+- 어디서: `scripts/lib/catalog.mjs` 의 `fitOff`·`fitDropped`, `scripts/detect.mjs`, `hooks/rules/message.mjs` 의 `CONVENTIONAL`, `scripts/test/defaults.test.mjs`
+
+### 권장 기준 (2026-11-02, 일부 사용자 결정 2026-11-06)
+- 결정: 최근 6개월 커밋한 사람이 2명 이상이면 팀 협업 + GitHub Flow, 아니면 혼자 빠르게. develop 브랜치가 있으면 Git Flow. 혼자 쓰는 저장소는 브랜치 전략 「정하지 않음」(사용자 결정).
+- 이유: 「커밋 3개 미만 → 가볍게」는 뺐다 — 새 사용자는 새 저장소에서 시작하는 경우가 많다.
+- 어디서: `catalog/combos.json` 의 `recommend`, `scripts/lib/catalog.mjs`, `scripts/detect.mjs`
+
+### 빈 저장소는 먼저 묻는다 (사용자 요청, 2026-11-02)
+- 결정: 스택을 알 파일이 없으면(`thin`) 화면을 열기 전에 기본 조합으로 갈지·무엇을 만드는지 묻는다. 답은 `--stack`(`KNOWN_STACKS` 에 있는 이름만)·`--team` 으로 넘긴다. 설명은 늘 받지 않는다.
+- 이유: 저장소에 있는 정보를 다시 묻지 않으려고.
+- 어디서: `skills/setup/SKILL.md`, `scripts/detect.mjs`
+
+### 다시 열면 지난번 선택에서 시작 (사용자 결정, 2026-11-06)
+- 결정: harness.json 에 `selection`·`known` 을 남기고 다음에 그것에서 시작한다. 켠 훅과 옵션은 `rules` 가 정본. 새로 생긴 것은 꺼진 채 「새로 생김」. auto 도 같고 `--fresh` 면 새 권장. v0.2.2 이하 파일은 조합 기본값으로 채운다.
+- 어디서: `scripts/lib/picker-state.mjs`, `scripts/apply.mjs`
+
+### 조합을 바꾸면 「이전 선택으로 돌리기」 (2026-11-02)
+- 결정: 조합·권장으로 되돌리기를 누르면 직접 고친 것이 사라지므로 되살릴 단추를 띄운다. 브랜치 전략 때문에 바뀐 훅은 조합 기본값과 견주어 누적으로, 1단계 브랜치 전략 카드 바로 아래에 알린다.
+- 어디서: `picker/steps.js` 의 `flowNote`, `picker/app.js`
+
+### 적용은 확인 단계에서만, 브랜치 전략이면 팀원 공유를 묻는다 (사용자 결정, 2026-11-06)
+- 결정: 요약 카드의 단추는 확인 단계로 데려갈 뿐이다. 브랜치 전략을 정했으면 「팀원도 같은 훅을 쓰게 할까요?」에 답해야 적용 단추가 풀린다. 「네」면 팀원이 할 일을 적용 전·후와 결과 JSON(`teammates`)에 낸다.
+- 이유: 브랜치 전략은 팀이 함께 지켜야 뜻이 있다.
+- 어디서: `picker/review.js`·`picker/team.js`(문구 `teamQ`), 결과 JSON 은 `scripts/picker.mjs`
+
+### 확인 단계 알림은 한 줄 + 「자세히」 (사용자 승인, 2026-11-09)
+- 결정: 확인 단계 알림(git 훅이 이미 있음·플러그인 없음·.claude 가 무시됨·settings 깨짐·스킬 목록 한도·팀원 안내)은 제목 한 줄(한도는 「한도의 n%」와 「권장대로 줄이기」 단추까지)만 보이고 나머지는 「자세히」(aria-expanded, 펼친 상태는 `ui.open` 이라 다시 그려도 유지)로 편다. 지운 정보는 없다.
+- 이유: 알림이 여럿 겹치면 설명 글이 화면을 덮었다.
+- 어디서: `picker/review-notes.js`
+
+### 지침 줄은 눌러서 작은 창 (사용자 요청, 2026-11-09)
+- 결정: 지침 단계 줄의 제목·설명 칸을 단추로, 누르거나 Enter·Space 로 md 넓이(`--dlg-md-w` 560px, 좁은 화면은 아래에서 올라오는 판) 창을 연다 — 설명 전체(「이 저장소 명령」은 찾은 명령), CLAUDE.md 에 넣을 줄과 훅·스킬이 맡아 뺀 줄(미리 보기와 같은 /api/preview 글), 줄 수·토큰, 켜고 끄기 스위치. 줄의 스위치는 창을 열지 않는다. 꺼진 지침은 넣을 줄을 서버가 만들지 않으므로 「켜면 여기에 보여 줘요」.
+- 이유: 「지침 설명이 …로 잘려 못 읽는다, 누르면 작은 창으로」.
+- 어디서: `picker/rule-dialog.js`
+
+### 겹침 이름표를 눌러 그 대상을 본다 (사용자 요청, 2026-11-09)
+- 결정: 같은 묶음 스킬(overlaps.json, 이미 넣음)은 이름마다 링크 — 전체 스킬 보기 창에서 그 묶음을 열고 그 줄을 가운데로 민 뒤 1.6초 밝히고 초점은 그 줄의 스위치에. 이미 깔린 스킬(harness-fit 밖)·기존 훅은 큰 창 위에 겹쳐 뜨는 둘째 `<dialog id="info">` — 스킬은 이름·자리·설명(SKILL.md 머리말 200자)·왜 같은지, 훅은 짧은 이름·적힌 곳·테스트 결과 한 줄·기본으로 켜지 않는다는 것. 이 PC 에만 있는 것이면 팀원 공유를 켤 때의 동작을 적는다. 아래에 harness-fit 쪽 켜고 끄기 스위치.
+- 데이터: 기존 훅 결과에 `from: [{ label, scope, plugin }]`(명령 전체·파일 경로는 보내지 않는다 — 명령에 토큰이 들 수 있어서), `dupSkills` 에 `found`, 테스트 한 줄은 `catalog/probes.json` 훅마다 `said`. 글은 모두 textContent.
+- 링크는 이름표 크기 그대로, 누르는 넓이만 44px(`.lk`). 닫으면 연 링크로 초점이 돌아온다.
+- 이유: 「비슷한 스킬이 이미 들어 있어요 · 계획 캐묻기」가 무엇과 겹치는지 따라가 볼 수 없었고, 훅 이름표는 스크립트 파일 이름만 보였다.
+- 어디서: `picker/panel.js` 의 `browseTo`, `picker/info-dialog.js`, `scripts/test/dup-links.test.mjs`
+
+### 요청 칸 (사용자 요청, 2026-11-02)
+- 결정: 5단계에 적은 요청은 적용 결과와 함께 Claude 에게 넘기고 `.claude/harness-request.md` 에도 남긴다. Claude 는 켜진 훅의 옵션이나 CLAUDE.md(관리 구역 밖)에만 반영하고, 꺼진 훅은 켜지 않는다.
+- 이유: 요청은 해석이 필요해 파일에 바로 쓰지 않는다. 파일은 터미널 세션이 없어도 남게.
+
+### 적용 중에는 잠근다 (2026-11-02 전체 검토)
+- 결정: 적용 중에는 선택을 잠그고, 끝 화면은 확인한 순간의 사본으로 그린다. 미리 보기는 마지막 요청의 답만 받는다.
+
+### 화면 보안
+- 결정: 127.0.0.1·임의 포트, 데이터·적용 요청은 `X-Harness-Token` 헤더의 일회용 토큰, Host 검사(DNS 리바인딩), CSP, 외부 글은 textContent 로만. 화면이 보낸 선택은 카탈로그에 있는 id 만 남긴다. 저장소 명령은 서버가 읽은 값만 쓴다.
+- 어디서: `scripts/picker.mjs`, CSP 는 `picker/index.html`
+
+### 한국어·영어, 문구는 언어별 파일 (사용자 결정, 2026-11-02)
+- 결정: 화면·훅 안내·지침 조각의 문구는 코드에 쓰지 않고 언어별 파일로. 언어는 harness.json 의 `lang`, 없으면 시스템 언어. 영어 수 문구는 `{n|one|other}`(Intl.PluralRules).
+- 어디서: `picker/i18n/<lang>/*.json`(파일 400줄 한도로 나눔), `hooks/messages/{ko,en}.json`, `rules/*.{ko,en}.md`
+
+### 화면·알림 용어 (사용자 승인, 2026-11-06 · 2026-11-09 사용자 결정으로 더함)
+- 결정: 같은 분야가 쓰는 말로 — 훅, CLAUDE.md 지침(`.claude/rules/` 는 「규칙」), 브랜치 전략, 차단, 주입 차단, 병합(스쿼시 병합), 푸시, 켜짐·꺼짐, 권장, 말투는 훅 알림까지 해요체. 2026-11-09: 사용자에게 보이는 한국어(화면·훅 알림·카탈로그·CLAUDE.md 에 들어가는 지침·README)는 시험→테스트(「테스트 하나만」), 린트→검사(다른 검사·훅과 헷갈릴 자리는 「코드 검사(lint)」 한 번), 스킬 목록 예산→스킬 목록 한도(「Claude가 스킬 목록을 기억하는 자리의 한도」로 풀어 씀). 그대로: 스킬·플러그인·커밋·브랜치·저장소·토큰·되돌리기·적용(설정 전체)/설치(스킬)·PR·조합.
+- 이유: Claude Code·GitHub 한국어 문서, VS Code 한국어 언어 팩 확인.
+- 정본: `Downloads/find-your-skill-시안/리뉴얼/DESIGN.md` § Voice and terminology
+
+## CLAUDE.md 지침
+
+### 줄마다 누가 맡는지 표시한다 (사용자 지적, 2026-11-05)
+- 결정: 지침 줄은 모두 `{{hook:id}}`·`{{!hook:id}}`·`{{!skill:id}}`·`{{judge}}` 중 하나를 단다. 「훅이 막는다」고 알리는 줄은 두지 않는다.
+- 이유: 정적 도구로 막을 수 있는 걸 글로 두면 놓친다. 훅이 막을 때 이유를 알려 주므로 매 대화 글로 또 적으면 겹친다.
+- 어디서: `scripts/test/rules.test.mjs`, 렌더 `scripts/lib/claude-md.mjs`
+
+### 훅이 줄을 통째로 막을 때만 줄을 지운다 (2026-11-06)
+- 결정: 다 막으면 `{{!hook:id}}`(꺼졌을 때만). 일부만 막는 훅(secrets·danger-cmd·password-cli)은 줄을 지우지 않는다. 나머지는 `{{hook:id}}` 줄로 나눈다 — 예: reset·filter-branch 로 고친 강제 푸시, package.json 밖 의존성, 브랜치 이름(branch-name 몫).
+
+### 공식 권장에 맞춘다 (사용자가 세부를 맡김, 2026-11-07)
+- 결정: 200줄 아래, 짧은 줄, 확인할 수 있게 구체적으로(「커밋 전에 `npm test`」), 저장소를 읽어 알 수 없는 것만. 말하지 않아도 Claude 가 하는 줄은 뺀다. 줄마다 판단한 표는 archive.
+- 이유: code.claude.com/docs/en/memory·best-practices.
+- 어디서: `rules/*.{ko,en}.md`
+
+### 「이 저장소 명령」 (사용자 결정, 2026-11-06, 시안 1안)
+- 결정: package.json scripts(npm·pnpm·yarn·bun)·Makefile·pyproject(tox·hatch·pytest·ruff·mypy, uv·poetry·pdm)·Cargo·go.mod 에서 읽은 테스트·검사·빌드 명령만. 찾은 게 없거나 사용자 CLAUDE.md 에 이미 있으면 뺀다.
+- 구조 묶음의 뻔한 3줄(화면·상태 섞지 않기, 외부 라이브러리 감싸기, 미리 추상화하지 않기)은 뺐다 — 「지워도 Claude 가 실수하지 않을 줄이면 지운다」.
+- 어디서: `scripts/lib/commands.mjs`, `rules/commands.*.md`
+
+### 「테스트 하나만」은 도구를 확실히 알 때만 (2026-11-07)
+- 결정: test 스크립트가 도구를 그대로 부를 때만(`&&`·파이프·환경 변수·`--config` 등이 있으면 뺀다). vitest·jest·playwright·bun·node --test·pytest·cargo·go 만.
+- 넣지 않음: mocha(.mocharc 의 spec 에 더해져 다른 테스트도 돈다), tox·hatch·make(인자 꼴이 설정마다 다름), `go test <파일>.go`.
+- 어디서: `scripts/lib/commands.mjs` 의 `testOne`, `fillCmd`
+
+### 구조 · 재사용 지침 (사용자 요청, 2026-11-05)
+- 결정: `rules/structure.{ko,en}.md` 를 혼자 빠르게·팀 협업·꼼꼼하게에서 기본으로 켠다. 가볍게는 「안전장치만」이라 뺀다. 모든 줄이 판단이라 글로 둔다. 같은 요청으로 넣었던 스킬 `code-simplification` 은 지금 어느 조합의 기본에도 없다(카탈로그에서 고를 수만 있음).
+- 어디서: `catalog/combos.json` 의 rules
+
+### 겹침은 사용자 글하고만 견준다 (2026-11-06·11-07)
+- 결정: 관리 구역(`harness-fit:start`~`end`)을 뺀 프로젝트 CLAUDE.md(`projectClaudeMd`)와, 사용자가 쓴 `.claude/rules/**/*.md`(프로젝트·`~/.claude`)와 견준다.
+- 이유: 구역까지 견주면 지난번에 넣은 줄이 모두 「이미 있음」으로 빠진다. 블록 HTML 주석은 문맥에 들기 전에 지워져 Claude 가 구역을 볼 수 없다.
+- 어디서: `scripts/overlap.mjs`, `scripts/lib/user-rules.mjs`
+
+### `.claude/rules/` 로 옮기지 않는다 (사용자 결정, 2026-11-07)
+- 결정: 지침은 CLAUDE.md 표시 구역에 그대로 둔다.
+- 이유: `paths` 규칙은 Read·Write·Edit·`cat` 때만 읽히고 압축하면 빠진다(2.1.318 테스트) — 보안 지침이 빠지는 구간이 생기는데 아끼는 양은 약 250토큰. 파일로만 옮기면 `.claude/` 를 git 에서 뺀 저장소는 팀원에게 안 간다.
+- 다시 볼 때: Claude Code 가 `paths` 규칙을 압축 뒤에도 남기게 바뀌면.
+
+### 사람만 아는 것은 사람이 적게 안내한다 (2026-11-07)
+- 결정: 지침 단계 미리 보기 아래와 끝 화면(지침을 넣었을 때만)에 같은 한 줄 + 예 「`src/legacy/` 는 아직 쓰지만…」. setup 보고 끝에 한 줄, 대신 써 주지 않는다. 확인 단계에는 넣지 않는다.
+- 어디서: 문구 `ownNotes`(`picker/rules.js`·`picker/review.js`)
+
+### 약속대로 안 될 때는 적용하면서 알린다 (2026-11-05)
+- 결정: 플러그인이 없으면(npx) CLAUDE.md 를 「훅 꺼짐」 글로 쓰고 알린다. `.claude/` 를 git 이 무시하면 팀원 공유가 닿지 않는다고, settings.json 이 깨졌으면 공유를 못 적었다고 알린다.
+- 이유: 글도 검사도 없는 상태를 막으려고.
+
+## 스킬
+
+### 설치 방식은 라이선스로 나눈다
+- 결정: MIT·Apache-2.0·BSD·ISC·MPL·CC-BY(-SA) 는 그 스킬 폴더만 커밋 해시로 고정해 복사. 라이선스가 없거나 불분명하면 원 저장소 설치 명령을 안내. 받은 스킬은 실행하지 않는다.
+- 이유: 상시 토큰이 가장 적다(플러그인 전체를 깔면 안 쓰는 스킬 설명까지 들어간다).
+- 어디서: `scripts/lib/install-skill.mjs`
+
+### 카탈로그는 스냅샷 + 실시간 보충 검색 (사용자 결정, 2026-11-02)
+- 결정: 저장한 목록에 더해, 화면을 열 때 같은 검색어로 목록 기준일 뒤 새로 나오거나 바뀐 저장소를 찾는다. star 1000 이상은 `--stars=">=1000"` 로.
+- 어디서: `config/sources.json`(`minStars`), `catalog/queries.json`, `scripts/fresh.mjs`
+
+### 실행 파일이 든 스킬은 적용 전에 알린다 (2026-11-02)
+- 결정: 고정 커밋 기준 실행 파일 목록을 catalog 에 적는다. 훅과 같은 일을 하는 스킬(`overlapsHook`)은 고를 목록에서 뺀다.
+- 어디서: `scripts/dev/scan-skill-files.mjs`
+
+### 같은 일을 하는 스킬은 조합에 하나만 (사용자 요청, 2026-11-05)
+- 결정: `catalog/overlaps.json` 묶음마다 조합 기본값엔 하나만(꼼꼼하게에서 differential-review 를 뺐다 — find-bugs 와 같은 일). 화면에서 같은 묶음을 더하면 「비슷한 스킬이 이미 들어 있어요」(이름을 누르면 그 스킬로 — 위 「겹침 이름표」).
+- 이미 있는 스킬: 같은 이름은 스크립트가, 하는 일이 같은 다른 이름은 setup 때 Claude 가 `scripts/overlap.mjs` 를 보고 `--similar` 로.
+
+### 받은 스킬 이름은 카탈로그 id 로 (2026-11-06)
+- 결정: SKILL.md 의 `name` 만 카탈로그 id 로 바꾸고 원래 이름은 `.harness-source.json` 의 `renamedFrom`. id 가 예약 이름이면 받지 않는다.
+- 이유: sentry 스킬의 `name: security-review` 가 `/security-review` 를 가렸다.
+- 어디서: `config/reserved-skill-names.json`, `scripts/lib/install-skill.mjs`
+
+### 다시 받기와 덮어쓰지 않기 (2026-11-02·11-05)
+- 결정: 받지 못한 스킬은 「들어갔다」고 말하지 않고 `--retry` 로 그 스킬만 같은 백업에 더해 받는다. harness-fit 이 넣지 않은 같은 이름 폴더는 덮어쓰지 않는다.
+- 어디서: `scripts/apply.mjs`
+
+### `.harness-source.json` 은 「받아 온 외부 코드」 표시 (사용자 결정, 2026-11-02)
+- 결정: 사용자 전역 stop-gate 가 이 파일이 있는 폴더의 위반을 「고치지 말고 `.claude/lint.json` 의 external 에 적으라」로 안내한다. 파일 이름·위치를 바꾸면 그 안내도 같이 바꾼다.
+
+### 스킬 목록 한도를 적용 전에 알린다 (사용자 승인, 2026-11-07 · 화면 말은 2026-11-09 「한도」로)
+- 결정: 이 PC 의 사용자·프로젝트 스킬·명령과 켜진 플러그인 스킬에 새 스킬을 더해 한도의 80% 이상이면 확인 단계·요약 카드에 알리고 「권장대로 줄이기」를 보인다. 한도 늘리기는 안내만 한다.
+- 이유: 넘으면 덜 쓴 스킬부터 설명이 빠지고, 새로 넣은 스킬이 먼저다(code.claude.com/docs/en/skills). 셈 방식은 문서에 없어 「넘을 수 있어요」로만 말한다.
+- 어디서: `scripts/lib/skill-budget.mjs`, `picker/budget.js`(서버·화면 같은 함수, 기본 8,000자)
+
+### 「권장대로 줄이기」 차례 (사용자 승인, 2026-11-07)
+- 결정: 같은 일을 하는 스킬 → 직접 더한 것 → 조합 스킬 → 스택 맞춤 순, 같은 차례면 설명이 긴 것부터, 80% 아래까지. 지금 있는 것만으로 이미 80% 이상이면 앞의 두 차례만 뺀다. 뺀 것은 되돌릴 수 있다.
+
+### 카탈로그 설명은 재기만 하고 고치지 않는다 (2026-11-07, 설명 꼴은 사용자 결정 2026-11-06)
+- 결정: 고정 커밋 SKILL.md 에서 `descChars`·`saysWhen` 을 재어 보고만 한다. 늘 드는 토큰 상위 10% 는 「설명이 길어 목록 한도를 많이 써요」. 스킬 설명(catalog.json)은 「~한다」 꼴 그대로.
+- 어디서: `scripts/dev/check-descriptions.mjs`, `scripts/dev/build-catalog.mjs`
+
+### 스킬에 모델을 정하지 않는다 (2026-11-07)
+- 결정: 외부 스킬에 `model`·`effort` 를 끼워 넣지 않는다(적혀 있으면 그대로). `/harness-fit:setup` 도 사용자 모델 그대로.
+- 이유: 그 턴에만 걸리고, 필요한 모델은 만든 사람이 안다. setup 은 판단이 섞여 있고 보고 턴엔 어차피 원래 모델로 돌아온다.
+
+### setup 스킬 머리말 (2026-11-06)
+- 결정: description 에 하는 일과 쓰는 때, `argument-hint: "[auto|undo]"`, `disable-model-invocation: true`(실행 전에는 설명도 문맥에 안 든다). `allowed-tools` 는 넣지 않는다.
+- 이유: `allowed-tools` 는 막는 기능이 아니라 그 턴에만 미리 허락하는 기능이고, `Bash(node *)` 는 아무 node 코드나 허락하게 된다.
+- 어디서: `skills/setup/SKILL.md`. 적용은 화면에서 하고 Claude 는 결과 JSON 한 덩어리만 읽는다.
+
+## GitHub·git
+
+### 커밋 내용은 git pre-commit 으로 본다 (사용자 결정, 2026-11-06)
+- 결정: 적용할 때 `.git/hooks/pre-commit` 에 넣어 실제로 올라가는 내용을 같은 함수로 본다. 사람이 한 커밋도 본다. 이미 다른 pre-commit·`core.hooksPath` 가 있으면 건드리지 않고 이어 붙일 한 줄을 알리며, PreToolUse 커밋 검사를 그대로 둔다.
+- 이유: PreToolUse 는 명령이 돌기 전에 봐서, 앞 명령이 파일을 쓰면 커밋 내용을 미리 알 수 없다(그때는 나눠 실행하게 한다). `--no-verify` 로 건너뛰는 것은 git 의 약속.
+- 어디서: `hooks/git-pre-commit.mjs`, `hooks/lib/git-hook.mjs`, `hooks/rules/commit.mjs`
+
+### GitHub 저장소 설정은 사용자가 켤 때만, 항목마다 (사용자 결정, 2026-11-06)
+- 결정: 기본 꺼짐. 켜면 항목마다 고른다. Git Flow 의 PR 요구는 기본 꺼짐(release 를 로컬에서 병합해 푸시), 관리자에게도 적용은 기본 켜짐, 승인 수 0·1·2. 되돌리기는 이전 값으로.
+- 이유: 웹 화면·`gh api`·다른 사람이 병합하는 길은 훅이 못 본다. 설정은 모두에게 영향을 준다.
+- 어디서: `catalog/packs.json` flows 의 `github`, `scripts/lib/github-settings.mjs`, `picker/github-plan.js`
+
+### GitHub Flow 는 main 바로 푸시도 막는다 (2026-11-05)
+- 결정: 「PR 로 병합한다」를 글 대신 검사로(`noDirectPush`). Git Flow 는 로컬에서 release 를 병합해 푸시하므로 켜지 않는다.
+
+### 보호 브랜치는 cherry-pick·revert·am 도 막는다 (2026-11-06)
+- 결정: Git Flow 의 main·develop 바로 커밋을 다 막으려고 넓혔다. merge 가 main 에 만드는 커밋은 약속 밖으로 detail 에 적는다(GitHub Flow 는 그 푸시를 막는다). 강제 푸시는 보호 브랜치 훅에 둔다.
+- 어디서: `hooks/rules/git.mjs`, `catalog/packs.json` 의 detail
+
+### 브랜치 이름 규칙은 시작만 본다 (2026-11-02)
+- 결정: 시작 부분만 강제하고 대문자·숫자·하위 경로는 허용(`feature/JIRA-123`).
+- 어디서: `catalog/packs.json` flows 의 `branch-name.pattern`
+
+### pr-merge 는 브랜치 전략에 딸린 훅 (2026-11-06)
+- 결정: GitHub Flow 에만 있어 조합 목록이 아니라 브랜치 전략(`hooksOn`)으로 들어간다. 조합을 펼칠 때 그 조합의 브랜치 전략 hooksOn/hooksOff 도 맞춘다(화면 `defaultsFor` 와 같은 범위).
+- 어디서: `scripts/lib/catalog.mjs` 의 `expandCombo`
+
+### 올린 커밋 다시 쓰기·스쿼시 안 한 푸시 (2026-11-06)
+- no-rewrite-pushed: 원격에 있는 커밋을 amend·rebase 하면 막는다(`git pull --rebase` 허용).
+- squash-push: 원격 추적 브랜치 어디에도 없는 커밋이 2개 이상이면 막는다. 같은 명령의 앞선 `git commit` 도 센다. 첫 푸시·태그·지우기는 보지 않는다. 팀마다 달라 모든 조합에서 기본 꺼짐.
+
+### 팀원 공유는 프로젝트 settings.json 으로 (2026-11-02)
+- 결정: `.claude/settings.json` 의 `extraKnownMarketplaces`·`enabledPlugins` 두 항목만 더한다. 기존 설정은 두고, 깨진 파일은 건드리지 않는다. 팀 조합(팀 협업·꼼꼼하게)이면 기본 켬.
+- 어디서: `scripts/apply.mjs`, `catalog/combos.json` 의 `share`
+
+### 되돌리기는 사용자가 고친 것을 지우지 않는다 (2026-11-02 전체 검토)
+- 결정: 쓴 내용의 지문(sha256)을 백업 목록에 남기고, 달라졌으면 CLAUDE.md 는 관리 구역만·.gitignore 는 넣은 줄만 빼고 나머지는 두고 알린다. 백업 목록 경로가 프로젝트 안인지, 폴더 이름이 시각 꼴인지 확인한다.
+- 어디서: `scripts/lib/backup.mjs`
+
+## 배포·버전
+
+### Claude Code 플러그인으로 낸다 (사용자 결정, 2026-11-02)
+- 결정: `/plugin marketplace add` → `/harness-fit:setup`. 설정 파일은 `.claude/harness.json`.
+- 이름은 find-your-skill → harness-fit (사용자 결정, 2026-11-02): 스킬만 찾는 도구처럼 들리고 영어로 「적성 찾기」로 읽혀서. harness-kit 은 같은 분야 저장소와 겹쳐 뺐다.
+
+### 실행 파일은 `cli/` (2026-11-06)
+- 결정: npx 진입점은 `cli/harness-fit.js`(package.json `bin` 이 가리킴).
+- 이유: 플러그인 맨 위 `bin/` 은 Bash PATH 에 들어가고, claude.ai·Cowork 는 `bin/` 이 있는 플러그인을 설치하지 않는다.
+
+### 개발용 스크립트는 `scripts/dev/` (2026-11-09)
+- 결정: 카탈로그 만들기·실행 파일 훑기·설명 재기·헛막음 훑기(`build-catalog`·`scan-skill-files`·`check-descriptions`·`fp-scan`)는 `scripts/dev/` 에 둔다. 사용자가 돌리는 `scripts/*.mjs` 와 섞지 않으려고.
+
+### 팀원이 받는 플러그인은 태그로 고정 (2026-11-02)
+- 결정: `config/sources.json` 의 `pluginRef`(지금 v0.3.1). 버전을 올릴 때 `.claude-plugin/plugin.json`·`package.json` 의 version 과 같이 바꾼다(세 곳이 같은지 테스트가 본다).
+- 이유: 마켓 소스는 브랜치·태그(`ref`)만 받고 커밋 sha 고정은 지원하지 않는다(2026-11-02 문서 확인).
+
+### 버전 태그에 바뀐 점, GitHub 릴리스도 (사용자 결정, 2026-11-07)
+- 결정: 주석 태그 메시지는 「vX.Y.Z: 요약」 + 바뀐 점 + 최소 Claude Code 버전. 릴리스 글은 태그보다 자세히, 항목마다 「바꾼 이유 · 바뀐 점」과 하지 않은 것의 이유까지(사용자 요청 「이런 이유로 수정했고 추가했다」).
+- 이유: 저장소 첫 화면에 최신 버전이 보이고 구독한 사람에게 알림이 간다. v0.1.0~v0.2.2 는 한 줄뿐이라 릴리스를 만들지 않았다. 이미 올린 태그는 v0.3.0·v0.3.1 만 같은 커밋에 메시지를 넣어 다시 올렸다.
+
+### 시안은 저장소 밖에 둔다 (사용자 결정, 2026-11-02)
+- 어디서: `Downloads/find-your-skill-시안/`
 
 ## 바뀐 이력
-- 2026-11-07: 스킬 목록 예산 알림·권장대로 줄이기, 끝 화면 `/이름` 안내, 카탈로그 설명 검사 결정 추가.
-- 2026-11-06: 전역 훅에서 옮긴 훅 7개(squash-push·commit-hash·swift-unsafe·python-unsafe·work-checklist·docs-check·answer-lang), Stop·SessionStart·UserPromptSubmit 진입점, 그 때의 기존 훅 겹침 시험.
-- 2026-11-06: 전역 훅에서 옮길 것·답 언어 옵션·훅 고르기 화면 묶음(사용자 결정).
-- 2026-11-06: 사람마다 답이 다른 설정은 사용자가 고른다(사용자 원칙).
-- 2026-11-06: 커밋 내용 검사를 git pre-commit 으로, Git Flow cherry-pick·revert, GitHub 저장소 설정(사용자 결정).
-- 2026-11-06: 레드팀 25건 확인·엄격 사례로 남김, 헛막음 3꼴(값을 가리키는 이름·켜고 끄는 값·따옴표 속 글)과 --message 줄임·checkout <커밋> . 빈틈 고침, merge 커밋은 약속 밖이라 detail 에 적음, 훅이 일부만 막던 규칙 줄 3개를 나눔.
-- 2026-11-06: 짐작하는 훅 3개(hardcode·injection·log-secrets) 뺌, 남은 훅의 빈틈을 막고 커밋 때 다시 보기, 규칙 글을 핵심만, 엄격 시험·fp-scan 추가.
-- 2026-11-06: 훅 5개(injection·log-secrets·gha-inject·no-rewrite-pushed·pr-merge) 추가, 겹치는 규칙 줄은 훅이 꺼졌을 때만.
-- 2026-11-05: 4차 검토 반영(겹침 판정은 PreToolUse 만·브랜치 방식별, 약속대로 안 될 때 알리기, GitHub Flow main push 막기).
-- 2026-11-05: 이미 있는 훅·스킬·CLAUDE.md 와 겹치면 넣지 않기, 규칙 줄마다 훅·스킬·판단 표시, 「훅이 막는다」 줄 없앰, 겹침 묶음.
-- 2026-11-05: 정적 검사 훅 3개(hardcode·unsafe-html·pin-deps) 추가, 겹치는 규칙 글은 훅이 꺼졌을 때만 넣음.
-- 2026-11-05: 구조 · 재사용 규칙 묶음과 code-simplification 기본 스킬 추가.
-- 2026-11-02: 처음 작성.
-- 2026-11-02: 설치 방식·조합·추천 기준·화면 보안·토큰 결정 추가.
-- 2026-11-02: 고르기 화면 2차와 요청 칸 결정 추가.
-- 2026-11-02: 사용성 평가 반영 결정(브랜치↔훅, 조건부 문장, 팀 공유, 요청 파일, 실행 파일 공개) 추가.
-- 2026-11-02: 재평가 반영(플러그인 버전 태그 고정, 조합 전환 되돌리기, 누적 알림) 추가.
-- 2026-11-02: 스킬·훅·규칙 종류 표시, 약속 → 규칙 통일. 2차 화면 설명의 「약속」은 당시 표현 그대로 둠.
-- 2026-11-02: v0.2.1. README 그림을 연한 바탕 + 창 틀로 다시 찍음(사용자 선택: 시안 1), 막는 실수·끝 화면 그림 추가.
-- 2026-11-02: 빈 저장소일 때 먼저 묻고, 알려 준 스택·인원을 추천에 넣는 결정 추가.
-- 2026-11-02: 전체 검토 반영(되돌리기 안전, 재시도, 훅 낱말 단위 읽기, 화면 잠금) 추가.
-- 2026-11-02: `.harness-source.json` 을 외부 코드 표시로 쓰는 약속 추가.
-- 2026-11-02: v0.2.2(빈 저장소 질문, 1~3차 검토 반영). 「끝내기 전 확인」은 실험 갈래에만 두고 전역 훅으로 기록을 모은 뒤 합칠지 정한다.
-- 2026-11-02: 이름을 find-your-skill → harness-fit 로 바꿈(사용자 결정). 스킬만 찾는 도구처럼 들리고 영어로는 「적성 찾기」로 읽혀서. harness-kit 은 같은 분야 저장소(RealZST/HarnessKit ★478 등)와 겹쳐 뺐다. 명령은 /harness-fit:setup, 설정 파일은 .claude/harness.json.
-- 2026-11-06: 고르기 화면 바탕 A(GitHub)·단계별 진행 결정 추가.
-- 2026-11-06: 혼자 쓰는 저장소 브랜치 방식 기본값·사람 커밋 검사 결정 추가.
-- 2026-11-06: 훅 오류 때 통과 + 알림 결정 추가.
-- 2026-11-06: 다시 열면 지난번 선택에서 시작하는 결정(harness.json selection·known, 새로 생김, 추천으로 되돌리기) 추가.
-- 2026-11-06: 허용 주석 `lint:allow`(이유 필수, 쓸 때마다 알림, 비밀값은 옵션) 결정 추가.
-- 2026-11-06: 공식 문서 대조(CLAUDE.md 사용자 글만 견주기, cli/ 로 옮김, 훅 exec 꼴, 받은 스킬 name 맞추기·명령 이름 겹침, setup 머리말, MultiEdit 뺌) 결정 추가.
-- 2026-11-06: 화면·알림 용어표 결정 추가.
-- 2026-11-06: 팀원 공유 묻기·확인 단계 거치기 결정 추가.
-- 2026-11-06: 고르기 화면을 승인 시안 A2-6 대로 다시 지음(6단계 주소 #, 요약 카드, 훅 묶음은 `hookGroups` 데이터로·빈 묶음 숨김, 넓은 전체 보기 창 하나, Spoqa 글꼴은 `picker/fonts/` 에서 바이트로). 디자인 정본은 `Downloads/find-your-skill-시안/리뉴얼/DESIGN.md`. 시안의 「줄을 대신 맡는 훅」·「뺀 줄 보기」·훅 「막는 것만」은 서버 데이터가 없어 뺐다. 적용은 확인 단계의 단추만 하고(요약 카드는 확인 단계로), 브랜치 전략을 정했으면 「팀원도 같은 훅을 쓰게 할까요?」를 답해야 적용된다(사용자 요청) — 「네」면 올릴 파일·설치 안내·git 커밋 전 훅은 팀원 PC 에 따로 깔아야 함(그 PC 에서 /harness-fit:setup 적용)을 화면과 결과 JSON(teammates)에 낸다.
-- 2026-11-06: 고르기 화면 디자인 일관성 점검(정적 FLOOR 0, 390·1280 한·영 렌더, 대비 계산, 바탕 수치 대조 — 결과와 이유는 DESIGN.md 결정 기록·§ 바탕에서 바꾼 곳). README 두 벌을 6단계·훅 23개·최소 Claude Code v2.1.139 로 고치고 그림을 실제 화면에서 다시 찍음(연한 바탕 + 창 틀 그대로).
-- 2026-11-06: 지침 1안(저장소 명령·뻔한 줄 빼기), 스킬 설명 꼴 결정 추가.
-- 2026-11-06: 지침 1안·A2-6 빠진 기능 구현 — 「이 저장소 명령」 지침(npm·pnpm·yarn·bun·Makefile·pyproject·Cargo·go), 구조 지침 뻔한 3줄 삭제, 「줄을 대신 맡는 훅」 칩·「뺀 줄 보기」, 훅 kind(block·notice)와 「차단하는 것만」, 끝 화면 「들어간 것」을 「생기는 것」과 같은 목록 줄로, 영어 단·복수, 화면 문구 파일 나눔. README 두 벌·그림 다시 찍음.
-- 2026-11-06: v0.3.0(새 고르기 화면, 훅 23개·4개 진입점, git 커밋 전 훅, GitHub 저장소 설정, 지난번 선택 이어 쓰기, lint:allow, 용어 통일, 지침에 저장소 명령).
-- 2026-11-07: 스킬에 모델을 정하지 않는 까닭 추가.
-- 2026-11-07: CLAUDE.md 지침을 공식 권장에 맞춤(용어, 시험 하나만 명령, 일반 줄 다시 거르기, 사람만 아는 것 적기 안내) 결정 추가.
-- 2026-11-07: .claude/rules 로 옮기지 않는 결정, 사용자 rules 도 겹침 견주기. v0.3.1(스킬 목록 예산, 지침 손질, 사용자 rules 견주기).
-- 2026-11-07: 버전 태그에 설명 적기 결정 추가.
-- 2026-11-07: GitHub 릴리스(v0.3.0·v0.3.1) 추가.
-- 2026-11-07: 릴리스 글을 이유까지 자세히 쓰기로(v0.3.0·v0.3.1 고침).
+버전별 자세한 내용은 GitHub 릴리스(v0.3.0 부터)나 태그 메시지에 있다. 날짜별 옛 이력은 [decisions-archive.md](decisions-archive.md#바뀐-이력).
+
+- v0.1.0 (2026-11-02): 첫 공개. 태그 메시지만.
+- v0.2.0 (2026-11-02): 이름을 harness-fit 로. 태그 메시지만.
+- v0.2.1 (2026-11-02): 스킬·훅·규칙 구분 표시. 태그 메시지만.
+- v0.2.2 (2026-11-02): 빈 저장소 질문, 전체 검토 1~3차 반영. 태그 메시지만.
+- v0.3.0 (2026-11-06): 새 고르기 화면, 훅 23개, git 커밋 전 훅, GitHub 저장소 설정, 용어 통일 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.0)
+- v0.3.1 (2026-11-07): 스킬 목록 예산 경고, CLAUDE.md 지침 손질, 사용자 rules 도 겹침 견주기 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.1)
+- v0.3.2 (2026-11-09, https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.2): 조합 기본값을 저장소에 맞춤, prefer-gh 알림, 확인 단계 알림 한 줄, 스킬·훅 쉬운 한 줄과 알아 둘 점, 지침 창, 겹침 이름표, git 그래프 그림, 훅 한 번 30~60ms 줄임·테스트 나누기, 용어(테스트·코드 검사·한도), README·결정 문서 줄이기.
+- 2026-11-09: 지금 유효한 결정만 분야별로 다시 정리, 옛 원문은 decisions-archive.md 로.

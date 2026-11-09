@@ -2,14 +2,11 @@
 // --stack·--team 은 저장소에서 읽을 게 없을 때(빈 저장소) 사용자가 말해 준 내용이다(SKILL.md 가 넘긴다).
 // --similar·--skip 은 setup 때 Claude 가 이미 있는 스킬·CLAUDE.md 와 견주어 겹친다고 본 것이다(scripts/overlap.mjs 를 읽고 넘긴다).
 import path from 'node:path';
+import { pickLang } from '../../hooks/lib/core.mjs'; // 훅과 같은 기준(--lang → LANG → LC_ALL → 시스템 지역)
 
 const VALUE_FLAGS = new Set(['--lang', '--stack', '--selection', '--similar', '--skip']);
 
-export const pickLang = (arg) => {
-  if (arg === 'ko' || arg === 'en') return arg;
-  const sys = process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || '';
-  return /^ko/i.test(sys) ? 'ko' : 'en';
-};
+export { pickLang };
 
 const list = (v) => (v || '').split(',').map((s) => s.trim()).filter(Boolean);
 const pairs = (v, sep) => list(v).map((x) => x.split(sep).map((y) => y.trim())).filter(([a, b]) => a && b).map(([id, to]) => ({ id, to }));

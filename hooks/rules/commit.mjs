@@ -13,10 +13,12 @@ import { gitHookActive, bypassesGitHook } from '../lib/git-hook.mjs';
 import { findUnsafeHtml, unsafeHtmlTarget } from '../lib/unsafe-html.mjs';
 import { isPackageJson, unpinnedChanges } from '../lib/pin-deps.mjs';
 import { isWorkflow, newWorkflowHits, ownOwner } from '../lib/gha-inject.mjs';
-import { sizeTarget, lineCount, DEFAULT_MAX_LINES, sizeVerdict, secretsAllowOn, secretsHint } from './files.mjs';
-import { unsafeHtmlMessage, pinDepsMessage, ghaMessage } from './code.mjs';
 import { allowFor, NO_ROWS } from '../lib/allow.mjs';
-import { langMessage, langCommitHits } from './lang.mjs';
+// 쓰기 검사(rules/files·code·lang)와 같은 판정·문구
+import {
+  sizeTarget, lineCount, DEFAULT_MAX_LINES, sizeVerdict, secretsAllowOn, secretsHint,
+  unsafeHtmlMessage, pinDepsMessage, ghaMessage, langMessage, langCommitHits,
+} from '../lib/messages.mjs';
 
 // 더한 줄의 자리(줄 번호·바로 위 줄). 계획이 모르면(시험용 계획 등) 바로 위 줄을 모르는 것으로 — 떨어진 줄을 위 줄로 잘못 보지 않게.
 const rowsOf = (plan, f) => (plan.rows ? plan.rows(f) : NO_ROWS);

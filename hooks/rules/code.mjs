@@ -5,20 +5,11 @@ import { addedRows, targetFile } from '../lib/lines.mjs';
 import { findUnsafeHtml, unsafeHtmlTarget } from '../lib/unsafe-html.mjs';
 import { findUnpinned } from '../lib/pin-deps.mjs';
 import { findGhaInject } from '../lib/gha-inject.mjs';
-import { allowFor, allowHint } from '../lib/allow.mjs';
+import { allowFor } from '../lib/allow.mjs';
+// 찾은 것 → 문구. 쓰기 검사와 커밋 검사가 같은 문구를 쓴다(lib/messages.mjs).
+import { list, unsafeHtmlMessage, pinDepsMessage, ghaMessage } from '../lib/messages.mjs';
 
-const MAX_SHOWN = 3;
-export const list = (items, t) =>
-  items.length > MAX_SHOWN ? `${items.slice(0, MAX_SHOWN).join(', ')} ${t('list.more', { n: items.length - MAX_SHOWN })}` : items.join(', ');
-
-// 찾은 것 → 문구. 쓰기 검사와 커밋 검사가 같은 문구를 쓴다.
-export const unsafeHtmlMessage = (hits, t) => t('unsafeHtml.write', { hits: hits.join(', '), hint: allowHint('unsafe-html', t) });
-export const pinDepsMessage = (hits, t) => t('pinDeps.write', { hits: list(hits, t) });
-export const ghaMessage = (hits, t) => {
-  const kinds = [...new Set(hits.map((h) => h.kind))];
-  const lines = kinds.map((k) => t(`gha.${k}`, { hits: list(hits.filter((h) => h.kind === k).map((h) => `\`${h.value}\``), t) }));
-  return t('gha.write', { hits: lines.join(' '), hint: allowHint('gha-inject', t) });
-};
+export { list, unsafeHtmlMessage, pinDepsMessage, ghaMessage };
 
 export const unsafeHtml = {
   id: 'unsafe-html',

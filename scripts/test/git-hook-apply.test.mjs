@@ -1,11 +1,11 @@
 // 적용이 git pre-commit 훅을 넣고(남의 훅은 덮어쓰지 않음) 되돌리기가 빼는지. 네트워크 없이(스킬은 고르지 않는다).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir, gitInit, gitIn } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
-import { plan, apply, undo } from '../apply.mjs';
+import { plan } from '../lib/plan.mjs';
+import { apply, undo } from '../lib/apply-run.mjs';
 import { loadAll } from '../lib/catalog.mjs';
 import { BACKUP_DIR } from '../lib/backup.mjs';
 import { MARKER, launcherText, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
@@ -16,7 +16,7 @@ const HOOK = path.join('.git', 'hooks', 'pre-commit');
 let tmp;
 let saved;
 before(() => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-hookapply-'));
+  tmp = tmpDir('harness-hookapply-');
   // apply() 는 플러그인이 켜졌는지 본다 — 플러그인 안에서 도는 것처럼
   saved = process.env.CLAUDE_PLUGIN_ROOT;
   process.env.CLAUDE_PLUGIN_ROOT = path.join(tmp, 'harness-fit');
@@ -32,7 +32,7 @@ after(() => {
 let seq = 0;
 const repo = () => {
   const dir = path.join(tmp, `r${++seq}`);
-  execFileSync('git', ['init', '-q', '-b', 'main', dir]);
+  gitInit(dir, { branch: 'main' });
   return dir;
 };
 const hookText = (dir) => (fs.existsSync(path.join(dir, HOOK)) ? fs.readFileSync(path.join(dir, HOOK), 'utf8') : null);
@@ -60,14 +60,14 @@ test('남의 pre-commit·core.hooksPath 가 있으면 덮어쓰지 않고 알리
   assert.deepEqual(p.warnings, ['git-hook-exists']);
   assert.match(p.gitHookCmd, /^if \[ -f '.*git-pre-commit\.mjs' \]; then node '.*' \|\| exit 1; fi$/);
   const husky = repo();
-  execFileSync('git', ['-C', husky, 'config', 'core.hooksPath', '.husky']);
+  gitIn(husky)('config', 'core.hooksPath', '.husky');
   assert.deepEqual(plan(husky, sel, all, { active: true }).warnings, ['git-hook-exists']);
   const wt = path.join(tmp, `wt${++seq}`);
   const main = repo();
   fs.writeFileSync(path.join(main, 'a.txt'), 'a\n');
-  execFileSync('git', ['-C', main, '-c', 'user.email=t@e.com', '-c', 'user.name=t', 'add', 'a.txt']);
-  execFileSync('git', ['-C', main, '-c', 'user.email=t@e.com', '-c', 'user.name=t', 'commit', '-q', '-m', 'chore: a']);
-  execFileSync('git', ['-C', main, 'worktree', 'add', '-q', '-b', 'feature/wt', wt]);
+  gitIn(main)('add', 'a.txt');
+  gitIn(main)('commit', '-q', '-m', 'chore: a');
+  gitIn(main)('worktree', 'add', '-q', '-b', 'feature/wt', wt);
   assert.deepEqual(plan(wt, sel, all, { active: true }).warnings, ['git-hook-elsewhere']);
 });
 

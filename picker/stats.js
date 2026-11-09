@@ -74,13 +74,13 @@ export const blockingHooks = (S, x) => {
   const usual = new Set([...S.combos.flatMap((k) => k.base?.hooks || k.hooks || []), ...S.flows.flatMap((f) => f.hooksOn)]);
   return new Set(S.hooks.filter((h) => h.kind === 'block' && !dup.has(h.id) && !off.has(h.id) && (h.stackOnly ? h.stackMatch : usual.has(h.id))).map((h) => h.id));
 };
-// 넣지 않은 스킬마다, 같은 묶음(catalog/overlaps.json)에서 이미 넣은 스킬의 이름
+// 넣지 않은 스킬마다, 같은 묶음(catalog/overlaps.json)에서 이미 넣은 스킬의 id(이름표가 그 스킬로 가는 링크가 된다)
 export const matesFor = (S, x) => {
   const out = new Map();
   for (const g of S.overlaps || []) {
-    const inSel = g.filter((id) => x.skills.has(id));
+    const inSel = g.filter((id) => x.skills.has(id) && skillBy(S, id));
     if (!inSel.length) continue;
-    for (const id of g) if (!x.skills.has(id)) out.set(id, inSel.map((m) => skillBy(S, m)?.title || m));
+    for (const id of g) if (!x.skills.has(id)) out.set(id, [...new Set([...(out.get(id) || []), ...inSel])]);
   }
   return out;
 };

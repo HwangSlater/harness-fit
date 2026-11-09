@@ -3,6 +3,7 @@
 //   / 목차(docs/README.md)에 링크 / 목차의 .md 링크는 있는 파일.
 import fs from 'node:fs';
 import path from 'node:path';
+import { localDate } from './dates.mjs';
 
 export const DOCS_DIR = 'docs';
 export const DOCS_INDEX = `${DOCS_DIR}/README.md`;
@@ -20,11 +21,7 @@ export const slash = (p) => String(p).split(path.sep).join('/').replace(/\\/g, '
 export const inDocs = (rel) => rel === DOCS_DIR || rel.startsWith(`${DOCS_DIR}/`);
 export const isDocFile = (rel) => DOC_FILE.test(rel);
 
-const pad = (n) => String(n).padStart(2, '0');
-export const localDate = (ms) => {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
+export { localDate };
 
 const readSmall = (abs) => {
   try {

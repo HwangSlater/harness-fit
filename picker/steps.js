@@ -1,8 +1,9 @@
 // 1 조합·브랜치 단계, 5 요청 단계. (2 스킬은 skills.js, 3 자동 검사는 hooks.js, 4 규칙은 rules.js, 6 확인은 review.js)
-import { h, s, icon } from './dom.js';
+import { h, icon } from './dom.js';
 import { previousLine, shead, flash, label, link } from './parts.js';
 import { coverage, ruleCount, comboBy, flowBy, hookBy } from './stats.js';
 import { stepHead } from './frame.js';
+import { flowArt } from './flow-art.js';
 
 const COMBO_ICON = { light: 'i-feather', solo: 'i-bolt', team: 'i-people', strict: 'i-shield' };
 
@@ -37,16 +38,6 @@ function comboCard(c, k) {
       link(`see:${k.id}`, t('seeCombo'), () => act.openPanel({ kind: 'combo', id: k.id }), { 'aria-haspopup': 'dialog' })));
 }
 
-// 브랜치 그림(작은 선). 색은 CSS(.flow svg.pic)
-const FLOW_PATH = {
-  'github-flow': 'M4 28H196 M40 28C56 28 56 10 72 10H120C136 10 136 28 152 28',
-  'git-flow': 'M4 34H196 M4 18H196 M30 18C40 18 40 4 56 4H92C108 4 108 18 118 18 M150 18C160 18 160 34 170 34',
-  trunk: 'M4 24H196 M40 24C48 24 48 12 58 12H70C80 12 80 24 88 24 M120 24C128 24 128 12 138 12H150C160 12 160 24 168 24',
-  none: 'M4 22H196',
-};
-const flowPic = (id) => s('svg', { class: 'pic', viewBox: '0 0 200 40', 'aria-hidden': 'true', preserveAspectRatio: 'none' },
-  s('path', { d: FLOW_PATH[id] || FLOW_PATH.none, fill: 'none', stroke: 'currentColor', 'stroke-width': '1.75', 'vector-effect': 'non-scaling-stroke' }));
-
 // 고른 조합의 기본값과 비교해 브랜치 방식 때문에 달라진 검사(누적)
 function flowNote({ S, sel, t }) {
   const base = comboBy(S, sel.combo);
@@ -68,7 +59,7 @@ function flows(c) {
       const picked = x.id === sel.flow;
       return h(`label.card.flow${picked ? '.sel' : ''}`, {},
         h('input', { type: 'radio', name: 'flow', value: x.id, checked: picked, 'data-key': `flow:${x.id}`, on: { change: () => act.pickFlow(x.id) } }),
-        flowPic(x.id),
+        flowArt(x.id, t),
         h('span.tt', {}, h('span.radio'), h('h3', {}, x.name)),
         h('p', {}, x.desc), x.for && x.for !== x.desc ? h('p', {}, x.for) : null);
     })),

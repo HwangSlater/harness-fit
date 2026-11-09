@@ -92,7 +92,8 @@ const prepare = (dir, setup) => {
 const hookEnv = (home = null) => {
   const env = { ...process.env, CLAUDE_CONFIG_DIR: path.join(tmp, 'no-claude-config') };
   delete env.CLAUDE_PLUGIN_ROOT;
-  if (home) Object.assign(env, { HOME: home, USERPROFILE: home });
+  // 홈을 시험 폴더로 돌리면 Claude 설정 폴더도 그 아래로(체크리스트는 CLAUDE_CONFIG_DIR 을 따른다)
+  if (home) Object.assign(env, { HOME: home, USERPROFILE: home, CLAUDE_CONFIG_DIR: path.join(home, '.claude') });
   return env;
 };
 const homeDir = () => path.join(tmp, 'home');
@@ -121,6 +122,12 @@ const decision = (out, c = {}) => {
     return { blocked: shown.includes(c.expect), reason: shown };
   }
   if (j.hookSpecificOutput?.permissionDecision === 'deny') return { blocked: true, reason: j.hookSpecificOutput.permissionDecisionReason };
+  // 알림 훅(kind notice — prefer-gh): 막지 않고 Claude 문맥에 글을 더하면 「걸림」
+  if (j.hookSpecificOutput?.additionalContext) {
+    assert.equal(j.hookSpecificOutput.hookEventName, 'PreToolUse');
+    assert.equal(j.hookSpecificOutput.permissionDecision, undefined, `알림 훅은 결정을 내지 않는다: ${out}`);
+    return { blocked: true, reason: j.hookSpecificOutput.additionalContext };
+  }
   // 막지 않을 때는 {} 만, 허용 주석으로 통과시켰으면 그 알림만(hooks/test/allow.test.mjs)
   if (j.systemMessage !== undefined) assert.ok(Object.keys(j).length === 1 && /lint:allow|allow comments|허용 주석/.test(j.systemMessage), `알림은 허용 주석 알림만: ${out}`);
   else assert.deepEqual(j, {}, `막지 않을 때는 {} 만 내야 한다: ${out}`);
@@ -209,7 +216,9 @@ describe('엄격 사례(훅마다 함께 돈다)', { concurrency: true }, () => 
   }
 });
 
-test('catalog/probes.json 의 시험 입력도 실제 진입점에서 block 은 막고 pass 는 통과한다', async () => {
+// 도구 호출(PreToolUse) 가운데 저장소 준비가 없는 입력은 scripts/test/probes.test.mjs 가 판정(evaluate)을 바로 불러 본다 —
+// 여기서는 그 밖의 것(Stop·SessionStart·UserPromptSubmit, 저장소 준비가 있는 것 = ownSpace)만 진입점으로 돌린다.
+test('catalog/probes.json 의 시험 입력(때마다·자기 자리)도 실제 진입점에서 block 은 막고 pass 는 통과한다', async () => {
   const dir = makeProbeRepo();
   try {
     fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
@@ -226,7 +235,7 @@ test('catalog/probes.json 의 시험 입력도 실제 진입점에서 block 은 
       };
       prepare(dir);
       for (const want of ['block', 'pass']) {
-        for (const p of probes[id][want]) {
+        for (const p of probes[id][want].filter(ownSpace)) {
           const [r] = await runProbeCase(p, [cmd(eventOf(p))], { sharedDir: dir, startCommands: [cmd('SessionStart').command], prepare });
           if (r.blocked !== (want === 'block')) failures.push(`${id} ${want} [${eventOf(p)}${ownSpace(p) ? ' · 자기 자리' : ''}]: ${JSON.stringify(p.tool_input || p.checklist || '').slice(0, 100)}`);
         }

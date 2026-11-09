@@ -1,10 +1,11 @@
 // 훅 옵션(packs.json hooks[].options) 시험: 화면이 보여 주는 옵션은 훅 코드가 실제로 읽고, 고른 값이 harness.json 에 그대로 들어간다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { pickerCfg } from './helpers.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadAll, PLUGIN_ROOT } from '../lib/catalog.mjs';
-import { buildConfig } from '../apply.mjs';
+import { buildConfig } from '../lib/plan.mjs';
 import { cleanSelection } from '../lib/picker-state.mjs';
 import { validValue, cleanHookOpts, optionValue, ownedKeys, parseList } from '../../picker/hook-options.js';
 import { DEFAULT_MAX_LINES } from '../../hooks/rules/files.mjs';
@@ -13,9 +14,12 @@ import { DEFAULT_BRANCH_PATTERN, DEFAULT_PROTECTED } from '../../hooks/rules/git
 import { DEFAULT_ANSWER_LANG, ANSWER_LANGS } from '../../hooks/lib/answer-lang.mjs';
 
 const all = loadAll();
-const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
+const cfg = pickerCfg;
 const RULES = path.join(PLUGIN_ROOT, 'hooks', 'rules');
-const ruleFiles = fs.readdirSync(RULES).filter((f) => f.endsWith('.mjs')).map((f) => fs.readFileSync(path.join(RULES, f), 'utf8'));
+// 쓰기·커밋 검사가 같이 쓰는 판정(hooks/lib/messages.mjs)은 그것을 가져오는 규칙 모듈의 코드로 친다
+const SHARED = fs.readFileSync(path.join(PLUGIN_ROOT, 'hooks', 'lib', 'messages.mjs'), 'utf8');
+const ruleFiles = fs.readdirSync(RULES).filter((f) => f.endsWith('.mjs')).map((f) => fs.readFileSync(path.join(RULES, f), 'utf8'))
+  .map((src) => (src.includes("from '../lib/messages.mjs'") ? `${src}\n${SHARED}` : src));
 const withOptions = all.packs.hooks.filter((h) => h.options?.length);
 const hook = (id) => all.packs.hooks.find((h) => h.id === id);
 const opt = (id, key) => hook(id).options.find((o) => o.key === key);

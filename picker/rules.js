@@ -2,17 +2,15 @@
 // 미리 보기 글은 서버가 켠 훅·스킬에 맞춰 만든 것 그대로(/api/preview 의 ruleTexts·ruleDropped — scripts/lib/claude-md.mjs).
 import { h } from './dom.js';
 import { lrow, toggleSwitch, label, isNew, num, withCode } from './parts.js';
-import { ruleLines, ruleCount, lineCount, ruleTokens, flowBy, hookBy, skillBy } from './stats.js';
+import { ruleLines, ruleCount, lineCount, ruleTokens, flowBy, hookBy } from './stats.js';
 import { stepHead } from './frame.js';
 import { hookChip } from './hooks.js';
+import { ruleDesc, dropWhy } from './rule-dialog.js';
 
 const START = '<!-- harness-fit:start -->';
 const END = '<!-- harness-fit:end -->';
 
-// 이 저장소 명령(commands)은 설명 자리에 찾은 명령을 그대로 보여 준다(시험 하나만 꼴은 자리표시가 든 글이라 미리 보기에서만)
-const ruleDesc = (S, r) => (r.id === 'commands'
-  ? Object.entries(S.detected.commands || {}).filter(([k]) => k !== 'testOne').flatMap(([, v]) => v).join(' · ') || r.desc : r.desc);
-
+// 지침 한 줄: 설명은 한 줄로 줄여 보이고, 줄을 누르면(Enter·Space 도) 작은 창에 전체 설명·넣을 줄·뺀 줄을 보여 준다(rule-dialog.js)
 function ruleRow(c, r) {
   const { S, sel, ui, t, act } = c;
   const on = sel.rules.has(r.id);
@@ -22,6 +20,7 @@ function ruleRow(c, r) {
   return lrow({
     cls: on ? '' : '.off', id: `lb-ru-${r.id}`, title: [r.name, isNew(S, 'rules', r.id) ? [' ', label(t('badgeNew'), '.accent')] : null], desc: ruleDesc(S, r), descOne: true,
     extra: skipped ? h('span.d.warn', {}, t('ruleAllSkipped')) : null,
+    open: { key: `ruleOpen:${r.id}`, onOpen: () => act.openPanel({ kind: 'rule', id: r.id }) },
     tail: [h('span.meta', {}, on && text ? t('ruleSize', { lines: lineCount(text), tok: S.ruleTokens[r.id] || 0 }) : ''),
       toggleSwitch(t, { key: `rule:${r.id}`, on, labelId: `lb-ru-${r.id}`, onToggle: () => act.toggle('rules', r.id) })],
   });
@@ -50,10 +49,8 @@ function coverChips(c) {
 }
 
 // 뺀 줄 한 줄: 줄 그은 글 + 누가 맡는지
-function droppedLine({ S, t }, d) {
-  const name = (id) => (d.by === 'hook' ? hookBy(S, id)?.name : skillBy(S, id)?.title) || id;
-  const why = d.by === 'existing' ? t('dropExisting') : t(d.by === 'hook' ? 'dropByHook' : 'dropBySkill', { name: d.who.map(name).join(', ') });
-  return h('div.ln.drop', {}, h('s', {}, d.text), h('span.why', {}, `  ← ${why}`));
+function droppedLine(c, d) {
+  return h('div.ln.drop', {}, h('s', {}, d.text), h('span.why', {}, `  ← ${dropWhy(c, d)}`));
 }
 
 // 미리 보기: 줄여 보기는 지침마다 제목 + 줄 수 + 첫 줄, 전체 보기는 써질 글 그대로(「뺀 줄 보기」면 뺀 줄도 제자리에)

@@ -6,14 +6,12 @@
 //   `… {{judge}}`             판단이 필요해 검사로 막을 수 없는 줄(늘 넣는다)
 // 모든 줄은 이 넷 중 하나를 단다(scripts/test/rules.test.mjs). 검사로 막을 수 있는 것을 글로만 두지 않으려고 — 글은 놓친다(2026-11-05 사용자 지적).
 // 훅이 켜졌을 때 「훅이 막는다」고 알리는 줄은 두지 않는다. 훅이 막을 때 이유를 알려 주므로 매 대화 읽히는 글로 또 적으면 겹친다.
-import fs from 'node:fs';
-import path from 'node:path';
-import { PLUGIN_ROOT } from './catalog.mjs';
+import { TAG, ruleFiles, ruleFileLines } from './rule-files.mjs';
 
 export const START = '<!-- harness-fit:start -->';
 export const END = '<!-- harness-fit:end -->';
 // 스킬은 여럿을 | 로 이을 수 있다: {{!skill:caveman|ponytail}} = 둘 다 없을 때만
-export const TAG = /\s*\{\{(?:(!?)(hook|skill):([\w|-]+)|judge)\}\}\s*$/;
+export { TAG };
 // 줄 가운데 `{{cmd:test}}` 는 저장소에서 읽은 그 종류의 명령으로 채운다(scripts/lib/commands.mjs). 명령이 없으면 그 줄은 넣지 않는다.
 // `{{cmd:testOne|file=파일}}` 처럼 이름=말을 붙이면 명령 속 자리표시 `<file>` 을 그 언어 말 `<파일>` 로 바꾼다(말은 규칙 파일에 둔다).
 const CMD = /\{\{cmd:(\w+)((?:\|\w+=[^|}]+)*)\}\}/;
@@ -33,15 +31,15 @@ export const fillCmd = (text, cmds = {}) => {
 // → { text, dropped } — dropped 는 훅·스킬이 맡거나 이미 CLAUDE.md 에 있어 뺀 줄: { at: 글 몇째 줄 앞에 있었는지, text, by: hook|skill|existing, who: [id] }
 //   (화면 「뺀 줄 보기」. 꺼진 훅 전용 줄처럼 그 조건에 해당하지 않아 안 넣는 줄은 「뺀 줄」이 아니다.)
 export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds = {}) => {
-  const file = path.join(PLUGIN_ROOT, 'rules', `${id}.${lang}.md`);
-  if (!fs.existsSync(file)) return { text: '', dropped: [] };
+  const lines = ruleFileLines(id, lang);
+  if (!lines) return { text: '', dropped: [] };
   const on = new Set([...hooks.map((x) => `hook:${x}`), ...skills.map((x) => `skill:${x}`)]);
   const drop = new Set(skip);
   const out = [];
   const dropped = [];
   let n = 0;
   let kept = 0;
-  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+  for (const line of lines) {
     // 줄 번호는 파일에 적힌 「- 」 줄 순서 그대로(훅을 켜고 꺼도 번호가 밀리지 않게)
     const bullet = /^- /.test(line);
     if (bullet) n++;
@@ -81,15 +79,13 @@ const renderAll = (sel) => {
 // { 규칙 id: [훅 id] } — 켜면 그 규칙의 줄 하나를 대신 맡는 훅({{!hook:id}}, 파일에 적힌 순서). 화면 「줄을 대신 맡는 훅」 칩.
 export const ruleHookTags = (lang) => {
   const out = {};
-  for (const f of fs.readdirSync(path.join(PLUGIN_ROOT, 'rules'))) {
-    const m = f.match(/^(.+)\.(ko|en)\.md$/);
-    if (!m || m[2] !== lang) continue;
+  for (const [rule, lines] of ruleFiles(lang)) {
     const ids = [];
-    for (const line of fs.readFileSync(path.join(PLUGIN_ROOT, 'rules', f), 'utf8').split(/\r?\n/)) {
+    for (const line of lines) {
       const t = line.match(TAG);
       if (t?.[1] === '!' && t[2] === 'hook') for (const id of t[3].split('|')) if (!ids.includes(id)) ids.push(id);
     }
-    if (ids.length) out[m[1]] = ids;
+    if (ids.length) out[rule] = ids;
   }
   return out;
 };

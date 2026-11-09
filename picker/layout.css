@@ -64,8 +64,16 @@ main { min-width: 0; }
 .cov i { height: 6px; border-radius: 2px; background: var(--line); }
 .cov i.on { background: var(--accent); }
 .flow input { position: absolute; opacity: 0; }
-.flow svg.pic { display: block; width: 100%; height: 28px; margin-bottom: var(--s2); color: var(--ink-2); }
-.flow.sel svg.pic { color: var(--accent); }
+/* 브랜치 그림: 고른 카드와 안 고른 카드가 같은 그림(고름은 카드 테두리로). 점이 둥글게 남도록 비율 유지 */
+.flow svg.pic { display: block; width: 100%; max-width: var(--pic-max); height: auto; margin-bottom: var(--s2); overflow: visible; }
+.pic path { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.pic circle, .pic text { fill: currentColor; }
+.pic text { font: 600 var(--fs-pic)/1 var(--font); }
+.pic .k-main { color: var(--branch-main); }
+.pic .k-dev { color: var(--branch-dev); }
+.pic .k-feat { color: var(--branch-feat); }
+.pic .k-rel { color: var(--branch-rel); }
+.pic .k-none { color: var(--branch-none); }
 .flow .radio { flex: none; width: 16px; height: 16px; border: 1px solid var(--neutral-mute); border-radius: 50%; }
 .flow.sel .radio { border: 5px solid var(--accent); }
 .flow:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -196,4 +204,17 @@ body.finished .page { grid-template-columns: minmax(0, 1fr); max-width: 960px; }
   .lrow.ask { flex-wrap: wrap; }
   .lrow.ask .yn { flex-basis: 100%; padding-bottom: var(--s1); }
   .lrow.ask .yn .btn { flex: 1; }
+}
+/* 전화 폭: 저장소·브랜치를 두 줄로 쌓아 단추 둘(언어·그만두기)과 나란히. 저장소 이름은 그래도 넘칠 때만 말줄임 */
+@media (max-width: 560px) {
+  .gh-top { padding: 0 var(--s2) 0 var(--s3); }
+  .crumbs { flex: 1 1 0; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; height: auto; padding-left: var(--s2); }
+  .crumb { max-width: 100%; line-height: var(--lh-sm); }
+  .crumb:first-child svg, .slash { display: none; }
+  .crumb + .slash + .crumb { color: var(--top-ink-2); font-size: var(--fs-sm); }
+  .crumb + .slash + .crumb svg { width: 12px; height: 12px; }
+  .gh-top > .sp { display: none; }
+  .brand { flex: none; justify-content: center; min-width: var(--tap); }
+  /* 보이는 단추는 40px, ::before 가 좌우 2px 씩 넓혀 누르는 자리 44px */
+  .hbtn { flex: none; justify-content: center; min-width: 40px; }
 }

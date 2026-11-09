@@ -9,7 +9,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from './lib/args.mjs';
-import { loadAll, PLUGIN_ROOT } from './lib/catalog.mjs';
+import { loadAll } from './lib/catalog.mjs';
+import { readPluginJson } from './lib/paths.mjs';
+import { ruleFileLines } from './lib/rule-files.mjs';
 import { listSkills } from './lib/installed.mjs';
 import { TAG, START, END, setBlock, fillCmd } from './lib/claude-md.mjs';
 import { detectCommands } from './lib/commands.mjs';
@@ -29,9 +31,7 @@ export const ownClaudeMd = (root) => {
 // 규칙 파일의 「- 」 줄에 번호를 붙인다(번호는 renderRule 의 skip 과 같은 순서). 훅에 따라 바뀌는 줄은 언제 들어가는지 적는다.
 // cmds: 이 저장소 명령(scripts/lib/commands.mjs) — {{cmd:종류}} 를 채우고, 명령이 없는 줄은 뺀다(번호는 그대로).
 export const ruleLines = (lang, ids, cmds = {}) => Object.fromEntries(ids.map((id) => {
-  const file = path.join(PLUGIN_ROOT, 'rules', `${id}.${lang}.md`);
-  if (!fs.existsSync(file)) return [id, []];
-  const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/).filter((l) => /^- /.test(l));
+  const lines = (ruleFileLines(id, lang) || []).filter((l) => /^- /.test(l));
   return [id, lines.map((l, i) => {
     const m = l.match(TAG);
     const filled = fillCmd(l, cmds);
@@ -44,7 +44,7 @@ export const ruleLines = (lang, ids, cmds = {}) => Object.fromEntries(ids.map((i
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const { lang, root } = parseArgs(process.argv.slice(2));
   const all = loadAll();
-  const titles = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'catalog', 'titles.json'), 'utf8'));
+  const titles = readPluginJson('catalog/titles.json');
   const L = (o) => (o ? o[lang] || o.en : '');
   const installed = listSkills(root).map(({ id, name, description, scope, plugin }) => ({ name: name || id, description, scope, ...(plugin ? { plugin } : {}) }));
   const out = {

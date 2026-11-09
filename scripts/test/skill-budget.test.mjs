@@ -2,20 +2,19 @@
 // 카탈로그 설명 검사(외부 글이라 길이·「쓰는 때」는 보고만 한다).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir, gitInit } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { skillMeta, saysWhen, parseFrontmatter, descReport } from '../lib/skill-meta.mjs';
 import { currentListing, budgetFrom } from '../lib/skill-budget.mjs';
 import { budgetOf, trimPlan, trimTier, entryChars, catalogChars, newSkills, DESC_CAP, DEFAULT_BUDGET } from '../../picker/budget.js';
-import { plan } from '../apply.mjs';
+import { plan } from '../lib/plan.mjs';
 import { loadAll } from '../lib/catalog.mjs';
 import { STATIC } from '../lib/static.mjs';
 
 const all = loadAll();
 let tmp;
-before(() => (tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-budget-'))));
+before(() => (tmp = tmpDir('harness-budget-')));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 let seq = 0;
 const dir = (name) => fs.mkdirSync(path.join(tmp, `${name}${++seq}`), { recursive: true }) || path.join(tmp, `${name}${seq}`);
@@ -47,7 +46,6 @@ test('목록 한 줄: 이름 + 설명(+ when_to_use), 설명은 1,536자에서 �
   assert.equal(entryChars('abc', 'x'.repeat(5000)), 3 + DESC_CAP);
   assert.equal(entryChars('abc', 'x'.repeat(5000), '', 100), 103);
   assert.equal(catalogChars({ id: 'ab', descChars: 10 }), 12);
-  assert.equal(catalogChars({ id: 'ab', always: 10 }), 40, '옛 카탈로그는 토큰 × 4');
 });
 
 test('지금 목록: 사용자·프로젝트 스킬과 명령, 켜진 플러그인만 세고 disable-model-invocation 은 뺀다', () => {
@@ -145,7 +143,7 @@ test('새로 들어가는 스킬: 복사 설치 + 프로젝트에 같은 폴더�
 test('적용 계획: 스킬이 많은 홈이면 skill-budget 경고와 숫자, 지금 폴더를 고치는 스킬은 새로 세지 않는다', () => {
   const home = dir('home');
   const root = dir('repo');
-  execFileSync('git', ['init', '-q', root]);
+  gitInit(root);
   for (let i = 0; i < 40; i++) skill(path.join(home, '.claude'), `fake-${i}`, 'd'.repeat(150));
   const copy = all.catalog.skills.filter((k) => k.install === 'copy').slice(0, 4).map((k) => k.id);
   const sel = { lang: 'ko', combo: 'solo', skills: copy, hooks: [], rules: [], flow: 'none', explore: [], note: '', share: false };
@@ -172,7 +170,7 @@ test('적용 계획: 스킬이 많은 홈이면 skill-budget 경고와 숫자, �
 
 test('카탈로그 설명: 모든 스킬에 잰 값이 있다(1,536자 넘김·「쓰는 때」는 외부 글이라 보고만)', (t) => {
   for (const k of all.catalog.skills) {
-    assert.ok(Number.isInteger(k.descChars) && k.descChars > 0, `${k.id}: descChars — node scripts/check-descriptions.mjs`);
+    assert.ok(Number.isInteger(k.descChars) && k.descChars > 0, `${k.id}: descChars — node scripts/dev/check-descriptions.mjs`);
     assert.equal(typeof k.saysWhen, 'boolean', `${k.id}: saysWhen`);
   }
   const r = descReport(all.catalog.skills);

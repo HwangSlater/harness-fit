@@ -2,6 +2,7 @@
 // 브랜치 전략을 정했으면 확인 단계에서 꼭 묻는다(답하기 전엔 적용 단추를 잠근다). 「네」면 팀원이 할 일을 코드가 실제로 하는 대로 보여 준다.
 import { h } from './dom.js';
 import { lrow, toggleSwitch } from './parts.js';
+import { moreToggle } from './review-notes.js';
 
 // 저장소에 올라가 팀원에게 가는 것(apply.mjs plan 의 kind). git 훅(.git/hooks)·백업은 올라가지 않는다.
 export const SHARED_KINDS = new Set(['config', 'claude-md', 'share', 'gitignore', 'skill']);
@@ -12,13 +13,15 @@ export const shareOpen = (sel, ui) => mustAsk(sel) && !ui.shareAnswered;
 export const sharedPaths = (p) => [...new Set((p?.changes || []).filter((x) => SHARED_KINDS.has(x.kind)).map((x) => (x.kind === 'skill' ? `${x.path}/` : x.path)))];
 
 // 팀원이 할 일. done = 끝 화면(이미 적용함)
-export function teamHowTo({ S, t }, p, done = false) {
+export function teamHowTo(c, p, done = false) {
+  const { S, t } = c;
   const files = sharedPaths(p);
+  const [more4, body4] = moreToggle(c, 'team4', t('teamStep4D'));
   const steps = [
     [t(done ? 'teamStep1Done' : 'teamStep1'), files.length ? h('ul.files', {}, files.map((f) => h('li.mono', {}, f))) : null],
     [t('teamStep2', { repo: S.pluginRepo, ref: S.pluginRef })],
     [t('teamStep3')],
-    [t('teamStep4'), h('p.hint', {}, t('teamStep4D'))],
+    [[t('teamStep4'), ' ', more4], body4],
   ];
   return h('div.box.team', {},
     h('div.box-h', {}, h('span', {}, t('teamHowTitle'))),
@@ -29,14 +32,16 @@ export function teamHowTo({ S, t }, p, done = false) {
 export function teamBox(c) {
   const { S, sel, ui, t, act } = c;
   if (!mustAsk(sel)) {
-    return h('div.box', {}, lrow({ id: 'lb-share', title: t('shareTitle'), desc: t('shareD'), extra: h('span.d', {}, t('sharePin', { repo: S.pluginRepo, ref: S.pluginRef })),
+    const moreS = moreToggle(c, 'share', t('shareD'));
+    return h('div.box', {}, lrow({ id: 'lb-share', title: t('shareTitle'), extra: [h('span.d', {}, t('sharePin', { repo: S.pluginRepo, ref: S.pluginRef }), ' ', moreS[0]), moreS[1]],
       tail: [toggleSwitch(t, { key: 'share', on: sel.share, labelId: 'lb-share', onToggle: () => act.answerShare(!sel.share) })] }));
   }
   const ans = ui.shareAnswered ? sel.share : null;
+  const moreQ = moreToggle(c, 'teamQ', t('teamQD'));
   const pick = (v, text) => h(`button.btn${ans === v ? '.on' : ''}`, { type: 'button', 'data-key': `share:${v}`, 'aria-pressed': String(ans === v), on: { click: () => act.answerShare(v) } }, text);
   return h('div.stack', {},
     h(`div.box${ans === null ? '.ask' : ''}`, {},
-      h('div.lrow.ask', {}, h('div.main', {}, h('b', { id: 'q-share' }, t('teamQ')), h('span.d', {}, t('teamQD')), ans === null ? h('span.d.warn', {}, t('teamQNeed')) : null),
+      h('div.lrow.ask', {}, h('div.main', {}, h('b', { id: 'q-share' }, t('teamQ')), h('span.d', {}, moreQ[0]), moreQ[1], ans === null ? h('span.d.warn', {}, t('teamQNeed')) : null),
         h('div.yn', { role: 'group', 'aria-labelledby': 'q-share' }, pick(true, t('yes')), pick(false, t('no'))))),
     ans ? teamHowTo(c, ui.preview && !ui.preview.error ? ui.preview : null) : null);
 }

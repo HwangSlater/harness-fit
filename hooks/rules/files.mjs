@@ -2,12 +2,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { findSecrets, forbiddenFile } from '../lib/secrets.mjs';
-import { writeRows, targetFile, extOf, normPath, OUTSIDE_CODE, CODE_EXT } from '../lib/lines.mjs';
-import { allowFor, allowHint, allowAtTop, recordAllow } from '../lib/allow.mjs';
+import { writeRows, targetFile } from '../lib/lines.mjs';
+import { allowFor } from '../lib/allow.mjs';
+import { secretsAllowOn, secretsHint, DEFAULT_MAX_LINES, sizeTarget, lineCount, sizeVerdict } from '../lib/messages.mjs';
 
-// 비밀값은 허용 주석을 옵션(allowComment)을 켰을 때만 받는다 — 진짜 키에 주석 하나 달아 넘기기 쉬워서(사용자 결정 2026-11-06).
-export const secretsAllowOn = (opts = {}) => opts.allowComment === true;
-export const secretsHint = (opts, t) => allowHint('secrets', t, { on: secretsAllowOn(opts) });
+// 판정·문구 도우미는 커밋 검사와 같이 쓰려고 lib/messages.mjs 에 있다(예전 가져오기를 위해 여기서도 내보낸다).
+export { secretsAllowOn, secretsHint, DEFAULT_MAX_LINES, sizeTarget, lineCount, sizeVerdict };
 
 export const secretsWrite = {
   id: 'secrets',
@@ -29,26 +29,6 @@ export const protectedFiles = {
     const why = file && forbiddenFile(file, opts.paths || []);
     return why ? t('protected.write', { file, why: t(why) }) : null;
   },
-};
-
-// 큰 새 파일: 코드 파일만 본다 — 문서·JSON·잠금 파일·SVG 는 길어도 나눌 일이 아니다.
-export const DEFAULT_MAX_LINES = 400;
-export const sizeTarget = (file) => CODE_EXT.has(extOf(file)) && !OUTSIDE_CODE.test(normPath(file));
-// 줄 수: 마지막 줄바꿈 뒤의 빈 조각은 줄이 아니다(400줄 + 끝 줄바꿈 = 400줄). 커밋 검사와 같은 함수.
-export { countLines as lineCount } from '../lib/staged.mjs';
-import { countLines as lineCount } from '../lib/staged.mjs';
-
-// 한도를 넘은 새 파일: 파일 맨 위 몇 줄 안의 `lint:allow file-size <이유>` 가 있으면 통과(줄 하나가 아니라 파일 전체를 보는 검사라서).
-// 반환: 막는 글 또는 null. 쓰기 검사와 커밋 검사가 같이 쓴다.
-export const sizeVerdict = (file, text, lines, max, { t, allows }) => {
-  if (lines <= max) return null;
-  const a = allowAtTop(text, 'file-size');
-  if (a?.reason && allows) {
-    recordAllow(allows, 'file-size', file, a.no, a.reason);
-    return null;
-  }
-  if (a?.noReason) allows?.noReason.add('file-size');
-  return t('size.write', { lines, max, hint: allowHint('file-size', t, { top: true }) });
 };
 
 // 새로 쓰는 파일(Write)이 한도를 넘으면 막는다. 고치기(Edit)는 막지 않는다 — 이미 큰 파일 손보는 일을 막지 않게.

@@ -1,8 +1,8 @@
 // 이미 있는 것과 겹치면 기본에서 빼는지(2026-11-05 사용자 요청 「중복으로 적용하게 하면 안 된다」).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir, gitInit } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { loadAll, expandCombo, recommend, applyFlow } from '../lib/catalog.mjs';
 import { renderRule, ruleTexts } from '../lib/claude-md.mjs';
@@ -15,7 +15,7 @@ import { ownClaudeMd } from '../overlap.mjs';
 
 // 다시 적용할 때 지난번에 넣은 관리 구역까지 견주면 규칙 줄이 모두 「이미 있음」으로 빠진다. 사용자가 쓴 글만 견준다.
 test('겹침 견주기: 프로젝트 CLAUDE.md 는 harness-fit 관리 구역을 뺀 사용자 글만 준다', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-own-'));
+  const root = tmpDir('harness-own-');
   try {
     const md = (s) => fs.writeFileSync(path.join(root, 'CLAUDE.md'), s);
     assert.equal(ownClaudeMd(root), undefined, 'CLAUDE.md 가 없으면 줄 것이 없다');
@@ -57,7 +57,7 @@ test('이 PC 에만 있는 훅과 겹치면 빼고, 팀원 공유 조합이면 �
 
 test('스택 스킬: RN 앱에 웹용 React 스킬을 넣지 않고, 파이썬이 있으면 pre-commit 을 두 번 세우지 않는다', async () => {
   const { detect } = await import('../detect.mjs');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-rn-'));
+  const dir = tmpDir('harness-rn-');
   try {
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ dependencies: { react: '19.0.0', 'react-native': '0.80.0', expo: '54.0.0' } }));
     const d = detect(dir);
@@ -74,11 +74,10 @@ test('스택 스킬: RN 앱에 웹용 React 스킬을 넣지 않고, 파이썬�
 });
 
 test('적용: 플러그인이 없으면 알리고 규칙을 글로 쓰고, 사용자가 둔 같은 이름 스킬은 건드리지 않고, .claude/ 를 git 이 무시하면 알린다', async () => {
-  const { plan } = await import('../apply.mjs');
-  const { execFileSync } = await import('node:child_process');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-plan-'));
+  const { plan } = await import('../lib/plan.mjs');
+  const root = tmpDir('harness-plan-');
   try {
-    execFileSync('git', ['init', '-q', root]);
+    gitInit(root);
     fs.writeFileSync(path.join(root, '.gitignore'), '.claude/\n');
     fs.mkdirSync(path.join(root, '.claude', 'skills', 'grilling'), { recursive: true });
     fs.writeFileSync(path.join(root, '.claude', 'skills', 'grilling', 'SKILL.md'), '---\nname: grilling\n---\n내가 쓴 것');
@@ -140,8 +139,8 @@ test('인자: --similar·--skip 을 읽고, 이상한 값은 버린다', () => {
 });
 
 test('이미 있는 스킬 목록: harness-fit 이 넣은 스킬은 「이미 있음」이 아니다', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-skills-'));
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-home-'));
+  const root = tmpDir('harness-skills-');
+  const home = tmpDir('harness-home-');
   try {
     const mk = (base, name, extra) => {
       const d = path.join(base, '.claude', 'skills', name); fs.mkdirSync(d, { recursive: true });

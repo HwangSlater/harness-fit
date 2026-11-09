@@ -24,7 +24,7 @@ const docs = (files) => (r) => {
 };
 const sayDone = (r) => [rec.prompt('문서를 써 주세요'), rec.say('문서를 고쳤어요.')];
 const EN = 'I updated the config file and all the tests pass now. Let me know if you want anything else changed.';
-const KO = '설정 파일을 고쳤고 시험이 모두 통과했어요. 더 바꿀 것이 있으면 알려 주세요.';
+const KO = '설정 파일을 고쳤고 테스트가 모두 통과했어요. 더 바꿀 것이 있으면 알려 주세요.';
 
 export default {
   'commit-hash': {

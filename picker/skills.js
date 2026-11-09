@@ -1,10 +1,9 @@
 // 2 스킬 단계: 조합이 켜는 것(단계 묶음 표) + 「추가로 추천」(저장소 스택에 맞춘 것) + 새로 나온 저장소.
 // 「자세히 보기」·「전체 스킬 보기」는 전체 보기 창(browse.js)을 그 묶음으로 연다. 창의 스킬 한 줄도 여기서 만든다.
-import { h } from './dom.js';
-import { chip, shead, groupRow, onCount, alreadyNote, skillLabels, label, stars, num, checkRow, isNew, link } from './parts.js';
+import { h, fmt } from './dom.js';
+import { chip, shead, groupRow, onCount, alreadyNote, skillLabels, label, stars, num, checkRow, isNew, link, browseBtn, itemRow } from './parts.js';
 import { STAGES, stageOf, listable, skillBy, comboBy, recSkills } from './stats.js';
 import { stepHead } from './frame.js';
-import { browseBtn, itemRow } from './browse.js';
 
 const addonIds = (k) => new Set((k?.addons || []).flatMap((a) => a.skills));
 // 조합이 켜는 스킬(스택 맞춤은 빼고)
@@ -34,7 +33,7 @@ function skillChip(c, id, note) {
   const { S, sel, t, act, dup, mates } = c;
   const k = skillBy(S, id);
   const warn = dup.skills.get(id) ? t('chipDup') : mates.get(id) && !sel.skills.has(id) ? t('chipMate') : null;
-  return chip({ key: `skill:${id}`, on: sel.skills.has(id), label: k.title, note: warn || note, badge: isNew(S, 'skills', id) ? t('badgeNewShort') : null, title: k.when,
+  return chip({ key: `skill:${id}`, on: sel.skills.has(id), label: k.title, note: warn || note, badge: isNew(S, 'skills', id) ? t('badgeNewShort') : null, title: k.effect || k.when,
     onClick: () => act.toggle('skills', id) });
 }
 
@@ -77,6 +76,9 @@ export function skillsStep(c) {
   ];
 }
 
+// 알아 둘 점: 카탈로그 글의 {onUse} 를 이 스킬의 「꺼내 쓸 때」 토큰 수로 채운다(수는 catalog.json 한 곳에서)
+export const skillDownside = (S, k) => (k.downside ? fmt(k.downside, { onUse: num(S, k.onUse) }, S.lang) : '');
+
 // 전체 보기 창의 스킬 한 줄. 「자세히」를 펼치면 출처·라이선스·고정 커밋·실행 파일·원문(SKILL.md)
 export function skillItem(c, id) {
   const { S, sel, ui, t, act } = c;
@@ -87,8 +89,9 @@ export function skillItem(c, id) {
   return itemRow(c, {
     key: `s:${id}`, on: sel.skills.has(id), name: k.title,
     labels: [why ? label(why.text, why.k === 'combo' ? '' : '.accent') : null, ...skillLabels(c, k)],
-    plain: k.when,
-    meta: [h('span', {}, t('skillMeta', { always: num(S, k.always), onUse: num(S, k.onUse) }), ' · ', h('span.mono', {}, k.repo), ` · ${t('stars', { n: stars(S, k.stars) })}`)],
+    plain: k.effect || k.when,
+    keep: skillDownside(S, k),
+    meta: [k.effect ? t('skillWhen', { when: k.when }) : null, h('span', {}, t('skillMeta', { always: num(S, k.always), onUse: num(S, k.onUse) }), ' · ', h('span.mono', {}, k.repo), ` · ${t('stars', { n: stars(S, k.stars) })}`)],
     scope: [h('dl', {},
       row('dSource', `${k.repo} · ${t('stars', { n: stars(S, k.stars) })}`),
       row('dLicense', k.license || t('dLicenseNone')),

@@ -2,6 +2,7 @@
 // 시험 입력(catalog/probes.json)에서 같은 일을 하는 것만 겹친다고 보는지, 시험이 사용자 홈을 건드리지 않는지 본다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -29,8 +30,8 @@ const FAKES = {
 };
 
 test('기존 훅(Stop·SessionStart·UserPromptSubmit): 같은 일을 하면 겹침, 다 막는 훅·쓴 뒤 훅은 아님, 사용자 홈은 그대로', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-home-'));
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-root-'));
+  const home = tmpDir('harness-home-');
+  const root = tmpDir('harness-root-');
   const realLists = path.join(os.homedir(), '.claude', 'fake-lists');
   const before = fs.existsSync(realLists);
   try {
@@ -53,8 +54,8 @@ test('기존 훅(Stop·SessionStart·UserPromptSubmit): 같은 일을 하면 겹
     assert.deepEqual(listHooks(root, home).map((h) => h.event).sort(), ['SessionStart', 'Stop', 'Stop', 'UserPromptSubmit']);
     const got = await probeExistingHooks(root, { home, trustProject: false });
     assert.deepEqual(Object.keys(got).sort(), ['commit-hash', 'work-checklist'], JSON.stringify(got));
-    assert.deepEqual(got['commit-hash'], { scope: 'user', by: ['hash-check.cjs'] });
-    assert.deepEqual(got['work-checklist'], { scope: 'user', by: ['list-remind.cjs'] });
+    assert.deepEqual(got['commit-hash'], { scope: 'user', by: ['hash-check.cjs'], from: [{ label: 'hash-check.cjs', scope: 'user', plugin: null }] });
+    assert.deepEqual(got['work-checklist'], { scope: 'user', by: ['list-remind.cjs'], from: [{ label: 'list-remind.cjs', scope: 'user', plugin: null }] });
     assert.equal(fs.existsSync(realLists), before, '시험이 사용자 홈에 체크리스트를 만들었다');
   } finally {
     fs.rmSync(home, { recursive: true, force: true });

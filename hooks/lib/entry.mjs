@@ -29,7 +29,7 @@ export const runEvent = async (on) => {
     if (!cfg || cfg.broken || !EVENT_HOOK_IDS[on].some((id) => cfg.rules[id])) write({});
     t = translator(pickLang(cfg.lang));
     const { evaluateEvent } = await import('./events.mjs');
-    msgs = evaluateEvent(on, input, errors);
+    msgs = evaluateEvent(on, input, errors, cfg);
   } catch {
     errors.push('*');
   }

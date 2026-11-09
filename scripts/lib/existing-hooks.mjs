@@ -10,16 +10,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { PLUGIN_ROOT } from './catalog.mjs';
+import { PLUGIN_ROOT, readJson } from './paths.mjs';
 import { listPlugins } from './installed.mjs';
+import { claudeHome } from '../../hooks/lib/claude-home.mjs';
 import { eventOf, ownSpace, makeSpace, makeHome, eventInput, spaceEnv, runCommand, verdict, seedChecklist, gitAsync, HOME_VARS } from './probe-run.mjs';
 
 const DEFAULT_TIMEOUT_S = 10; // settings 에 timeout 이 없을 때(Claude Code 기본값보다 짧게 — 시험이 화면을 오래 막지 않게)
 const MAX_PARALLEL = 6;
 const OLD_DATE = { GIT_AUTHOR_DATE: '2020-01-01T00:00:00+0000', GIT_COMMITTER_DATE: '2020-01-01T00:00:00+0000' };
 export const PROBE_EVENTS = ['PreToolUse', 'Stop', 'SessionStart', 'UserPromptSubmit'];
-
-const readJson = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; } };
 
 // 시험은 홈·설정 폴더 환경 변수를 임시 폴더로 바꿔 돌리므로, 명령 속 `~/…`·`$HOME`·`${HOME}`·`%USERPROFILE%`·`$env:USERPROFILE` 같은
 // 스크립트 경로는 미리 실제 값으로 펼친다(안 펼치면 스크립트를 못 찾아 「통과」로 읽혀 겹침을 놓친다). 환경은 그대로 임시 폴더.
@@ -55,17 +54,20 @@ export const expandHomeRefs = (command, args, home) => {
 
 // settings 파일들과 켜진 플러그인(hooks/hooks.json)에서 훅 명령을 모은다. scope: user(이 PC 의 나만) · project(저장소에 있어 팀원도 받음)
 // harness-fit 자신은 listPlugins 가 뺀다.
-export const listHooks = (root, home = os.homedir()) => {
+// home: 시험이 임시 홈을 넘긴다. 안 주면 설정은 CLAUDE_CONFIG_DIR → ~/.claude, 명령 속 ~ 는 실제 홈으로 펼친다.
+export const listHooks = (root, homeArg) => {
+  const home = homeArg || os.homedir();
+  const dot = claudeHome(homeArg);
   const files = [
-    ['user', path.join(home, '.claude', 'settings.json')],
-    ['user', path.join(home, '.claude', 'settings.local.json')],
+    ['user', path.join(dot, 'settings.json')],
+    ['user', path.join(dot, 'settings.local.json')],
     ['project', path.join(root, '.claude', 'settings.json')],
     ['project-local', path.join(root, '.claude', 'settings.local.json')], // 커밋하지 않는 파일이라 팀원은 없다
   ];
   const out = [];
   // 플러그인 훅의 ${CLAUDE_PLUGIN_ROOT} 는 셸마다 펼치는 방법이 달라 글자 그대로 바꿔 넣는다
   const sources = [...files.map(([scope, file]) => [scope, file, readJson(file), null]),
-    ...listPlugins(root, home).map((p) => [p.scope, path.join(p.dir, 'hooks', 'hooks.json'), readJson(path.join(p.dir, 'hooks', 'hooks.json')), p])];
+    ...listPlugins(root, homeArg).map((p) => [p.scope, path.join(p.dir, 'hooks', 'hooks.json'), readJson(path.join(p.dir, 'hooks', 'hooks.json')), p])];
   for (const [scope, file, s, plugin] of sources) {
     for (const event of PROBE_EVENTS) {
       for (const group of s?.hooks?.[event] || []) {
@@ -189,7 +191,7 @@ export const runProbeCase = async (x, hooks, { sharedDir, sharedHome = null, sta
   }
 };
 
-// 결과: { <harness 훅 id>: { scope: 'project'|'user', by: ['guard-git.mjs', …] } } — 같은 일을 하는 기존 훅이 있는 것만.
+// 결과: { <harness 훅 id>: { scope: 'project'|'user', by: ['guard-git.mjs', …], from: [{ label, scope, plugin }] } } — 같은 일을 하는 기존 훅이 있는 것만.
 // scope 가 user 면 이 PC 의 나에게만 있는 훅이라 팀원 공유를 켜면 harness-fit 훅이 다시 필요하다.
 // 저장소 쪽 훅(프로젝트 settings·프로젝트 범위 플러그인)은 Claude Code 안에서만 돌린다 — Claude Code 는 폴더를 믿는다고 한 뒤에만
 // 그 훅을 돌리는데, npx 로 받은 저장소를 열 때 여기서 돌리면 그 확인을 건너뛰게 된다. 밖에서는 내 전역 훅만 시험한다.
@@ -228,7 +230,10 @@ export const probeExistingHooks = async (root, { home, probes = readJson(path.jo
       // 팀원도 받는 것(project)이 있으면 그것, 없으면 이 저장소의 이 PC 만(project-local), 그다음 전역(user)
       const scope = ['project', 'project-local', 'user'].find((s) => same.some((h) => h.scope === s));
       // exec 꼴은 args 의 스크립트 이름을 먼저 본다(command 는 대개 node.exe 같은 실행 파일이라)
-      out[id] = { scope, by: [...new Set(same.map((h) => hookLabel(h.args?.length ? [...h.args, h.command].join(' ') : h.command)))] };
+      const labelOf = (h) => hookLabel(h.args?.length ? [...h.args, h.command].join(' ') : h.command);
+      // from: 화면 「이미 쓰고 있는 훅」 창이 보여 줄 것 — 훅마다 짧은 이름·어디에 적혔는지(scope)·플러그인 id. 명령 전체·파일 경로는 보내지 않는다.
+      const from = [...new Map(same.map((h) => [`${h.scope}\u0000${h.plugin || ''}\u0000${labelOf(h)}`, { label: labelOf(h), scope: h.scope, plugin: h.plugin }])).values()];
+      out[id] = { scope, by: [...new Set(same.map(labelOf))], from };
     }
     return out;
   } finally {

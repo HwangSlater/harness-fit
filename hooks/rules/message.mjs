@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { BASH, POWERSHELL, gitSegments, stripQuoted, heredocs, commandSegments } from '../lib/cmdline.mjs';
-import { COMMIT_VALUE_FLAGS, COMMIT_NEXT_VALUE, COMMIT_LONG_VALUE, GIT_WORD, commandWords } from '../lib/staged.mjs';
+import { COMMIT_VALUE_FLAGS, COMMIT_NEXT_VALUE, COMMIT_LONG_VALUE, GIT_WORD, commandWords } from '../lib/commit-args.mjs';
 
 const MESSAGE_LONG = '--message';
 const FILE_LONG = '--file';
@@ -168,7 +168,8 @@ export const commitMessage = (cmd, shell = BASH, cwd = process.cwd()) => {
   return first?.msg ?? null;
 };
 
-const CONVENTIONAL = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([\w\-./ ]+\))?!?: \S/;
+// 고르기 화면 기본값도 이 꼴로 저장소 커밋 기록을 견준다(scripts/detect.mjs history)
+export const CONVENTIONAL = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([\w\-./ ]+\))?!?: \S/;
 const HANGUL = /[가-힣]/;
 export const DEFAULT_MAX_SUBJECT = 72;
 

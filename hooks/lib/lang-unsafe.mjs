@@ -39,7 +39,6 @@ export const LANGS = {
     ],
   },
 };
-export const LANG_IDS = Object.keys(LANGS);
 
 // 이 훅이 볼 파일인지: 확장자가 그 언어이고, 시험 코드·남의 코드가 아님
 export const langTarget = (id, file) => {

@@ -11,7 +11,7 @@ import { runCommand, spaceEnv, makeHome } from '../lib/probe-run.mjs';
 
 // 겹침 시험은 git-add-all 시험 입력만(다른 시험 파일과 함께 돌 때 PC 를 덜 바쁘게)
 const probes = JSON.parse(fs.readFileSync(new URL('../../catalog/probes.json', import.meta.url), 'utf8'));
-const tmpDir = (p) =>fs.mkdtempSync(path.join(os.tmpdir(), p));
+import { tmpDir } from './helpers.mjs';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 test('시험은 도구·Stop 어느 때든 홈과 APPDATA·XDG·CLAUDE_CONFIG_DIR 를 임시 폴더로 바꿔 돌린다', async () => {

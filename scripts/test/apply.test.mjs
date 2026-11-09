@@ -2,10 +2,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { buildClaudeMd, buildConfig, plan, undo } from '../apply.mjs';
+import { buildConfig, plan } from '../lib/plan.mjs';
+import { undo } from '../lib/apply-run.mjs';
+import { buildClaudeMd } from '../lib/claude-md.mjs';
 import { loadAll, expandCombo, recommend } from '../lib/catalog.mjs';
+import { ruleHeading, ruleLine, escapeRe, tmpDir } from './helpers.mjs';
 
 const all = loadAll();
 const base = { lang: 'ko', combo: 'team', skills: [], hooks: ['protect-branch', 'branch-name', 'commit-msg', 'secrets'], rules: ['lean'], flow: 'git-flow' };
@@ -13,12 +15,13 @@ const base = { lang: 'ko', combo: 'team', skills: [], hooks: ['protect-branch', 
 test('CLAUDE.md: 사용자 글은 남기고 관리 구역만 넣고·바꾸고·지운다', () => {
   const mine = '# 내 프로젝트\n\n내 규칙.\n';
   const once = buildClaudeMd(mine, base);
+  const gitFlow = ruleHeading('git-flow', 'ko');
   assert.ok(once.startsWith(mine.trim()));
-  assert.match(once, /<!-- harness-fit:start -->[\s\S]*Git Flow[\s\S]*<!-- harness-fit:end -->/);
+  assert.match(once, new RegExp(`<!-- harness-fit:start -->[\\s\\S]*${escapeRe(gitFlow)}[\\s\\S]*<!-- harness-fit:end -->`));
   assert.equal(buildClaudeMd(once, base), once, '같은 선택을 두 번 적용해도 그대로');
   const changed = buildClaudeMd(once, { ...base, flow: 'trunk' });
-  assert.match(changed, /트렁크/);
-  assert.doesNotMatch(changed, /Git Flow/);
+  assert.ok(changed.includes(ruleHeading('trunk', 'ko')));
+  assert.ok(!changed.includes(gitFlow));
   const removed = buildClaudeMd(once, { ...base, flow: 'none', rules: [] });
   assert.doesNotMatch(removed, /harness-fit:start/);
   assert.match(removed, /내 규칙/);
@@ -87,7 +90,7 @@ test('조합에 적힌 규칙은 packs.json 에 있고 한국어·영어 글이 
 });
 
 test('미리보기는 파일을 바꾸지 않고, 되돌릴 것이 없으면 알린다', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-apply-'));
+  const dir = tmpDir('harness-apply-');
   const { changes } = plan(dir, { ...base, skills: ['handoff'] }, all);
   assert.ok(changes.some((c) => c.skill === 'handoff'));
   assert.deepEqual(fs.readdirSync(dir), []);
@@ -99,11 +102,13 @@ test('CLAUDE.md 문장은 실제로 켠 훅을 따른다', async () => {
   const { renderRule } = await import('../lib/claude-md.mjs');
   const on = renderRule('collab', 'ko', ['commit-msg']);
   const off = renderRule('collab', 'ko', []);
-  assert.doesNotMatch(on, /타입: 설명/, '형식은 훅이 막으니 글로 적지 않는다');
-  assert.match(off, /타입: 설명/);
+  // 커밋 메시지 형식 줄({{!hook:commit-msg}})은 훅이 꺼졌을 때만
+  const format = ruleLine('collab', 'ko', '!hook:commit-msg');
+  assert.ok(!on.includes(format), '형식은 훅이 막으니 글로 적지 않는다');
+  assert.ok(off.includes(format));
   assert.doesNotMatch(on + off, /훅/);
   assert.doesNotMatch(on + off, /\{\{/);
-  assert.match(renderRule('github-flow', 'ko', []), /PR 로 병합한다/);
+  assert.ok(renderRule('github-flow', 'ko', []).includes(ruleLine('github-flow', 'ko', '!hook:protect-branch')));
   assert.doesNotMatch(renderRule('github-flow', 'ko', []), /훅이 막는다/);
 });
 
@@ -116,7 +121,7 @@ test('브랜치 방식이 훅을 켜고 끈다', async () => {
 });
 
 test('팀원 설치 안내: 기존 설정은 두고 두 항목만 더한다', async () => {
-  const { buildSettings } = await import('../apply.mjs');
+  const { buildSettings } = await import('../lib/plan.mjs');
   const src = all.sources;
   const out = JSON.parse(buildSettings(JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }), src));
   assert.deepEqual(out.permissions, { allow: ['Bash(ls)'] });
@@ -137,7 +142,7 @@ test('보고용 이름은 스킬·훅·규칙으로 나뉘고 id 대신 이름�
 test('빈 저장소는 thin, 사용자가 알려 준 스택·인원은 추천에 들어간다', async () => {
   const { detect, withHints } = await import('../detect.mjs');
   const { parseArgs } = await import('../lib/args.mjs');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-empty-'));
+  const dir = tmpDir('harness-empty-');
   const det = detect(dir);
   assert.equal(det.thin, true);
   const { root, hints } = parseArgs([dir, '--lang', 'ko', '--stack', 'next.js, Supabase,없는것', '--team']);
@@ -154,7 +159,7 @@ test('빈 저장소는 thin, 사용자가 알려 준 스택·인원은 추천에
 });
 
 test('요청 칸과 팀 공유는 파일 목록에 들어간다', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-plan-'));
+  const dir = tmpDir('harness-plan-');
   const kinds = plan(dir, { ...base, note: '커밋은 한국어로', share: true }, all).changes.map((c) => c.kind);
   assert.ok(kinds.includes('request') && kinds.includes('share') && kinds.includes('claude-md'));
   assert.ok(!plan(dir, { ...base, note: '  ', share: false }, all).changes.some((c) => c.kind === 'request' || c.kind === 'share'));

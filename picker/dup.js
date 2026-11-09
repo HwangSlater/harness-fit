@@ -10,21 +10,24 @@ const tunedBy = (flow) => (flow && flow.id !== PROBE_FLOW ? new Set(Object.keys(
 
 export const dupHooks = (existing, share, flow = null) => {
   const tuned = tunedBy(flow);
-  return Object.entries(existing?.hooks || {}).filter(([id, v]) => counts(v.scope, share) && !tuned.has(id)).map(([id, v]) => ({ id, scope: v.scope, by: v.by }));
+  // from: 같은 일을 하는 기존 훅마다 { label, scope, plugin }(화면 「이미 쓰고 있는 훅」 창). 예전 결과에는 없을 수 있다.
+  return Object.entries(existing?.hooks || {}).filter(([id, v]) => counts(v.scope, share) && !tuned.has(id)).map(([id, v]) => ({ id, scope: v.scope, by: v.by, from: v.from || [] }));
 };
 
 // 같은 스킬: 폴더 이름이나 머리말 name 이 카탈로그 id 와 같은 것. 비슷한 스킬: setup 때 Claude 가 이름·설명을 보고 짚은 것(similar).
+// found: 그 이미 있는 스킬(listSkills 의 { name, description, scope, plugin }) — 화면 「이미 있는 스킬」 창이 보여 준다.
+const shown = (s) => ({ name: s.name, description: s.description || '', scope: s.scope, plugin: s.plugin || null });
 export const dupSkills = (existing, catalogIds, share) => {
   const list = existing?.skillList || [];
   const out = new Map();
   for (const s of list) {
     if (!counts(s.scope, share)) continue;
-    for (const id of [s.id, s.name]) if (catalogIds.has(id) && !out.has(id)) out.set(id, { id, scope: s.scope, by: [s.plugin ? `${s.plugin} · ${s.name}` : s.name], same: true });
+    for (const id of [s.id, s.name]) if (catalogIds.has(id) && !out.has(id)) out.set(id, { id, scope: s.scope, by: [s.plugin ? `${s.plugin} · ${s.name}` : s.name], same: true, found: [shown(s)] });
   }
   for (const { id, to } of existing?.similar || []) {
     const s = list.find((x) => x.name === to || x.id === to);
     if (!catalogIds.has(id) || out.has(id) || (s && !counts(s.scope, share))) continue;
-    out.set(id, { id, scope: s?.scope || 'user', by: [to], same: false });
+    out.set(id, { id, scope: s?.scope || 'user', by: [to], same: false, found: s ? [shown(s)] : [{ name: to, description: '', scope: null, plugin: null }] });
   }
   return [...out.values()];
 };

@@ -4,6 +4,7 @@ import { h, icon } from './dom.js';
 import { num, withCode } from './parts.js';
 import { skillBy } from './stats.js';
 import { catalogChars, NEAR } from './budget.js';
+import { noteFlash } from './review-notes.js';
 
 const pctOf = (b) => Math.round(b.ratio * 100);
 const names = (S, ids) => ids.map((id) => skillBy(S, id)?.title || id).join(', ');
@@ -26,17 +27,18 @@ export function budgetBox(c) {
   const trim = b.trim || [];
   const freed = trim.reduce((a, id) => a + charsOf(S, id), 0);
   const heavy = b.current >= b.budget * NEAR;
-  return [trimmed, h(`div.flash.budget${ui.previewStale ? '.stale' : ''}`, { role: 'note', 'data-key': 'budgetBox' }, icon('i-warn'),
-    h('div.sp', {},
-      h('b', {}, t(b.level === 'over' ? 'budgetOverT' : 'budgetNearT')),
+  // 한 줄: 제목 · 예산의 몇 % · 「권장대로 줄이기」. 까닭·숫자·뺄 스킬·예산 늘리는 법은 「자세히」 안에
+  const btn = trim.length ? h('button.btn', { type: 'button', 'data-key': 'trimSkills', on: { click: () => act.trimSkills(trim) } }, t('budgetTrim')) : null;
+  return [trimmed, noteFlash(c, {
+    key: 'budget', cls: `.budget${ui.previewStale ? '.stale' : ''}`, attrs: { 'data-key': 'budgetBox' }, btn,
+    title: t(b.level === 'over' ? 'budgetOverT' : 'budgetNearT'), aside: t('budgetPct', { pct: pctOf(b) }),
+    body: [
       h('p', {}, withCode(t('budgetWhy'))),
       h('p.bnums', {}, t('budgetNums', { current: num(S, b.current), added: num(S, b.added), total: num(S, b.total), label: t(`budgetLabel_${b.budgetSource}`), budget: num(S, b.budget), pct: pctOf(b) })),
       heavy ? h('p', {}, t('budgetHeavy', { pct: Math.round((b.current / b.budget) * 100) })) : null,
-      h('div.bopts', {},
-        trim.length ? h('div.bopt', {},
-          h('button.btn', { type: 'button', 'data-key': 'trimSkills', on: { click: () => act.trimSkills(trim) } }, t('budgetTrim')),
-          h('p', {}, t('budgetTrimD', { list: names(S, trim), n: num(S, freed) }))) : null,
-        h('div.bopt', {}, h('p', {}, withCode(t('budgetRaise'))))))) ];
+      trim.length ? h('p', {}, t('budgetTrimD', { list: names(S, trim), n: num(S, freed) })) : null,
+      h('p', {}, withCode(t('budgetRaise'))),
+    ] }) ];
 }
 
 // 요약 카드 한 줄(어느 단계에서나 보이게). 누르면 확인 단계의 알림으로 간다.

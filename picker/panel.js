@@ -1,10 +1,12 @@
 // 창은 한 꼴(<dialog> + showModal): 넓은 「전체 보기」 틀. 넓은 화면은 가운데, 좁은 화면은 아래에서 올라오는 꽉 찬 창.
 // 한 번에 하나만 뜬다(ui.panel = { kind, … }). Esc·바깥 누르기·✕·닫기 단추는 모두 act.closePanel 로 모인다.
-// 내용: { title, sub, tall, size, tools: [], body: [] 또는 nav: [] + list: [], foot: [] }
+// 내용: { title, sub, tall, size('sm'·'md'), tools: [], body: [] 또는 nav: [] + list: [], foot: [] }
 import { h } from './dom.js';
 import { label } from './parts.js';
-import { comboBy, flowBy, hookGroupsOf, skillBy, diffOf, ruleIds } from './stats.js';
+import { comboBy, flowBy, hookGroupsOf, skillBy, diffOf, ruleIds, stageOf } from './stats.js';
 import { browsePanel } from './browse.js';
+import { rulePanel } from './rule-dialog.js';
+import { api, errText } from './api.js';
 
 const btn = (key, text, onClick, cls = '', extra = {}) => h(`button.btn.lg${cls}`, { type: 'button', 'data-key': key, on: { click: onClick }, ...extra }, text);
 
@@ -51,7 +53,7 @@ const failedPanel = ({ S, t, act }, d) => ({
   foot: [h('span.muted'), btn('failedOk', t('close'), act.closePanel, '.primary', { 'data-autofocus': true })],
 });
 
-const PANELS = { combo: (c, d) => comboPanel(c, d.id), browse: browsePanel, cancel: cancelPanel, failed: failedPanel };
+const PANELS = { combo: (c, d) => comboPanel(c, d.id), browse: browsePanel, cancel: cancelPanel, failed: failedPanel, rule: rulePanel };
 
 const $ = (id) => document.getElementById(id);
 const SCROLLERS = ['#panelBody', '.gnav', '.glist'];
@@ -68,6 +70,7 @@ export function renderPanel(c, { fresh = false } = {}) {
   const ys = fresh ? [] : SCROLLERS.map((s) => dlg.querySelector(s)?.scrollTop || 0);
   dlg.classList.toggle('tall', !!p.tall);
   dlg.classList.toggle('sm', p.size === 'sm');
+  dlg.classList.toggle('md', p.size === 'md');
   $('panelTitle').textContent = p.title;
   $('panelSub').textContent = p.sub || '';
   $('panelClose').setAttribute('aria-label', c.t('close'));
@@ -82,10 +85,74 @@ export function renderPanel(c, { fresh = false } = {}) {
   return { dlg, opening };
 }
 
-// 창 쪽 이벤트(한 번만 단다): ✕ · Esc(cancel) · 바깥 누르기. 창 안에서 누르기 시작해 바깥에서 뗀 경우는 닫지 않는다.
-export function wirePanel(onClose) {
-  const dlg = $('panel');
-  $('panelClose').addEventListener('click', onClose);
+// 창 동작(app.js 의 act 에 붙는다): 열기·전체 보기 묶음·찾기·닫기·원문 불러오기.
+// lastClicked(): 마지막으로 누른 조작 요소의 data-key — 초점을 받지 않는 환경에서도 닫은 뒤 돌아갈 곳을 알게. state(): 서버 상태
+const HIT_MS = 1600; // 링크로 찾아온 줄을 밝혀 두는 시간
+let hitTimer;
+export const panelActions = ({ ui, t, render, lastClicked, state }) => {
+  const a = {
+    openPanel(d) {
+      if (!ui.panel) ui.opener = document.activeElement?.dataset?.key || lastClicked(); // 닫으면 이 단추로 초점을 돌려준다
+      ui.panel = d;
+      ui.panelFresh = true;
+      render();
+    },
+    openBrowse(kind, g) {
+      ui.browse = { kind, g, q: '' };
+      ui.raw = null;
+      a.openPanel({ kind: 'browse' });
+    },
+    browseGroup(g) {
+      ui.browse.g = g;
+      ui.panelFresh = true;
+      render();
+      document.querySelector(`#panel [data-key="bn:${CSS.escape(g)}"]`)?.focus();
+    },
+    // 이름표 링크(「비슷한 스킬이 이미 들어 있어요 · ○○」)로 그 스킬에 간다: 전체 보기 창에서 그 묶음을 열고(찾기는 비움)
+    // 그 줄을 가운데로 민 뒤 잠깐 밝히고, 초점은 그 줄의 스위치에 — 바로 둘 중 하나를 켜고 끌 수 있게.
+    browseTo(kind, id) {
+      const pre = kind === 'skills' ? 's' : 'h';
+      const k = kind === 'skills' ? skillBy(state(), id) : null;
+      ui.browse = { kind, g: k ? stageOf(k) : 'all', q: '' };
+      ui.raw = null;
+      ui.hit = `${pre}:${id}`;
+      if (ui.panel?.kind === 'browse') (ui.panelFresh = true), render();
+      else a.openPanel({ kind: 'browse' });
+      const dlg = $('panel');
+      dlg.querySelector(`[data-item="${CSS.escape(ui.hit)}"]`)?.scrollIntoView({ block: 'center' });
+      dlg.querySelector(`[data-key="${CSS.escape(`tg:${ui.hit}`)}"]`)?.focus({ preventScroll: true });
+      clearTimeout(hitTimer);
+      hitTimer = setTimeout(() => ((ui.hit = null), dlg.querySelector('.item.hit')?.classList.remove('hit')), HIT_MS);
+    },
+    browseSearch(q) {
+      ui.browse.q = q;
+      ui.panelFresh = true;
+      render();
+    },
+    closePanel() {
+      if (!ui.panel) return;
+      ui.panel = null;
+      render();
+    },
+    async loadRaw(id) {
+      ui.raw = { id, text: null };
+      render();
+      try {
+        ui.raw = { id, text: (await api(`/api/skill?id=${encodeURIComponent(id)}`)).text };
+      } catch (e) {
+        ui.raw = { id, text: t('error', { error: errText(t, e) }) };
+      }
+      render();
+    },
+  };
+  return a;
+};
+
+// 창 쪽 이벤트(창마다 한 번만 단다): ✕(<id>Close) · Esc(cancel) · 바깥 누르기. 창 안에서 누르기 시작해 바깥에서 뗀 경우는 닫지 않는다.
+// 큰 창(panel) 위에 작은 창(info)이 겹쳐 뜨면 Esc 는 맨 위 창에만 간다.
+export function wireDialog(id, onClose) {
+  const dlg = $(id);
+  $(`${id}Close`).addEventListener('click', onClose);
   dlg.addEventListener('cancel', (e) => (e.preventDefault(), onClose()));
   let down = false;
   dlg.addEventListener('pointerdown', (e) => (down = e.target === dlg));

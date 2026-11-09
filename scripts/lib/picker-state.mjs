@@ -1,14 +1,14 @@
 // 고르기 화면에 보낼 상태와, 화면이 보낸 선택 검증. 두 언어 문구 중 고른 것만 보낸다.
 import fs from 'node:fs';
 import path from 'node:path';
-import { recommend, expandCombo, catalogIds, PLUGIN_ROOT } from './catalog.mjs';
+import { recommend, expandCombo, catalogIds, fitOff } from './catalog.mjs';
+import { PLUGIN_ROOT, readPluginJson as readJson } from './paths.mjs';
 import { ruleTokens, estimateTokens } from './tokens.mjs';
 import { renderRule, ruleHookTags } from './claude-md.mjs';
 import { UNDO_COMMAND } from './backup.mjs';
 import { cleanHookOpts } from '../../picker/hook-options.js';
 import { CONFIG_FILE, MAX_CONFIG_BYTES } from '../../hooks/lib/core.mjs';
 
-const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, rel), 'utf8'));
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const NO_NEW = Object.freeze({ skills: [], hooks: [], rules: [] });
 const LONG_DESC_SHARE = 0.1;
@@ -69,6 +69,7 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
   const hasCmds = Object.keys(cmds).length > 0;
   const keepRule = (id) => id !== 'commands' || hasCmds;
   const tokens = ruleTokens(PLUGIN_ROOT, lang);
+  const fit = fitOff(all, det);
   // 언어·도구별 훅(combos.json stackAddons): 그 스택이 이 저장소에 있을 때만 「차단하는 것만」이 켠다
   const stackOf = (id) => {
     const adds = (all.combos.stackAddons || []).filter((a) => a.hooks?.includes(id));
@@ -99,20 +100,26 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     skills: all.catalog.skills.map((s) => ({
       id: s.id, repo: s.repo, stars: repoBy[s.repo]?.stars, license: repoBy[s.repo]?.license, sha: (repoBy[s.repo]?.sha || '').slice(0, 7),
       stages: s.stages, stacks: s.stacks, needs: s.needs, summary: L(s.summary), always: s.always, onUse: s.onUse, install: s.install,
-      files: s.files, scripts: s.scripts || [], overlapsHook: s.overlapsHook || null, descChars: s.descChars ?? null, longDesc: (s.always || 0) >= longAt,
+      files: s.files, scripts: s.scripts || [], overlapsHook: s.overlapsHook || null, descChars: s.descChars, longDesc: (s.always || 0) >= longAt,
       title: L(titles[s.id]?.title) || s.id, when: L(titles[s.id]?.when) || L(s.summary),
+      // 쉬운 한 줄(무엇이 달라지나)과 알아 둘 점(없으면 빈 글). 알아 둘 점의 {onUse} 는 화면이 이 스킬의 토큰 수로 채운다.
+      effect: L(titles[s.id]?.effect), downside: L(titles[s.id]?.downside),
     })),
     // 훅 묶음(화면은 이 순서로 묶어 보여 주고, 훅이 하나도 없는 묶음은 숨긴다). 묶음에 없는 group 은 화면이 「그 밖」으로 모은다.
-    hookGroups: (all.packs.hookGroups || []).map((g) => ({ id: g.id, name: L(g.name), desc: L(g.desc) })),
-    hooks: all.packs.hooks.map((h) => ({ id: h.id, group: h.group || null, kind: h.kind, ...stackOf(h.id), name: L(h.name), desc: L(h.desc), bad: L(h.example?.bad), fix: L(h.example?.fix), detail: L(h.detail),
+    hookGroups: all.packs.hookGroups.map((g) => ({ id: g.id, name: L(g.name), desc: L(g.desc) })),
+    hooks: all.packs.hooks.map((h) => ({ id: h.id, group: h.group || null, kind: h.kind, ...stackOf(h.id), name: L(h.name), desc: L(h.desc), bad: L(h.example?.bad), fix: L(h.example?.fix), detail: L(h.detail), downside: L(h.downside),
       options: (h.options || []).map((o) => ({ ...o, label: L(o.label), help: L(o.help), choices: o.choices?.map((c) => ({ value: c.value, label: L(c.label) })) })) })),
     prevRules: isObj(prev?.rules) ? prev.rules : {},
     rules: all.packs.rules.filter((r) => keepRule(r.id)).map((r) => ({ id: r.id, name: L(r.name), desc: L(r.desc) })),
     // 지침마다 「켜면 그 줄을 대신 맡는 훅」(rules/*.md 의 {{!hook:id}}) — 화면 「줄을 대신 맡는 훅」 칩
     ruleHooks: ruleHookTags(lang),
-    flows: all.packs.flows.map((f) => ({ id: f.id, name: L(f.name), desc: L(f.desc), for: L(f.for), hooksOn: f.hooksOn, hooksOff: f.hooksOff, override: Lmap(f.override), hooks: f.hooks || {}, githubNotes: Object.fromEntries(Object.entries(f.github?.notes || {}).map(([k, v]) => [k, L(v)])) })),
+    // 형식 훅(fitOff): 이 저장소 기록과 맞지 않으면 브랜치 전략을 골라도 켜지 않는다(fitDropped 로 남겨 훅 단계가 이유를 보여 준다)
+    fit,
+    flows: all.packs.flows.map((f) => ({ id: f.id, name: L(f.name), desc: L(f.desc), for: L(f.for), hooksOn: f.hooksOn.filter((h) => !fit.flows[f.id]?.[h]), fitDropped: f.hooksOn.filter((h) => fit.flows[f.id]?.[h]), hooksOff: f.hooksOff, override: Lmap(f.override), hooks: f.hooks || {}, githubNotes: Object.fromEntries(Object.entries(f.github?.notes || {}).map(([k, v]) => [k, L(v)])) })),
     ruleTokens: tokens,
     overlaps: readJson('catalog/overlaps.json').groups.map((g) => g.skills), // 하는 일이 같은 스킬 묶음(화면이 「비슷한 스킬이 이미 들어 있어요」를 보여 준다)
+    // 기존 훅 시험(catalog/probes.json)이 무엇을 막고 통과시켰는지 한 줄 — 「이미 쓰고 있는 훅」 창
+    probeSaid: Object.fromEntries(Object.entries(readJson('catalog/probes.json') || {}).filter(([id, p]) => !id.startsWith('_') && p.said).map(([id, p]) => [id, L(p.said)])),
     strings: readStrings(lang),
   };
 };

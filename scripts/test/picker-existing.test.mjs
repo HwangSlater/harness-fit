@@ -2,10 +2,10 @@
 // 그동안 /api/state 는 hooksPending, /api/existing 은 시험이 끝난 뒤의 상태를 주고, 화면은 적용을 막는다(frame.js applyBlock).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir, gitInit } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawn, execFileSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { applyBlock } from '../../picker/frame.js';
 
@@ -21,11 +21,11 @@ test('적용 막기: 기존 훅을 확인하는 중이면 다른 까닭보다 �
 });
 
 test('고르기 서버: 시험이 끝나기 전에 주소를 내고, /api/existing 은 끝난 뒤 결과를 준다', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-pk-home-'));
-  const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-pk-repo-'));
+  const home = tmpDir('harness-pk-home-');
+  const repo = tmpDir('harness-pk-repo-');
   let child;
   try {
-    execFileSync('git', ['init', '-q', repo]);
+    gitInit(repo);
     // 느린 기존 훅(부를 때마다 0.1초 더): git add -A·. 만 막는다
     const hook = path.join(home, 'slow-add-all.cjs');
     fs.writeFileSync(hook, "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>setTimeout(()=>{const c=JSON.parse(s).tool_input.command||'';process.exit(/git add (-A|\\.)(\\s|$)/.test(c)?2:0)},100))");
@@ -33,6 +33,7 @@ test('고르기 서버: 시험이 끝나기 전에 주소를 내고, /api/existi
     fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: `node "${hook.split(path.sep).join('/')}"` }] }] } }));
     const env = { ...process.env, HOME: home, USERPROFILE: home };
     delete env.CLAUDECODE;
+    delete env.CLAUDE_CONFIG_DIR; // 설정 폴더도 임시 홈 아래로(hooks/lib/claude-home.mjs)
     const t0 = performance.now();
     child = spawn(process.execPath, [path.join(ROOT, 'scripts', 'picker.mjs'), repo, '--lang', 'ko', '--no-open'], { env, windowsHide: true });
     child.stdout.resume();
@@ -56,6 +57,10 @@ test('고르기 서버: 시험이 끝나기 전에 주소를 내고, /api/existi
     assert.equal(done.lang, 'en');
     assert.equal(done.detected.existing.hooksPending, false);
     assert.deepEqual(Object.keys(done.detected.existing.hooks), ['git-add-all']);
+    // 「이미 쓰고 있는 훅」 창이 쓰는 것: 훅마다 짧은 이름·적힌 곳, 시험이 무엇을 막았는지 한 줄(명령 전체·경로는 보내지 않는다)
+    assert.deepEqual(done.detected.existing.hooks['git-add-all'].from, [{ label: 'slow-add-all.cjs', scope: 'user', plugin: null }]);
+    assert.ok(!JSON.stringify(done.detected.existing.hooks).includes(home.split(path.sep).join('/')), '훅 결과에 홈 경로가 실렸다');
+    assert.match(done.probeSaid['git-add-all'], /git add -A/);
     assert.ok(shownMs < doneMs, `주소 ${shownMs.toFixed(0)}ms · 시험 끝 ${doneMs.toFixed(0)}ms`);
     // 끝난 뒤의 /api/state 도 결과를 갖는다
     assert.equal((await get('/api/state')).detected.existing.hooksPending, false);

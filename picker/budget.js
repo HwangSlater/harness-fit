@@ -14,9 +14,9 @@ export const entryChars = (name, description = '', whenToUse = '', cap = DESC_CA
   String(name).length + Math.min((whenToUse ? `${description} ${whenToUse}` : description).length, cap);
 
 // 카탈로그 스킬의 목록 글자 수. 설치하면 이름은 카탈로그 id 가 된다(install-skill.mjs setSkillName).
-// descChars 는 scripts/check-descriptions.mjs 가 고정 커밋의 SKILL.md 에서 잰 값. 없으면(옛 카탈로그) 상시 토큰 × 4 로 어림한다.
+// descChars 는 scripts/dev/check-descriptions.mjs 가 고정 커밋의 SKILL.md 에서 잰 값(모든 카탈로그 스킬에 있다 — skill-budget 시험).
 export const catalogChars = (k, cap = DESC_CAP) =>
-  k.id.length + Math.min(Number.isFinite(k.descChars) ? k.descChars : Math.max(0, (k.always || 0) * 4 - k.id.length), cap);
+  k.id.length + Math.min(k.descChars, cap);
 
 // 새로 들어가는 카탈로그 스킬: 복사 설치하는 것 중 프로젝트에 같은 폴더가 아직 없는 것.
 // 폴더가 있으면 그 자리에서 고치거나(전에 harness-fit 이 넣음 — 지금 크기에 이미 들어 있음) 건드리지 않는다(사용자 폴더).

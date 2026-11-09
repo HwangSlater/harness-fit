@@ -19,27 +19,19 @@ const main = async () => {
   }
   const ids = COMMIT_HOOK_IDS.filter((id) => cfg.rules[id]);
   if (!ids.length) return 0;
-  const [{ stagedPlan }, { INSPECT }, { allowReport, allowNotice, withNoReason }] = await Promise.all([
+  const [{ stagedPlan }, { INSPECT }, { allowReport, allowNotice }, { runRules }] = await Promise.all([
     import('./lib/staged.mjs'),
     import('./rules/commit.mjs'),
     import('./lib/allow.mjs'),
+    import('./lib/dispatch.mjs'),
   ]);
   const plan = stagedPlan(root);
   if (!plan) return 0;
-  const found = new Set();
   const crashed = [];
   const allows = allowReport();
-  for (const id of ids) {
-    const setting = cfg.rules[id];
-    const opts = setting && typeof setting === 'object' && !Array.isArray(setting) ? setting : {};
-    try {
-      const msg = INSPECT[id](plan, { opts, t, root, allows });
-      if (msg) found.add(withNoReason(msg, allows, id, t));
-    } catch {
-      // 검사 하나가 터져도 나머지는 본다(막지는 않는다). 대신 그 검사 없이 커밋된다고 알린다.
-      crashed.push(id);
-    }
-  }
+  // 검사 하나가 터져도 나머지는 본다(막지는 않는다). 대신 그 검사 없이 커밋된다고 알린다.
+  const rules = ids.map((id) => ({ id, check: INSPECT[id] }));
+  const found = new Set(runRules(rules, cfg, (rule, opts) => rule.check(plan, { opts, t, root, allows }), { errors: crashed, allows, t }));
   if (crashed.length) say(`harness-fit: ${t('gitHook.ruleCrashed', { ids: crashed.join(', ') })}`);
   if (!found.size) {
     // 허용 주석으로 넘긴 줄은 커밋을 막지 않되 하나하나 알린다

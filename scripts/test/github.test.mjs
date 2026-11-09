@@ -1,12 +1,12 @@
 // GitHub 저장소 설정 시험. gh·git 은 가짜 실행기로 바꿔 넣는다(네트워크 없음, 실제 저장소를 건드리지 않음).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { apply } from '../apply.mjs';
+import { apply } from '../lib/apply-run.mjs';
 import { loadAll } from '../lib/catalog.mjs';
 import { latestBackup } from '../lib/backup.mjs';
 import { parseRemote, detectGithub, itemsFor, offerAll, undoWithGithub, toPutBody } from '../lib/github-settings.mjs';
@@ -15,7 +15,7 @@ import { defaultChoice, changesFor, cleanChoice, parseItemList } from '../../pic
 const APPLY = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'apply.mjs');
 const all = loadAll();
 const spec = (id) => all.packs.flows.find((f) => f.id === id).github;
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'harness-gh-'));
+const tmp = () => tmpDir('harness-gh-');
 const NEW_REPO = { allow_squash_merge: true, allow_merge_commit: true, allow_rebase_merge: true, delete_branch_on_merge: false };
 const WRITES = new Set(['PATCH', 'PUT', 'DELETE', 'POST']);
 

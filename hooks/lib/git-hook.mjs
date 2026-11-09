@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { git } from './core.mjs';
 import { gitSegments, commandSegments, shortFlags } from './cmdline.mjs';
-import { COMMIT_VALUE_FLAGS } from './staged.mjs';
+import { COMMIT_VALUE_FLAGS } from './commit-args.mjs';
 
 // 우리가 넣은 훅인지 알아보는 표시(첫 줄 근처). 이 글이 없는 pre-commit 은 남의 것이라 덮어쓰지 않는다.
 export const MARKER = 'harness-fit:git-pre-commit';

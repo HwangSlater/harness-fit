@@ -8,10 +8,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-
-const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+import { pathToFileURL } from 'node:url';
+import { readPluginJson as readJson } from './lib/paths.mjs';
 
 const ghApi = (query) =>
   new Promise((resolve, reject) => {

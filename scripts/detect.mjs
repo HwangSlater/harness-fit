@@ -5,14 +5,26 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { detectCommands } from './lib/commands.mjs';
+import { readJson } from './lib/paths.mjs';
+import { CONVENTIONAL } from '../hooks/rules/message.mjs';
 
-const readJson = (f) => {
-  try {
-    return JSON.parse(fs.readFileSync(f, 'utf8'));
-  } catch {
-    return null;
-  }
+// 형식 훅(commit-msg·branch-name) 기본값을 정하려고 보는 기록 크기(scripts/lib/catalog.mjs fitOff)
+const HISTORY_SUBJECTS = 30;
+const HISTORY_BRANCHES = 200;
+
+// 최근 merge 아닌 커밋 제목 중 conventional 꼴 수, 로컬·원격 브랜치 이름(원격 이름 앞붙이는 뗌, HEAD 는 뺌)
+const historyOf = (root) => {
+  const subjects = git(root, ['log', '-n', String(HISTORY_SUBJECTS), '--no-merges', '--format=%s']).split('\n').filter(Boolean);
+  const refs = git(root, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean);
+  const names = refs.map((r) => (r.startsWith('refs/heads/') ? r.slice('refs/heads/'.length) : r.replace(/^refs\/remotes\/[^/]+\//, '')));
+  const branches = [...new Set(names.filter((n) => n && n !== 'HEAD'))].slice(0, HISTORY_BRANCHES);
+  return { subjects: subjects.length, conventional: subjects.filter((s) => CONVENTIONAL.test(s)).length, branches };
 };
+
+// 라이브러리 패키지: 남이 가져다 쓰는 입구(main·exports·types)가 있고 private 가 아님 → 의존성을 범위로 두는 게 맞다
+const LIBRARY_KEYS = ['main', 'exports', 'types', 'typings'];
+const isLibrary = (pkg) => !!pkg && pkg.private !== true && LIBRARY_KEYS.some((k) => k in pkg);
+
 const readText = (f) => {
   try {
     return fs.readFileSync(f, 'utf8');
@@ -105,6 +117,9 @@ export const detect = (dir) => {
     // 이 저장소의 시험·검사·빌드 명령(CLAUDE.md 지침 「이 저장소 명령」). listed: 사용자 CLAUDE.md 에 이미 있어 뺀 것
     commands: cmds.commands,
     commandsListed: cmds.listed,
+    // 형식 훅을 기본으로 켤지(저장소가 이미 그 꼴을 따르는지), 의존성 고정 훅을 기본에서 뺄지
+    history: historyOf(root),
+    library: isLibrary(pkg),
     existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') },
   };
 };

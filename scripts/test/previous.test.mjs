@@ -1,10 +1,11 @@
 // 다시 열면 지난번 선택에서 시작하는지(네트워크 없이: 실제로 받는 스킬은 고르지 않는다).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { pickerCfg, tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { apply, undo, buildConfig } from '../apply.mjs';
+import { apply, undo } from '../lib/apply-run.mjs';
+import { buildConfig } from '../lib/plan.mjs';
 import { loadAll, PLUGIN_ROOT } from '../lib/catalog.mjs';
 import { makeState, readHarnessConfig, previousOf } from '../lib/picker-state.mjs';
 import { autoSelection } from '../recommend.mjs';
@@ -12,8 +13,8 @@ import { detect } from '../detect.mjs';
 import { startSelection, fromRecommended } from '../../picker/selection.js';
 
 const all = loadAll();
-const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'harness-prev-'));
+const cfg = pickerCfg;
+const tmp = () => tmpDir('harness-prev-');
 const cfgFile = (dir) => path.join(dir, '.claude', 'harness.json');
 const writeCfg = (dir, obj) => {
   fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });

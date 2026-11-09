@@ -3,8 +3,8 @@
 // (2026-11-05: 시험용 토큰이 한 글자 짧아 비밀값 훅이 못 잡던 일 — 이 시험이 그런 실수를 잡는다)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { evaluate } from '../../hooks/lib/evaluate.mjs';
 import { makeProbeRepo, probeExistingHooks } from '../lib/existing-hooks.mjs';
@@ -30,7 +30,8 @@ test('harness-fit 훅은 시험 입력의 block 을 막고 pass 를 통과시킨
       fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ lang: 'ko', rules: { [id]: flowOpts[id] || true } }));
       for (const [want, list] of [['block', probes[id].block], ['pass', probes[id].pass]]) {
         for (const p of list.filter((x) => !ownSpace(x))) {
-          const msgs = evaluate(eventInput(p, { dir, vars: { probe: dir.split(path.sep).join('/') } }));
+          const hints = []; // 알림 훅(prefer-gh)은 막지 않고 hints 로 알린다 — 그것도 「걸림」
+          const msgs = [...evaluate(eventInput(p, { dir, vars: { probe: dir.split(path.sep).join('/') } }), [], [], hints), ...hints];
           assert.equal(msgs.length > 0, want === 'block', `${id} ${want}: ${JSON.stringify(p.tool_input).slice(0, 80)} → ${msgs.join(' / ') || '통과'}`);
         }
       }
@@ -42,8 +43,8 @@ test('harness-fit 훅은 시험 입력의 block 을 막고 pass 를 통과시킨
 
 // exec 꼴(command + args, 셸 없음)로 적힌 기존 훅도 실제로 돌려 본다 — 띄어쓰기·한글이 든 경로도 따옴표 없이
 test('기존 훅: exec 꼴(args) 훅도 시험하고, 이름은 args 의 스크립트에서 딴다', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-home 홈 '));
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-root-'));
+  const home = tmpDir('harness-home 홈 ');
+  const root = tmpDir('harness-root-');
   try {
     const f = path.join(home, 'add-all.mjs');
     fs.writeFileSync(f, "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const c=JSON.parse(s).tool_input.command||'';process.exit(/git add (-A|\\.)(\\s|$)/.test(c)?2:0)})");
@@ -59,8 +60,8 @@ test('기존 훅: exec 꼴(args) 훅도 시험하고, 이름은 args 의 스크�
 
 // 가짜 「기존 훅」을 settings 에 두고, 같은 일을 하는 것만 겹친다고 보는지
 test('기존 훅: 같은 일을 하면 겹침, 다른 이유로 다 막는 훅은 겹침 아님', async () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-home-'));
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-root-'));
+  const home = tmpDir('harness-home-');
+  const root = tmpDir('harness-root-');
   try {
     const script = (name, body) => { const f = path.join(home, name); fs.writeFileSync(f, body); return `node "${f.split(path.sep).join('/')}"`; };
     // git add -A·. 만 막는 훅(전역) / 모든 셸 명령을 막는 훅(프로젝트)

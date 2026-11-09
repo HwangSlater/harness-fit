@@ -180,5 +180,8 @@
   "budgetUndo": "Undo",
   "doneCmdsT": "Call your new skills",
   "doneCmdsD": "Claude picks them up on its own, or call one by name. The Skills line in `/context` shows the real size.",
-  "doneCmdsBudget": "The skill list is close to its budget, so Claude may not pick these up on its own once descriptions are dropped. Call them by name. The Skills line in `/context` shows the real size."
+  "doneCmdsBudget": "The skill list is close to its budget, so Claude may not pick these up on its own once descriptions are dropped. Call them by name. The Skills line in `/context` shows the real size.",
+  "more": "Details",
+  "moreHide": "Hide",
+  "budgetPct": "{pct}% of budget"
 }

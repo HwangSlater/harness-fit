@@ -115,8 +115,6 @@ export const addedRows = (ti, cwd) => {
   return { lines, prev: (j) => base.prev(picked[j]), no: (j) => base.no(picked[j]) };
 };
 
-export const addedLines = (ti, cwd) => addedRows(ti, cwd).lines;
-
 // 쓴 뒤 파일 내용. 고칠 글(old_string)을 못 찾으면 null — 그 고치기는 어차피 실패한다.
 export const applyEdits = (before, edits) => {
   let text = before;
@@ -149,3 +147,10 @@ export const CODE_EXT = new Set(['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'mts', 
 
 export const extOf = (file) => path.extname(file).slice(1).toLowerCase();
 export const normPath = (file) => String(file).replace(/\\/g, '/');
+
+// 줄 수: 마지막 줄바꿈 뒤의 빈 조각은 줄이 아니다(400줄 + 끝 줄바꿈 = 400줄). git --numstat 과 같은 셈. 쓰기 검사와 커밋 검사가 같이 쓴다.
+export const countLines = (text) => {
+  let n = 1;
+  for (let i = text.indexOf('\n'); i !== -1; i = text.indexOf('\n', i + 1)) n++;
+  return text.endsWith('\n') ? n - 1 : n;
+};

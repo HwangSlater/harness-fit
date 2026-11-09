@@ -13,14 +13,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, execFile } from 'node:child_process';
+import { localDate } from '../../hooks/lib/dates.mjs';
 
 export const PROBE_SESSION = 'harness-fit-probe';
 export const eventOf = (x) => x.event || 'PreToolUse';
 // 자기만의 저장소·홈이 필요한 시험
 export const ownSpace = (x) => eventOf(x) !== 'PreToolUse' || !!x.setup;
 
-const pad = (n) => String(n).padStart(2, '0');
-const localDate = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const PLACEHOLDER = /<(probe|hash|today)>|<ts:([+-]?\d+)>/g;
 export const fillText = (s, vars) =>
   s.replace(PLACEHOLDER, (m, k, off) => (off !== undefined ? new Date(Date.now() + Number(off) * 1000).toISOString() : vars[k] ?? m));
@@ -70,7 +69,7 @@ export const makeSpace = async (x, makeRepo) => {
   for (let k = 0; k < commits; k++) {
     fs.writeFileSync(path.join(dir, 'src', `step${k + 1}.js`), `export const step = ${k + 1};\n`);
     await git('add', '-A', 'src');
-    await git('commit', '-q', '-m', `feat: 시험 단계 ${k + 1}`);
+    await git('commit', '-q', '-m', `feat: 테스트 단계 ${k + 1}`);
   }
   if (commits) vars.hash = await git('rev-parse', '--short', 'HEAD');
   for (const [rel, text] of Object.entries(x.setup?.files || {})) {

@@ -1,10 +1,9 @@
 // 3 자동 검사 단계: 묶음(packs.json hookGroups) 표 + 칩. 「자세히 보기」는 전체 보기 창(browse.js)을 그 묶음으로 연다.
 // 훅이 없는 묶음은 숨기고, 새 훅·새 묶음은 데이터만 더하면 그대로 나온다. 창의 검사 한 줄도 여기서 만든다.
 import { h } from './dom.js';
-import { chip, shead, groupRow, onCount, alreadyNote, label, isNew, withCode } from './parts.js';
-import { hookGroupsOf, hookBy, flowBy } from './stats.js';
+import { chip, shead, groupRow, onCount, alreadyNote, label, isNew, withCode, browseBtn, itemRow, dupHookLabel } from './parts.js';
+import { hookGroupsOf, hookBy, flowBy, comboBy } from './stats.js';
 import { stepHead } from './frame.js';
-import { browseBtn, itemRow } from './browse.js';
 import { hookOptions } from './options.js';
 
 // 훅 칩(지침 단계 「줄을 대신 맡는 훅」도 같은 칩)
@@ -22,6 +21,7 @@ export function hooksStep(c) {
     h('p.qs', {}, t('s3p')),
     h('div.qb', {},
       alreadyNote(c, 'hooks', (id) => hookBy(S, id)?.name || id),
+      fitNote(c),
       shead(t('hkHead'), onCount(t, sel.hooks.size, S.hooks.length),
         h('button.btn', { type: 'button', 'data-key': 'hooksDefault', on: { click: act.hooksDefault } }, t('hooksDefault')),
         h('button.btn', { type: 'button', 'data-key': 'hooksBlockOnly', title: t('hooksBlockOnlyD'), on: { click: act.hooksBlockOnly } }, t('hooksBlockOnly')),
@@ -31,6 +31,17 @@ export function hooksStep(c) {
         chips: g.hooks.map((x) => hookChip(c, x)), empty: '', more: browseBtn(c, t('details'), 'hooks', g.id),
       })))),
   ];
+}
+
+// 이 저장소 기록과 맞지 않아 기본에서 뺀 형식 훅(서버 fitOff): 훅마다 이유 한 줄. 사용자가 다시 켜면 숨긴다.
+function fitNote({ S, sel, t }) {
+  const combo = comboBy(S, sel.combo);
+  const ids = [...Object.keys(S.fit?.hooks || {}).filter((id) => combo?.fitDropped?.includes(id)), ...(flowBy(S, sel.flow)?.fitDropped || [])];
+  const lines = ids.filter((id) => !sel.hooks.has(id)).map((id) => {
+    const why = S.fit.hooks[id] || S.fit.flows[sel.flow]?.[id];
+    return h('p.hint', {}, `${hookBy(S, id)?.name || id}: ${t(why.key, why.vars)}`);
+  });
+  return lines.length ? h('div.notes', {}, lines) : null;
 }
 
 // 전체 보기 창의 검사 한 줄: 막는 때(브랜치 방식에 따라 바뀜) · 같이 켜는 브랜치 방식 · 옵션 · 정확한 범위
@@ -44,9 +55,10 @@ export function hookItem(c, x) {
   const changed = Object.keys(sel.hookOpts?.[x.id] || {}).length > 0;
   return itemRow(c, {
     key: `h:${x.id}`, on: sel.hooks.has(x.id), name: x.name,
-    labels: [isNew(S, 'hooks', x.id) ? label(t('badgeNew'), '.accent') : null, x.kind === 'notice' ? label(t('kindNotice')) : null, d ? h('span.label.warn', { title: t(`scope_${d.scope}`) }, t('dupHook', { by: d.by.join(', ') })) : null],
+    labels: [isNew(S, 'hooks', x.id) ? label(t('badgeNew'), '.accent') : null, x.kind === 'notice' ? label(t('kindNotice')) : null, d ? dupHookLabel(c, x.id) : null],
     plain: x.desc,
     meta: [bad ? t('hookWhen', { bad, fix }) : null, byFlow.length ? t('hookFlowOn', { list: byFlow.join(' · ') }) : null],
+    keep: x.downside,
     opts: hookOptions(c, x),
     scope: [h('p', {}, withCode(o.detail || x.detail)), changed ? h('p.hint', {}, t('optOverrides')) : null],
     onToggle: () => c.act.toggle('hooks', x.id),

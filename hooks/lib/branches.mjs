@@ -1,6 +1,7 @@
 // 브랜치 읽기: 명령이 새로 만드는 브랜치 이름, 명령 안에서 브랜치가 바뀌는 흐름(switch·checkout 뒤의 commit·push).
 // git 하위 명령의 인자 낱말(따옴표 벗긴 것)을 받는다.
 import { git } from './core.mjs';
+import { gitSegments } from './cmdline.mjs';
 
 // 짧은 옵션 묶음(-qb name, -bname)에서 값을 받는 글자 ch 의 값. 없으면 undefined.
 const bundled = (words, i, letters) => {
@@ -122,4 +123,12 @@ export const branchTimeline = (root, start, switches) => {
     for (const st of steps) if (st.at < pos) b = st.branch;
     return b;
   };
+};
+
+export const currentBranch = (root) => (git(root, ['symbolic-ref', '--short', 'HEAD']) || '').trim();
+
+// 명령 안에서 switch·checkout 으로 브랜치가 바뀌면 그 뒤 commit·push 는 바뀐 브랜치에서 돈다. 반환은 branchTimeline 과 같다.
+export const timelineOf = (cmd, shell, root) => {
+  const switches = ['switch', 'checkout'].flatMap((sub) => gitSegments(cmd, sub, shell).map((s) => ({ ...s, sub }))).sort((a, b) => a.start - b.start);
+  return branchTimeline(root, currentBranch(root), switches);
 };

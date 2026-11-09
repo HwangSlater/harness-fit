@@ -32,6 +32,12 @@
   --top-hover: rgba(101, 108, 118, 0.28);
   --counter-bg: rgba(129, 139, 152, 0.16);
   --toast-bg: #1f2328;
+  /* 브랜치 그림 갈래 색(GitHub 색, 흰 바탕 글자 대비 4.5:1 이상) */
+  --branch-main: #0969da;
+  --branch-dev: #8250df;
+  --branch-feat: #1a7f37;
+  --branch-rel: #9a6700;
+  --branch-none: var(--ink-2);
 
   /* 글꼴·글자 크기 */
   --font: "Spoqa Han Sans Neo", -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -43,6 +49,7 @@
   --fs-sm: 12px; --lh-sm: 18px;
   --fs-xs: 11px;                   /* 칩 안 작은 글 */
   --fs-big: 24px; --lh-big: 30px;  /* 요약 카드 토큰 수 */
+  --fs-pic: 9px;                   /* 브랜치 그림 안 이름(그림 좌표 단위, 카드 폭 따라 커짐) */
 
   /* 간격 4/8/12/16/24/32 */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
@@ -72,9 +79,11 @@
   --page-max: 1312px;
   --group-w: 136px;   /* 묶음 표 왼쪽 이름 칸 */
   --dlg-w: 1040px;
+  --dlg-md-w: 560px; /* 작은 창(지침 자세히) */
   --dlg-h: 86vh;
   --dlg-nav-w: 220px; /* 창 왼쪽 묶음 목록 */
   --dlg-gap: 16px;
+  --pic-max: 280px;   /* 브랜치 그림 최대 폭(한 줄 카드에서 너무 커지지 않게) */
 
   --ease: cubic-bezier(0.33, 1, 0.68, 1);
   --t-fast: .08s;

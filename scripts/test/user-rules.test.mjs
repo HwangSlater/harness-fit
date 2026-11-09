@@ -1,13 +1,13 @@
 // 사용자가 쓴 .claude/rules/ 규칙도 「이미 있는 지침」으로 견준다(중복 적용 금지).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { tmpDir } from './helpers.mjs';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { listUserRules, MAX_RULES_CHARS } from '../lib/user-rules.mjs';
 import { detectCommands } from '../lib/commands.mjs';
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'hf-user-rules-'));
+const tmp = () => tmpDir('hf-user-rules-');
 const put = (dir, rel, text) => {
   const p = path.join(dir, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });

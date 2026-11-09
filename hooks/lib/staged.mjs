@@ -6,10 +6,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { git } from './core.mjs';
-import { BASH, gitSegments, shortFlags, commandSegments } from './cmdline.mjs';
+import { BASH, gitSegments, commandSegments } from './cmdline.mjs';
+import { ADD_SUB, commitStagesAll, commitPaths, parseAdd, GIT_WORD, gitWords, commandWords } from './commit-args.mjs';
+import { countLines } from './lines.mjs';
 
-// stage 에 올리는 하위 명령. `git stage` 는 `git add` 의 다른 이름이다.
-export const ADD_SUB = 'add|stage';
+// 명령 낱말 읽기는 commit-args.mjs, 줄 세기는 lines.mjs 로 옮겼다(예전 가져오기를 위해 여기서도 내보낸다).
+export { countLines };
 
 // 경로를 따옴표·8진수로 바꾸지 않고 그대로 받는다(한글 경로가 "\354\204\244…" 로 와서 검사를 빠져나가지 않게).
 const RAW_PATHS = ['-c', 'core.quotepath=false'];
@@ -25,52 +27,6 @@ const EXCLUDE_IGNORED = '--exclude-standard';
 export const MAX_TEXT_BYTES = 32 * 1024 * 1024;
 const MAX_FILE_BYTES = MAX_TEXT_BYTES;
 const BIG = { maxBuffer: MAX_TEXT_BYTES };
-
-// commit 의 짧은 옵션 중 값을 받는 것(-m 메시지, -F 파일, -C/-c 커밋, -t 템플릿, -S 키, -u 모드).
-export const COMMIT_VALUE_FLAGS = 'mFCctSu';
-// 그중 다음 낱말을 값으로 가져가는 것(-S·-u 는 붙여 쓸 때만 값을 받는다).
-export const COMMIT_NEXT_VALUE = 'mFCct';
-export const COMMIT_LONG_VALUE = new Set([
-  '--message', '--file', '--author', '--date', '--template', '--reuse-message', '--reedit-message',
-  '--fixup', '--squash', '--cleanup', '--trailer', '--pathspec-from-file',
-]);
-const REDIRECT = /^\d*[<>]/;
-const REDIRECT_ONLY = /^\d*(?:<<-?|<|>>?|>&)$/;
-
-// commit 이 -a/--all 로 추적 중인 변경을 모두 넣는지. 인자는 따옴표를 비운 것.
-export const commitStagesAll = (bare) => shortFlags(bare, COMMIT_VALUE_FLAGS).has('a') || /(?:^|\s)--all(?=\s|$)/.test(bare);
-
-// `git commit <경로> -m …` 의 경로들(옵션 값·리다이렉션은 뺀다).
-export const commitPaths = (words) => {
-  const out = [];
-  let opts = true;
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    if (REDIRECT.test(w)) {
-      if (REDIRECT_ONLY.test(w)) i++;
-    } else if (opts && w === '--') opts = false;
-    else if (opts && w.startsWith('--')) {
-      if (COMMIT_LONG_VALUE.has(w)) i++;
-    } else if (opts && /^-[A-Za-z]/.test(w)) {
-      // 묶음(-am)에서 값을 받는 글자가 맨 끝이면 다음 낱말이 그 값이다.
-      const at = [...w.slice(1)].findIndex((ch) => COMMIT_NEXT_VALUE.includes(ch));
-      if (at === w.length - 2) i++;
-    } else out.push(w);
-  }
-  return out;
-};
-
-// git add 인자 → { specs: 경로들, force, update: -u, all: -A }.
-const ADD_UPDATE = /^--update$/;
-const ADD_ALL = /^--(?:all|no-ignore-removal)$/;
-const parseAdd = (words) => {
-  const opts = words.filter((w) => w.startsWith('-'));
-  const specs = words.filter((w) => !w.startsWith('-'));
-  const short = shortFlags(opts.filter((w) => !w.startsWith('--')).join(' '));
-  const all = short.has('A') || opts.some((w) => ADD_ALL.test(w));
-  const update = short.has('u') || opts.some((w) => ADD_UPDATE.test(w));
-  return { specs, force: short.has('f') || opts.includes('--force'), update, all };
-};
 
 const lines = (out) => (out || '').split('\n').filter(Boolean);
 
@@ -138,9 +94,6 @@ const keepsContent = (sub, args) => {
 // 바깥으로 보내는 출력(> 파일)은 파일을 쓴다. 버리는 출력(>/dev/null, 2>&1, >$null)만 둔다.
 const REDIRECT_ANY = />/g;
 const REDIRECT_DISCARD = /^\d?>>?\s*(?:&\d|\/dev\/null\b|\$null\b|NUL\b)/i;
-const ENV_PREFIX = /^[A-Za-z_][A-Za-z0-9_]*=/;
-export const GIT_WORD = /^(?:.*[\\/])?git(?:\.exe|\.cmd)?$/i;
-const GIT_GLOBAL_VALUE = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--config-env']);
 // add 의 대화식 옵션·명령 치환·변수로 준 경로는 무엇이 올라갈지 미리 알 수 없다.
 const ADD_UNKNOWN = /^(?:-p|--patch|-i|--interactive|-e|--edit|--pathspec-from-file(?:=.*)?)$|^[$`]|^@\(/;
 
@@ -152,21 +105,6 @@ const writesFile = (bare) => {
     if (!REDIRECT_DISCARD.test(bare.slice(from))) return true;
   }
   return false;
-};
-
-// git 낱말들(첫 낱말이 git) → { sub, args, globals }. 전역 옵션(-C 경로, -c 키=값 …)은 globals 로.
-export const gitWords = (words) => {
-  let i = 1;
-  while (i < words.length && words[i].startsWith('-')) i += GIT_GLOBAL_VALUE.has(words[i]) ? 2 : 1;
-  return { sub: words[i] || '', args: words.slice(i + 1), globals: words.slice(1, i) };
-};
-
-// 조각 낱말에서 앞붙은 환경 변수(`A=1 git …`), PowerShell 호출 연산자(`& git …`), 셸 흐름 낱말(`then git …`, `{ git …`)을 뗀다.
-const LEADING = new Set(['&', '{', '}', 'then', 'else', 'do', '!', 'time', 'command']);
-export const commandWords = (words) => {
-  let i = 0;
-  while (i < words.length && (ENV_PREFIX.test(words[i]) || LEADING.has(words[i]))) i++;
-  return words.slice(i);
 };
 
 // 시험·린트·타입 검사 실행과 mkdir 은 커밋할 파일을 쓰지 않는 것으로 친다(시험 뒤 커밋하는 흔한 꼴을 막지 않게).
@@ -329,13 +267,6 @@ export const commitPlan = (cmd, cwd, root, shell = BASH) => {
     return numstat.has(f) ? numstat.get(f) : null;
   };
   return { files: [...files], added, rows, unseen, before: headText, after, isNew, lineCount: lineCountOf };
-};
-
-// 줄 수: 마지막 줄바꿈 뒤의 빈 조각은 줄이 아니다(400줄 + 끝 줄바꿈 = 400줄). git --numstat 과 같은 셈.
-export const countLines = (text) => {
-  let n = 1;
-  for (let i = text.indexOf('\n'); i !== -1; i = text.indexOf('\n', i + 1)) n++;
-  return text.endsWith('\n') ? n - 1 : n;
 };
 
 // 진짜 커밋 때(git pre-commit 훅) 들어갈 것: 지금 stage 에 있는 것만. commit -a·commit <경로> 일 때 git 이 임시 색인을

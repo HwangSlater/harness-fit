@@ -2,7 +2,6 @@
 // Claude 는 이 출력 한 덩어리만 읽으면 된다(카탈로그 전체가 문맥에 들어가지 않음).
 // 보안: 127.0.0.1 에만 열고, 임의 포트, 데이터 요청은 일회용 토큰 헤더 — 다른 웹페이지가 보낸 요청은 거절한다.
 // 사용: node scripts/picker.mjs [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--similar …] [--skip …] [--no-open]
-import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -11,11 +10,13 @@ import { detect, withHints } from './detect.mjs';
 import { withInstalled, withHookProbe } from './lib/existing.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { fresh } from './fresh.mjs';
-import { loadAll, PLUGIN_ROOT } from './lib/catalog.mjs';
-import { makeState, cleanSelection, readHarnessConfig } from './lib/picker-state.mjs';
+import { loadAll } from './lib/catalog.mjs';
+import { pickerConfig } from './lib/paths.mjs';
+import { makeState, cleanSelection, readHarnessConfig, readStrings } from './lib/picker-state.mjs';
 import { fetchSkillText } from './lib/install-skill.mjs';
-import { plan, apply, ruleTexts } from './apply.mjs';
-import { ruleDropped } from './lib/claude-md.mjs';
+import { plan, mdSelection } from './lib/plan.mjs';
+import { apply } from './lib/apply-run.mjs';
+import { ruleTexts, ruleDropped } from './lib/claude-md.mjs';
 import { pluginActive } from './lib/installed.mjs';
 import { currentListing } from './lib/skill-budget.mjs';
 import { offerAll } from './lib/github-settings.mjs';
@@ -27,7 +28,7 @@ const { lang, root, hints } = parseArgs(args);
 const token = crypto.randomBytes(16).toString('hex');
 
 const all = loadAll();
-const cfg = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'picker.json'), 'utf8'));
+const cfg = pickerConfig();
 // prev: 지난번 적용 때 남긴 .claude/harness.json(훅 옵션의 지난번 값과 지난번 선택). 없거나 깨졌으면 null → 추천에서 시작.
 // 이미 있는 훅·스킬과 겹치는 것은 기본에서 뺀다. 기존 훅 시험은 십몇 초 걸릴 수 있어(2026-11-06 이 PC 14.5초) 화면을 먼저 띄우고
 // 뒤에서 마저 한다 — 그동안 화면은 「이미 있는 훅을 확인하는 중…」이고 적용을 막는다. 답은 GET /api/existing(끝날 때까지 기다렸다 상태를 준다).
@@ -77,6 +78,18 @@ const langOf = (url) => {
   const l = url.searchParams.get('lang');
   return l === 'ko' || l === 'en' ? l : lang;
 };
+
+// 길(route)은 보낼 글을 돌려준다(200). 다른 상태 번호나 보낸 뒤 할 일이 있으면 reply(code, body, after).
+const REPLY = Symbol('reply');
+const reply = (code, body, after) => ({ [REPLY]: true, code, body, after });
+
+// 팀원 공유를 켰으면 팀원에게 닿게 할 일(화면 picker/team.js 와 같은 기준): 올릴 파일 · 열 때 설치 안내 · git 훅은 공유 안 됨
+const teammatesOf = (sel) => {
+  if (!sel.share) return null;
+  const shared = plan(root, sel, all, { listing: listingNow() }).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : ''));
+  return { commitAndPush: shared, installPromptOnOpen: `${all.sources.pluginRepo} ${all.sources.pluginRef}`, gitPreCommitShared: false, gitPreCommitHowTo: readStrings(sel.lang || lang).teamGitHookHowTo };
+};
+
 const routes = {
   'GET /api/state': (url) => makeState(ctx, langOf(url)),
   // 기존 훅 시험이 끝나면 그 결과를 넣은 상태(/api/state 와 같은 꼴). 끝나기 전에 부르면 끝날 때까지 기다린다.
@@ -97,10 +110,26 @@ const routes = {
     const sel = cleanSelection(ctx, await readBody(req), lang);
     const active = pluginActive(root);
     const { changes, manual, warnings, skipped, gitHookCmd, skillBudget } = plan(root, sel, all, { active, listing: listingNow() });
-    // 지침 글은 적용과 같은 기준으로: 플러그인이 없으면 훅이 돌지 않으므로 「훅 꺼짐」 글(apply.mjs plan 과 같다)
-    const mdSel = active ? sel : { ...sel, hooks: [] };
+    // 지침 글은 적용과 같은 기준으로(plan.mjs mdSelection)
+    const mdSel = mdSelection(sel, active);
     return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, warnings, skipped, gitHookCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
   },
+  'POST /api/apply': async (url, req) => {
+    // 적용은 한 번에 하나만(두 번 눌리면 같은 임시 폴더를 두고 다투고 결과가 두 번 나간다).
+    if (applying) return reply(409, { error: 'busy' });
+    applying = true;
+    try {
+      // 화면은 시험이 끝나기 전에 적용을 막지만, 다른 길로 들어온 요청도 시험이 끝난 뒤에 적용한다
+      await hookProbe;
+      const sel = cleanSelection(ctx, await readBody(req), lang);
+      const teammates = teammatesOf(sel);
+      const result = await apply(root, sel, (p) => (progress = p), { listing: listingNow() });
+      return reply(200, result, () => finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) }));
+    } finally {
+      applying = false;
+    }
+  },
+  'POST /api/cancel': () => reply(200, { ok: true }, () => finish({ status: 'cancelled' })),
 };
 
 const server = http.createServer(async (req, res) => {
@@ -119,30 +148,11 @@ const server = http.createServer(async (req, res) => {
     if (file) return send(200, file.body, file.type, file.cacheControl);
     if (req.headers['x-harness-token'] !== token) return send(403, { error: 'forbidden' });
     const route = routes[`${req.method} ${url.pathname}`];
-    if (route) return send(200, await route(url, req));
-    if (req.method === 'POST' && url.pathname === '/api/apply') {
-      // 적용은 한 번에 하나만(두 번 눌리면 같은 임시 폴더를 두고 다투고 결과가 두 번 나간다).
-      if (applying) return send(409, { error: 'busy' });
-      applying = true;
-      try {
-        // 화면은 시험이 끝나기 전에 적용을 막지만, 다른 길로 들어온 요청도 시험이 끝난 뒤에 적용한다
-        await hookProbe;
-        const sel = cleanSelection(ctx, await readBody(req), lang);
-        // 팀원 공유를 켰으면 팀원에게 닿게 할 일(화면 picker/team.js 와 같은 기준): 올릴 파일 · 열 때 설치 안내 · git 훅은 공유 안 됨
-        const shared = sel.share ? plan(root, sel, all, { listing: listingNow() }).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : '')) : null;
-        const result = await apply(root, sel, (p) => (progress = p), { listing: listingNow() });
-        send(200, result);
-        const teammates = shared && { commitAndPush: shared, installPromptOnOpen: `${all.sources.pluginRepo} ${all.sources.pluginRef}`, gitPreCommitShared: false, gitPreCommitHowTo: 'each teammate opens /harness-fit:setup on their PC and applies as is' };
-        return finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) });
-      } finally {
-        applying = false;
-      }
-    }
-    if (req.method === 'POST' && url.pathname === '/api/cancel') {
-      send(200, { ok: true });
-      return finish({ status: 'cancelled' });
-    }
-    send(404, { error: 'not found' });
+    if (!route) return send(404, { error: 'not found' });
+    const out = await route(url, req);
+    if (!out?.[REPLY]) return send(200, out);
+    send(out.code, out.body);
+    out.after?.();
   } catch (e) {
     send(500, { error: String(e.message || e) });
   }

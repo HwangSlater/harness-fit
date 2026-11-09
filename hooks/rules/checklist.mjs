@@ -3,9 +3,9 @@
 //   사람 메시지(UserPromptSubmit): 그 파일에 남은 「- [ ]」 항목이 있으면 짧게 보여 준다. 없으면 아무것도 넣지 않는다(토큰 0).
 // 파일은 ~/.claude/harness-fit/checklists/<프로젝트>/<세션>.md — 사용자 전역 ~/.claude/checklists/ 와 겹치지 않는 자리.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { claudeHome } from '../lib/claude-home.mjs';
 
 export const LIST_MAX = 5;
 const MAX_READ = 256 * 1024;
@@ -21,9 +21,10 @@ const projectSlug = (project) => {
 };
 const safeSession = (id) => (typeof id === 'string' ? id.replace(/[^\w-]/g, '').slice(0, 128) : '');
 
-export const checklistFile = (project, sessionId, home = os.homedir()) => {
+// Claude 설정 폴더(CLAUDE_CONFIG_DIR, 없으면 ~/.claude) 아래에 둔다. home 을 주면(시험) 그 아래 .claude.
+export const checklistFile = (project, sessionId, home) => {
   const sid = safeSession(sessionId);
-  return sid ? path.join(home, '.claude', 'harness-fit', 'checklists', projectSlug(project), `${sid}.md`) : null;
+  return sid ? path.join(claudeHome(home), 'harness-fit', 'checklists', projectSlug(project), `${sid}.md`) : null;
 };
 
 export const uncheckedItems = (text) => [...String(text || '').matchAll(UNCHECKED)].map((m) => m[1].trim());

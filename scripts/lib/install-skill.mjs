@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { PLUGIN_ROOT } from './catalog.mjs';
+import { readPluginJson } from './paths.mjs';
 
 const MAX_FILES = 80;
 const MAX_BYTES = 2 << 20; // 스킬 하나에 2MB
@@ -12,7 +12,7 @@ const MAX_BYTES = 2 << 20; // 스킬 하나에 2MB
 // (code.claude.com/docs/en/skills — 「Your skill replaces the bundled command」). 예: sentry 의 name: security-review → /security-review 가 바뀐다.
 let reserved;
 export const reservedNames = () =>
-  (reserved ??= new Set(JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'config', 'reserved-skill-names.json'), 'utf8')).names));
+  (reserved ??= new Set(readPluginJson('config/reserved-skill-names.json').names));
 
 // SKILL.md 머리말의 name 을 폴더 이름(카탈로그 id)으로 맞춘다. 명령 이름은 name 이 정하므로(없으면 폴더 이름)
 // 원래 이름이 Claude Code 명령과 겹치거나 화면에 보인 이름과 다르지 않게 한다. 바꾼 것은 from 으로 돌려준다(.harness-source.json 에 남김).
