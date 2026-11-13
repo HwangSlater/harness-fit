@@ -1,12 +1,12 @@
 // 2 스킬 단계: 조합이 켜는 것(단계 묶음 표) + 「추가로 추천」(저장소 스택에 맞춘 것) + 새로 나온 저장소.
 // 「자세히 보기」·「전체 스킬 보기」는 전체 보기 창(browse.js)을 그 묶음으로 연다. 창의 스킬 한 줄도 여기서 만든다.
-import { h, fmt } from './dom.js';
+import { h, fmt, icon } from './dom.js';
 import { chip, shead, groupRow, onCount, alreadyNote, skillLabels, label, stars, num, checkRow, isNew, link, browseBtn, itemRow } from './parts.js';
 import { STAGES, stageOf, listable, skillBy, comboBy, recSkills } from './stats.js';
 import { stepHead } from './frame.js';
 
 const addonIds = (k) => new Set((k?.addons || []).flatMap((a) => a.skills));
-// 조합이 켜는 스킬(스택 맞춤은 빼고)
+// 조합이 켜는 스킬(프로젝트 맞춤은 빼고)
 export const comboOwn = (S, sel) => {
   const k = comboBy(S, sel.combo);
   const add = addonIds(k);
@@ -79,8 +79,35 @@ export function skillsStep(c) {
 // 알아 둘 점: 카탈로그 글의 {onUse} 를 이 스킬의 「꺼내 쓸 때」 토큰 수로 채운다(수는 catalog.json 한 곳에서)
 export const skillDownside = (S, k) => (k.downside ? fmt(k.downside, { onUse: num(S, k.onUse) }, S.lang) : '');
 
+const REPO = /^[\w.-]+\/[\w.-]+$/;
+// 같은 GitHub 저장소에서 온 스킬을 한 묶음으로: 머리(저장소 · 별 · 개수) 아래에 줄들. 처음 나온 차례를 지킨다.
+export function repoGroups(c, ids, row) {
+  const { S, t } = c;
+  const by = new Map();
+  for (const id of ids) {
+    const repo = skillBy(S, id)?.repo || '';
+    if (!by.has(repo)) by.set(repo, []);
+    by.get(repo).push(id);
+  }
+  return [...by].map(([repo, list]) => {
+    const [owner, name] = repo.includes('/') ? [repo.slice(0, repo.indexOf('/') + 1), repo.slice(repo.indexOf('/') + 1)] : ['', repo];
+    const n = stars(S, skillBy(S, list[0])?.stars);
+    const title = h('span.repo-n', {}, icon('i-github', 'i fill'), h('span', {}, h('span.repo-o', {}, owner), h('b', {}, name)));
+    // 저장소 이름은 GitHub 저장소로 가는 링크(새 탭). 카탈로그 저장소 꼴(주인/이름)일 때만 — 다른 글이 주소에 섞이지 않게
+    const linked = S.githubWeb && REPO.test(repo)
+      ? h('a.repo-link', { href: `${S.githubWeb}/${repo}`, target: '_blank', rel: 'noopener noreferrer', title: t('openRepo', { repo }), 'aria-label': t('openRepo', { repo }) }, title)
+      : title;
+    return h('div.repo', {},
+      h('div.repo-h', {}, linked,
+        h('span.repo-m', {}, h('span.repo-star', { title: t('stars', { n }), 'aria-label': t('stars', { n }) }, icon('i-star', 'i fill'), n),
+          h('span', { 'aria-hidden': 'true' }, '·'), h('span', {}, t('nItems', { n: list.length })))),
+      h('div.repo-b', {}, list.map(row)));
+  });
+}
+
 // 전체 보기 창의 스킬 한 줄. 「자세히」를 펼치면 출처·라이선스·고정 커밋·실행 파일·원문(SKILL.md)
-export function skillItem(c, id) {
+// preview: 「켜지는 것 보기」 창(combo-panel.js) — 스위치 없이
+export function skillItem(c, id, { preview = false } = {}) {
   const { S, sel, ui, t, act } = c;
   const k = skillBy(S, id);
   const why = skillWhy(c, id);
@@ -91,7 +118,9 @@ export function skillItem(c, id) {
     labels: [why ? label(why.text, why.k === 'combo' ? '' : '.accent') : null, ...skillLabels(c, k)],
     plain: k.effect || k.when,
     keep: skillDownside(S, k),
-    meta: [k.effect ? t('skillWhen', { when: k.when }) : null, h('span', {}, t('skillMeta', { always: num(S, k.always), onUse: num(S, k.onUse) }), ' · ', h('span.mono', {}, k.repo), ` · ${t('stars', { n: stars(S, k.stars) })}`)],
+    // 「쓰는 때」 머리말은 훅의 「차단하는 때」·「알아 둘 점」과 같은 꼴(굵게 · 내용)
+    // 저장소는 묶음 머리(repoGroups)가 한 번 보여 주므로 줄마다 되풀이하지 않는다
+    meta: [k.effect ? [h('span.kl', {}, t('skillWhenK')), ' ', k.when] : null, h('span', {}, t('skillMeta', { always: num(S, k.always), onUse: num(S, k.onUse) }))],
     scope: [h('dl', {},
       row('dSource', `${k.repo} · ${t('stars', { n: stars(S, k.stars) })}`),
       row('dLicense', k.license || t('dLicenseNone')),
@@ -102,6 +131,6 @@ export function skillItem(c, id) {
       k.longDesc ? row('dListK', t('dLongDesc', { n: num(S, k.descChars ?? k.always * 4) })) : null,
       k.scripts.length ? row('dScripts', t('dScriptsNote'), h('ul', {}, k.scripts.map((f) => h('li.mono', {}, f)))) : row('dScriptsK', t('dNoScripts'))),
     raw ? [h('p.hint', {}, t('rawNote')), h('pre.raw', { tabindex: '0' }, raw.text ?? t('loadingRaw'))] : link(`raw:${id}`, t('viewRaw'), () => act.loadRaw(id))],
-    onToggle: () => act.toggle('skills', id),
+    onToggle: preview ? null : () => act.toggle('skills', id),
   });
 }

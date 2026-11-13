@@ -25,8 +25,10 @@ export const dupSkills = (existing, catalogIds, share) => {
     for (const id of [s.id, s.name]) if (catalogIds.has(id) && !out.has(id)) out.set(id, { id, scope: s.scope, by: [s.plugin ? `${s.plugin} · ${s.name}` : s.name], same: true, found: [shown(s)] });
   }
   for (const { id, to } of existing?.similar || []) {
-    const s = list.find((x) => x.name === to || x.id === to);
-    if (!catalogIds.has(id) || out.has(id) || (s && !counts(s.scope, share))) continue;
+    // 「플러그인:이름」 꼴로 짚어도 찾는다(overlap.mjs 는 이름과 플러그인을 따로 준다 — 검토 2026-11-11)
+    const s = list.find((x) => x.name === to || x.id === to || (x.plugin && (`${x.plugin}:${x.name}` === to || `${String(x.plugin).split('@')[0]}:${x.name}` === to)));
+    // 목록에서 못 찾은 이름은 이 PC 의 것으로 본다 — 팀원 공유면 겹침으로 치지 않는다(전역 sec-check 를 이유로 팀 저장소의 보안 스킬이 빠지던 일, 역할극 5 회차)
+    if (!catalogIds.has(id) || out.has(id) || (s ? !counts(s.scope, share) : share)) continue;
     out.set(id, { id, scope: s?.scope || 'user', by: [to], same: false, found: s ? [shown(s)] : [{ name: to, description: '', scope: null, plugin: null }] });
   }
   return [...out.values()];

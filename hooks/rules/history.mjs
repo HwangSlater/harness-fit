@@ -57,11 +57,13 @@ const oldestRewritten = (root, r) => {
 export const noRewritePushed = {
   id: 'no-rewrite-pushed',
   on: 'shell',
-  check({ cmd, shell, root, t }) {
+  check({ cmd, shell, root, repo, t }) {
     if (!root) return null;
-    const branchAt = timelineOf(cmd, shell, root);
+    // 브랜치 흐름은 amend 가 있을 때만 구한다(지금 브랜치를 묻는 일이 없게 — git status·보통 커밋)
+    let branchAt;
     for (const s of gitSegments(cmd, 'commit', shell)) {
       if (!AMEND.test(s.bare)) continue;
+      branchAt ??= timelineOf(cmd, shell, root, repo || undefined);
       // 같은 명령에서 다른 브랜치로 옮긴 뒤 amend 하면 그 브랜치 끝 커밋을 본다
       const remote = remoteWith(root, branchAt(s.start) || 'HEAD');
       if (remote) return t('history.amend', { remote });

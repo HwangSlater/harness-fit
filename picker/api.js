@@ -18,7 +18,8 @@ export const api = async (p, body) => {
     throw fail('network', String(e.message || e));
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.error) throw fail(SERVER_CODES[data.error] || 'server', String(data.error || `HTTP ${res.status}`));
+  // partial: 적용 실패 때 서버가 「바뀐 것이 남았는지」 알린다(apply-flow.js 가 되돌리기를 권할지 가른다)
+  if (!res.ok || data.error) throw Object.assign(fail(SERVER_CODES[data.error] || 'server', String(data.error || `HTTP ${res.status}`)), { partial: data.partial === true, answered: true, fsCode: typeof data.fsCode === 'string' ? data.fsCode : null });
   return data;
 };
 

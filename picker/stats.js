@@ -59,7 +59,11 @@ export const hookGroupsOf = (S, otherName) => {
 export const dupsFor = (S, x, flowId = x.flow) => {
   const ids = new Set(S.skills.map((k) => k.id));
   const flow = flowBy(S, flowId);
-  return { hooks: new Map(dupHooks(S.detected.existing, x.share, flow).map((d) => [d.id, d])), skills: new Map(dupSkills(S.detected.existing, ids, x.share).map((d) => [d.id, d])) };
+  const hooks = new Map(dupHooks(S.detected.existing, x.share, flow).map((d) => [d.id, d]));
+  // 저장소에서 찾은 보호 경로(data/raw/·인증서 등)는 이미 있는 훅이 지키지 않는다 — 파일 보호를 겹침으로 빼지 않는다.
+  // 서버 추천(catalog.mjs revived)과 같은 규칙. 화면에서 팀원 질문에 「아니요」를 고르면 그 경로까지 말없이 빠지던 일(화면 역할 평가 2026-11-13)
+  if (S.detected?.suggest?.protect?.length) hooks.delete('protected-files');
+  return { hooks, skills: new Map(dupSkills(S.detected.existing, ids, x.share).map((d) => [d.id, d])) };
 };
 // 기본으로 들어갈 훅·스킬: 지금 조합의 원래 목록 + 브랜치 방식이 켜는 훅(겹침 안내와 공유 바꾸기가 이 범위만 다룬다)
 export const defaultsFor = (S, x) => {
@@ -93,4 +97,35 @@ export const diffOf = (sel, k) => {
     return [plus ? `+${plus}` : '', minus ? `−${minus}` : ''].filter(Boolean).join(' ');
   };
   return [['diffSkill', d(sel.skills, k.skills)], ['diffHook', d(sel.hooks, k.hooks)], ['diffRule', d(sel.rules, k.rules)]].filter(([, v]) => v);
+};
+
+// 받지 못한 스킬을 까닭으로 나눈다(끝 화면 review.js finished). 호출 한도에 걸린 것과 다른 실패(404·라이선스 …)가 섞이면
+// 「한도가 풀리면 다시」는 한도에 걸린 스킬만 말한다 — 제목이 모두를 한도 뒤에 다시 받는다고 하던 일(독립 검토 2026-11-13).
+// → { limited: [실패], waitMin: 가장 긴 기다림(분, 모르면 0), others: [[오류 글, [실패]]](같은 오류끼리) }
+export const failedGroups = (failed = []) => {
+  const list = Array.isArray(failed) ? failed.filter(Boolean) : [];
+  const limited = list.filter((f) => f.reason === 'rate-limit');
+  const byError = new Map();
+  for (const f of list.filter((x) => x.reason !== 'rate-limit')) {
+    const k = String(f.error || '');
+    byError.set(k, [...(byError.get(k) || []), f]);
+  }
+  return { limited, waitMin: Math.max(0, ...limited.map((f) => Number(f.waitMin) || 0)), others: [...byError] };
+};
+// 끝 화면 알림의 제목·설명 글. nameOf(실패) → 스킬 이름.
+// 한도만: 제목이 「한도가 풀리면 다시」(그 시간 전에는 다시 받아도 실패 — SKILL.md 와 같게). 다른 실패만: 「다시 받아 볼게요」 + 까닭.
+// 섞이면: 제목은 받지 못한 스킬 전부, 설명은 한도에 걸린 스킬과 나머지(같은 오류끼리)를 따로 그 까닭과 함께
+export const failedText = (t, failed, nameOf) => {
+  const { limited, waitMin: n, others } = failedGroups(failed);
+  const names = (xs) => xs.map(nameOf).join(', ');
+  const why = (e) => e || t('doneFailedUnknown');
+  if (!others.length) return { title: t('doneFailedLimit', { list: names(limited) }), desc: n ? t('doneRateLimit', { n }) : t('doneRateLimitSoon') };
+  const rest = others.flatMap(([, xs]) => xs);
+  if (!limited.length) {
+    return { title: t('doneFailed', { list: names(rest) }),
+      desc: others.length === 1 ? t('doneFailedWhy', { why: why(others[0][0]) }) : others.map(([e, xs]) => t('doneFailedWhyOf', { list: names(xs), why: why(e) })).join(' ') };
+  }
+  const lim = n ? t('doneFailedLimitOf', { list: names(limited), n }) : t('doneFailedLimitOfSoon', { list: names(limited) });
+  return { title: t('doneFailedMixed', { list: names([...limited, ...rest]) }),
+    desc: [lim, ...others.map(([e, xs]) => t('doneFailedOtherOf', { list: names(xs), why: why(e) }))].join(' ') };
 };

@@ -1,4 +1,4 @@
-// 언어별 쓰기 규칙: Swift(try!·print(), Python(shell=True·eval(·exec(). 그 언어 파일(.swift / .py·.pyw)에서만 돈다.
+// 언어별 쓰기 규칙: Swift(try!·print(), Python(shell=True·eval(·exec(·Django mark_safe(값)·csrf_exempt). 그 언어 파일(.swift / .py·.pyw)에서만 돈다.
 // 이번 호출로 새로 들어가는 줄만 본다. 셸로 쓴 파일은 커밋할 때 같은 함수로 다시 본다(rules/commit.mjs INSPECT).
 import { addedRows, targetFile, fileAfter } from '../lib/lines.mjs';
 import { findLangUnsafe, langTarget } from '../lib/lang-unsafe.mjs';

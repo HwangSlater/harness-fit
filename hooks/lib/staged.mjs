@@ -5,7 +5,7 @@
 //   before/after: 커밋 전(HEAD)·커밋될 파일 내용(없으면 null).
 import fs from 'node:fs';
 import path from 'node:path';
-import { git } from './core.mjs';
+import { git, repoState } from './core.mjs';
 import { BASH, gitSegments, commandSegments } from './cmdline.mjs';
 import { ADD_SUB, commitStagesAll, commitPaths, parseAdd, GIT_WORD, gitWords, commandWords } from './commit-args.mjs';
 import { countLines } from './lines.mjs';
@@ -162,7 +162,8 @@ const readSmall = (file) => {
   }
 };
 
-export const commitPlan = (cmd, cwd, root, shell = BASH) => {
+// repo: 이 도구 호출에서 나눠 쓰는 저장소 상태(ctx.repo — HEAD 가 있는지를 규칙끼리 한 번만 구한다). 없으면 여기서 만든다.
+export const commitPlan = (cmd, cwd, root, shell = BASH, repo = null) => {
   const commits = gitSegments(cmd, 'commit', shell);
   if (!commits.length) return null;
   const abs = (f) => path.resolve(cwd, f);
@@ -205,7 +206,7 @@ export const commitPlan = (cmd, cwd, root, shell = BASH) => {
 
   const staged = new Set(lines(git(root, [...NAMES, '--cached'], BIG)));
   const files = new Set([...staged, ...fromDisk]);
-  const hasHead = git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']) !== null;
+  const hasHead = (repo || repoState(root)).hasHead();
 
   // 더한 줄: stage 한 파일은 HEAD↔stage, 디스크에서 가져가는 추적 파일은 HEAD↔디스크, 새 파일은 전부.
   const added = new Map();
@@ -267,6 +268,118 @@ export const commitPlan = (cmd, cwd, root, shell = BASH) => {
     return numstat.has(f) ? numstat.get(f) : null;
   };
   return { files: [...files], added, rows, unseen, before: headText, after, isNew, lineCount: lineCountOf };
+};
+
+// ── 이름만: 이 명령 「자신이」 stage 하는 파일 ─────────────────────
+// 보호 경로·마이그레이션 커밋 검사는 파일 이름만 쓴다. commitPlan 은 stage 한 내용까지 읽어 26MB stage 에서 0.5초 걸렸다(2026-11-11).
+// 이미 stage 돼 있던 것은 보지 않는다 — 사용자가 손으로 stage 한 것 때문에 Claude 의 엉뚱한 커밋을 막지 않게. Claude 가 앞 명령에서
+// stage 한 것은 그 git add 를 볼 때 막는다(같은 함수로). docs/decisions.md 「커밋 검사는 이 명령이 올리는 것만」.
+
+// 한 명령을 보는 동안 규칙마다 같은 계산을 다시 하지 않는다(shared 는 evaluate 가 명령마다 새로 준다).
+export const once = (shared, key, make) => {
+  if (!shared) return make();
+  if (!(key in shared)) shared[key] = make();
+  return shared[key];
+};
+
+// 명령 낱말만 읽는다(git 을 부르지 않음). git add·commit 이 없으면 null.
+//   all: commit -a·add -u·add -A(추적 중인 변경 모두), allUntracked: add -A(새 파일 모두), specs: add·commit 경로(cwd 기준), addSpecs: 새 파일도 올리는 경로
+//   root: 저장소 맨 위(값 또는 함수 — :/경로 꼴이 있을 때만 부른다). 모르면 :/경로 는 저장소 전체로 본다.
+// 저장소 맨 위 기준 pathspec(:/ · :(top) · :(top,glob)…). 나머지가 비면 저장소 전체(add -A 와 같다 — 검토 2026-11-11).
+const TOP = /^:(?:\/|\([\w,]*\btop\b[\w,]*\))/;
+// 빼는 pathspec(:!x · :^x · :(exclude)x) — 올리는 것을 넓히지 않는다. 빼는 것만 주면 git 은 저장소 전체에서 뺀다.
+const EXCLUDE = /^:(?:[!^]|\([\w,]*\bexclude\b[\w,]*\))/;
+// 무엇이 올라갈지 낱말로는 알 수 없는 꼴: 명령 치환·변수($(…)·`…`·$F·@(…)), --pathspec-from-file, xargs git add, update-index --stdin·--index-info.
+// 이때는 「작업 트리의 바뀐 것 전부」를 올리는 것으로 본다 — 보호 경로·마이그레이션이 실제로 바뀌었을 때만 걸린다(넓게 보되 헛막음은 작게).
+const UNKNOWABLE = /^[$`]|^@\(|^--pathspec-from-file(?:=|$)/;
+const UPDATE_INDEX_UNKNOWABLE = /^--(?:stdin|index-info|cacheinfo)(?:=|$)/;
+// 내용을 올리지 않고 표시만 바꾸는 update-index(--assume-unchanged·--skip-worktree·--refresh 등)
+const INDEX_FLAGS_ONLY = /^--(?:(?:no-)?assume-unchanged|(?:no-)?skip-worktree|(?:really-)?refresh|(?:no-)?fsmonitor-valid|(?:no-)?split-index|(?:no-)?untracked-cache|test-untracked-cache|show-index-version|index-version)$/;
+const xargsRun = (cmd, shell, at) => commandSegments(cmd, shell).some((seg) =>
+  seg.start <= at && at <= seg.start + seg.raw.length && /^(?:.*[\\/])?xargs(?:\.exe)?$/i.test(seg.words[0] || ''));
+export const stageSources = (cmd, shell = BASH, root = null) => {
+  const commits = gitSegments(cmd, 'commit', shell);
+  const adds = gitSegments(cmd, ADD_SUB, shell);
+  const updates = gitSegments(cmd, 'update-index', shell);
+  if (!commits.length && !adds.length && !updates.length) return null;
+  const src = { all: commits.some((c) => commitStagesAll(c.bare)), allUntracked: false, force: false, specs: commits.flatMap((c) => commitPaths(c.words)), addSpecs: [] };
+  const whole = () => {
+    src.all = true;
+    src.allUntracked = true;
+  };
+  let top;
+  const topOf = (s) => {
+    const rest = s.replace(TOP, '');
+    if (!rest) return null;
+    top ??= typeof root === 'function' ? root() : root;
+    return top ? path.join(top, rest) : null;
+  };
+  for (const { words, start } of adds) {
+    const a = parseAdd(words);
+    src.force ||= a.force;
+    if (words.some((w) => UNKNOWABLE.test(w)) || xargsRun(cmd, shell, start)) whole();
+    const specs = [];
+    let wide = false;
+    for (const s of a.specs) {
+      if (EXCLUDE.test(s)) continue;
+      if (!TOP.test(s)) specs.push(s);
+      else {
+        const abs = topOf(s);
+        if (abs) specs.push(abs);
+        else wide = true;
+      }
+    }
+    if (wide || (a.specs.length && !specs.length)) whole();
+    if (!specs.length) {
+      src.all ||= a.update || a.all;
+      src.allUntracked ||= a.all;
+    } else {
+      src.specs.push(...specs);
+      if (!a.update) src.addSpecs.push(...specs);
+    }
+  }
+  // git update-index --add 경로(새 파일도), 그냥 update-index 경로(추적 중인 것만)
+  for (const { words } of updates) {
+    if (words.some((w) => INDEX_FLAGS_ONLY.test(w))) continue;
+    if (words.some((w) => UPDATE_INDEX_UNKNOWABLE.test(w) || UNKNOWABLE.test(w))) {
+      whole();
+      continue;
+    }
+    const paths = words.filter((w) => !w.startsWith('-') && !/^[<>|&]|^\d>/.test(w));
+    src.specs.push(...paths);
+    if (words.includes('--add')) src.addSpecs.push(...paths);
+  }
+  return src;
+};
+
+// git pathspec 글롭(* 는 / 도 넘는다)
+const pathspecRe = (g) => new RegExp(`^${g.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\[!/g, '[^').replace(/\*+/g, '.*').replace(/\?/g, '.')}(?:/|$)`);
+const nul = (out) => (out || '').split('\0');
+const STATUS = [...RAW_PATHS, 'diff', '--name-status', '-z', '--no-renames'];
+
+// → { changed: Set(더하거나 고친 것), deleted: Set, untracked(): 새 파일 목록(처음 부를 때 git 한 번) } — 경로는 저장소 맨 위 기준.
+// git 은 작업 트리 이름 목록 한 번(git diff --name-status). 내용은 읽지 않는다.
+export const commandStages = (cmd, cwd, root, shell = BASH) => {
+  const src = stageSources(cmd, shell, root);
+  const out ={ changed: new Set(), deleted: new Set(), untracked: () => [] };
+  if (!src || (!src.all && !src.specs.length && !src.addSpecs.length)) return out;
+  const rels = src.specs.map((s) => path.relative(root, path.resolve(cwd, s)).split(path.sep).join('/'));
+  const res = rels.map((s) => (/[*?[]/.test(s) ? pathspecRe(s) : null));
+  const covers = (f) => src.all || rels.some((s, i) => s === '' || (res[i] ? res[i].test(f) : f === s || f.startsWith(`${s}/`)));
+  const z = nul(git(root, STATUS, BIG));
+  for (let i = 0; i + 1 < z.length; i += 2) {
+    const [st, f] = [z[i], z[i + 1]];
+    if (st && f && covers(f)) (st[0] === 'D' ? out.deleted : out.changed).add(f);
+  }
+  let fresh;
+  out.untracked = () => {
+    if (fresh) return fresh;
+    if (!src.allUntracked && !src.addSpecs.length) return (fresh = []);
+    const args = [...RAW_PATHS, 'ls-files', '--others', '-z', ...(src.force ? [] : [EXCLUDE_IGNORED])];
+    const only = src.allUntracked ? [] : ['--', ...src.addSpecs.map((s) => path.resolve(cwd, s))];
+    return (fresh = nul(git(root, [...args, ...only], BIG)).filter(Boolean));
+  };
+  return out;
 };
 
 // 진짜 커밋 때(git pre-commit 훅) 들어갈 것: 지금 stage 에 있는 것만. commit -a·commit <경로> 일 때 git 이 임시 색인을

@@ -1,7 +1,7 @@
 // 4 CLAUDE.md 지침 단계: 지침 목록(목록 상자 + 스위치) + 「줄을 대신 맡는 훅」 칩 + 실제로 써질 구역 미리 보기.
 // 미리 보기 글은 서버가 켠 훅·스킬에 맞춰 만든 것 그대로(/api/preview 의 ruleTexts·ruleDropped — scripts/lib/claude-md.mjs).
 import { h } from './dom.js';
-import { lrow, toggleSwitch, label, isNew, num, withCode } from './parts.js';
+import { lrow, toggleSwitch, label, isNew, num, withCode, link, segmented } from './parts.js';
 import { ruleLines, ruleCount, lineCount, ruleTokens, flowBy, hookBy } from './stats.js';
 import { stepHead } from './frame.js';
 import { hookChip } from './hooks.js';
@@ -58,15 +58,15 @@ function preview(c) {
   const { S, sel, ui, t, act } = c;
   const p = ui.preview;
   const full = ui.ruleView !== 'short';
-  const seg = h('span.seg', { role: 'group', 'aria-label': t('ruleViewLabel') },
-    [['short', t('viewShort')], ['full', t('viewFull')]].map(([v, text]) => h('button', { type: 'button', 'aria-pressed': String(full === (v === 'full')), 'data-key': `rv:${v}`, on: { click: () => act.setRuleView(v) } }, text)));
+  const seg = segmented({ label: t('ruleViewLabel'), value: full ? 'full' : 'short', onPick: act.setRuleView,
+    items: [['short', t('viewShort'), 'rv:short'], ['full', t('viewFull'), 'rv:full']] });
   const texts = p && !p.error ? Object.entries(p.ruleTexts || {}) : [];
   const dropped = p && !p.error ? p.ruleDropped || {} : {};
   const nDropped = texts.reduce((n, [id]) => n + (dropped[id]?.length || 0), 0);
   const showDrop = full && ui.showDropped;
   let body;
   if (!p) body = h('div.ln.cnt', { role: 'status' }, t('previewLoading'));
-  else if (p.error) body = h('div.ln', { role: 'alert' }, `${p.error} ${p.text || ''} `, h('button.link', { type: 'button', 'data-key': 'retryPreview', on: { click: act.retryPreview } }, t('retry')));
+  else if (p.error) body = h('div.ln', { role: 'alert' }, `${p.error} ${p.text || ''} `, link('retryPreview', t('retry'), act.retryPreview));
   else {
     const lines = [h('div.ln.mk', {}, START)];
     texts.forEach(([id, text], i) => {
@@ -89,7 +89,7 @@ function preview(c) {
     body = lines;
   }
   const dropBtn = nDropped
-    ? h('button.link', { type: 'button', 'aria-pressed': String(showDrop), 'data-key': 'pvDrop', on: { click: act.toggleDropped } }, showDrop ? t('droppedHide') : t('droppedShow', { n: nDropped }))
+    ? link('pvDrop', showDrop ? t('droppedHide') : t('droppedShow', { n: nDropped }), act.toggleDropped, { 'aria-pressed': String(showDrop) })
     : p && !p.error ? h('span', {}, t('droppedNone')) : null;
   return h(`div.box.preview${ui.previewStale ? '.stale' : ''}`, {},
     h('div.box-h', {}, h('span', {}, t('ruleIn')), seg),

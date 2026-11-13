@@ -30,8 +30,9 @@ test('harness-fit 훅은 시험 입력의 block 을 막고 pass 를 통과시킨
       fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ lang: 'ko', rules: { [id]: flowOpts[id] || true } }));
       for (const [want, list] of [['block', probes[id].block], ['pass', probes[id].pass]]) {
         for (const p of list.filter((x) => !ownSpace(x))) {
-          const hints = []; // 알림 훅(prefer-gh)은 막지 않고 hints 로 알린다 — 그것도 「걸림」
-          const msgs = [...evaluate(eventInput(p, { dir, vars: { probe: dir.split(path.sep).join('/') } }), [], [], hints), ...hints];
+          const hints = []; // 알림 훅(prefer-gh)은 막지 않고 hints 로, 묻는 훅(ask-cmd)은 asks 로 — 그것도 「걸림」
+          const asks = [];
+          const msgs = [...evaluate(eventInput(p, { dir, vars: { probe: dir.split(path.sep).join('/') } }), [], [], hints, asks), ...hints, ...asks];
           assert.equal(msgs.length > 0, want === 'block', `${id} ${want}: ${JSON.stringify(p.tool_input).slice(0, 80)} → ${msgs.join(' / ') || '통과'}`);
         }
       }

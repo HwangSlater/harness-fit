@@ -1,0 +1,151 @@
+// 역할극 15 회차(인프라) 세 번째 독립 검토(2026-11-12) — 「헛물음이 놓침보다 나쁘다」.
+// 비밀값 명령은 값이 화면(대화 기록)에 분명히 닿을 때만 묻는다: 그대로 화면 · 찍는 도구로 끝나는 파이프 · 찍는 명령의 $( ) ·
+// 같은 줄에서 다시 찍는 변수·파일·클립보드. 2>&1 · &> · 2> 는 넘겨쓰기로 읽는다. kubectl 틀의 metadata 는 이름표 칸만.
+// ( ) 묶음 뒤의 넘겨쓰기·파이프는 묶음 안 명령의 출력을 받는다.
+import { S, B, P } from './helpers.mjs';
+
+const K = 'kubectl get secret app -o yaml';
+const J = 'kubectl get secret app -o json';
+const A = 'aws secretsmanager get-secret-value --secret-id x --query SecretString --output text';
+const T = 'terraform output -raw db_password';
+
+export default {
+  'ask-cmd': {
+    block: [
+      // 넘겨쓰기는 조각을 나누지 않는다 — 오류 흐름만 옮기면 값은 그대로 화면
+      S(`${K} 2>&1`, '2>&1 만'),
+      B(`${K} 2> err.log`, '오류만 파일로'),
+      B(`${K} 2>/dev/null`, '오류만 버림'),
+      B(`${K} >&2`, '오류 흐름(화면)으로'),
+      B(`${K} |& cat`, '|& cat'),
+      // 찍는 도구로 끝나는 파이프
+      S(`${K} | cat`, 'cat'),
+      S(`${J} | jq .data`, 'jq .data'),
+      S(`${J} | jq .data.password`, 'jq 값 하나'),
+      S(`${K} | yq .data`, 'yq'),
+      S(`${K} | base64 -d`, 'base64 -d'),
+      S(`${K} | grep pass`, 'grep'),
+      S(`${K} | head`, 'head'),
+      S(`${K} | tail -n 3`, 'tail'),
+      B(`${K} | less`, 'less'),
+      B(`${K} | tee s.yaml`, 'tee 는 화면에도'),
+      B(`${K} 2>&1 | tee log.txt`, '2>&1 | tee'),
+      B(`${K} | xxd`, 'xxd'),
+      B(`${K} | sed s/a/b/`, 'sed'),
+      B(`${K} | awk '{print}'`, 'awk'),
+      B(`${K} | sh`, 'sh'),
+      B(`${J} | node -e "process.stdin.pipe(process.stdout)"`, 'node -e'),
+      P(`${J} | ConvertFrom-Json`, 'ConvertFrom-Json'),
+      P(`${J} | ConvertFrom-Json | Format-List`, 'Format-List'),
+      P(`${K} | Select-String pass`, 'Select-String'),
+      P(`${K} | Out-Host`, 'Out-Host'),
+      P(`${K} | Write-Host`, 'Write-Host'),
+      P(`${K} | Write-Output`, 'Write-Output'),
+      // 형 지정을 붙여 받은 변수도 다시 찍으면 묻는다(독립 검토 2026-11-12)
+      P(`[string]$s = ${K}; $s`, '[string]$s 를 다시 찍음'),
+      P(`[string] $s = ${K}; $s`, '형 지정 뒤 빈칸'),
+      P(`[string[]]$s = ${K}; $s`, '배열 형 지정'),
+      P(`[object[]]$s = ${K}; Write-Output $s`, 'object 배열'),
+      P(`${K} | Set-Content s.yaml -PassThru`, 'Set-Content -PassThru 는 다시 낸다'),
+      P(`${K} | Tee-Object s.yaml`, 'Tee-Object'),
+      B(`${K} | kubectl apply --dry-run=client -f - -o yaml`, 'apply -o yaml 은 보낸 값을 다시 찍는다'),
+      P(`${K} | kubectl apply --dry-run=client -f - -o yaml`, 'PowerShell 로 같은 것'),
+      // 찍는 명령의 $( ) · 백틱
+      B(`printf %s \`${A}\``, 'printf 백틱'),
+      P(`Write-Output (${A})`, 'Write-Output ( )'),
+      P(`Write-Output $(${A})`, 'Write-Output $( )'),
+      P(`Write-Host (${T})`, 'Write-Host ( )'),
+      // 변수에 받고 같은 줄에서 찍음
+      B(`export X=$(${A}); printenv X`, 'printenv X'),
+      B(`X=$(${A}); set`, '맨 set'),
+      P(`$x = ${A}; $x`, '$x 를 문장으로'),
+      P(`$s = ${K}; Write-Host $s`, 'Write-Host $s'),
+      P(`$p = ${T}; "pw: $p"`, '문자열 속 $p'),
+      // 파일·클립보드를 같은 줄에서 다시 찍음
+      B(`${K} > s.yaml; less s.yaml`, 'less 로 다시'),
+      B(`${K} > s.yaml; head s.yaml`, 'head 로 다시'),
+      B(`${K} > s.yaml; grep pass s.yaml`, 'grep 으로 다시'),
+      P(`${K} > s.yaml; Get-Content s.yaml`, 'Get-Content 로 다시'),
+      B(`${K} | pbcopy; pbpaste`, 'pbpaste 로 꺼냄'),
+      P(`${K} | Set-Clipboard; Get-Clipboard`, 'Get-Clipboard 로 꺼냄'),
+      // ( ) 묶음
+      B(`(${K})`, '묶음 안 그대로'),
+      B(`(cd x && ${K})`, '묶음 안 && 뒤'),
+      B(`(${K}) | cat`, '묶음 뒤 cat'),
+      // kubectl: metadata 는 이름표 칸만, 종류 쓰는 법, --raw
+      S(`kubectl get secret app -o jsonpath='{.metadata.annotations}'`, 'annotations 에 last-applied 의 data'),
+      S(`kubectl get secret app -o jsonpath='{.metadata}'`, 'metadata 통째'),
+      S(`kubectl get secrets.v1. app -o yaml`, 'secrets.v1.'),
+      S(`kubectl get secret.v1 app -o yaml`, 'secret.v1'),
+      S(`kubectl get secrets.v1/app -o yaml`, 'secrets.v1/app'),
+      S('kubectl get --raw /api/v1/namespaces/x/secrets/app', '--raw 비밀 경로'),
+      B('kubectl get --raw=/api/v1/secrets', '--raw= 목록'),
+    ],
+    pass: [
+      S(`${K} 2>&1 | kubeseal > s.yaml`, '2>&1 | kubeseal'),
+      B(`${K} &> s.yaml`, '&> 파일'),
+      P(`${K} *> s.yaml`, '*> 파일'),
+      P(`[string]$s = ${K}; kubeseal -f s.yaml`, '[string]$s 에 받고 다시 찍지 않음'),
+      P(`$a[0] = ${K}; kubeseal -f s.yaml`, '배열 칸에 받기는 형 지정이 아님'),
+      B(`${K} > s.yaml 2>&1`, '> 파일 2>&1'),
+      B(`${K} 2>&1 >/dev/null`, '표준 출력은 버림'),
+      B(`${K} &>/dev/null`, '&> 버림'),
+      B(`${K} |& kubeseal > s.yaml`, '|& kubeseal'),
+      S(`${K} | kubeseal`, 'kubeseal'),
+      S(`${K} | kubeseal | tee sealed.yaml`, '봉인한 뒤 tee'),
+      S(`${K} | kubectl apply --dry-run=client -f -`, 'apply -f - (-o 없음)'),
+      B(`${K} | gpg -e -r ops`, 'gpg -e'),
+      S(`${K} | wc -l`, 'wc'),
+      S(`${K} | grep -q pass`, 'grep -q'),
+      S(`${K} | grep -c pass`, 'grep -c'),
+      S(`${J} | jq -r .metadata.name`, 'jq 이름만'),
+      S(`${J} | jq '.data | keys'`, 'jq 키 이름만'),
+      B(`${K} | tee s.yaml > /dev/null`, 'tee 를 버림으로'),
+      S(`${A} | docker login -u AWS --password-stdin r.io`, 'docker login --password-stdin'),
+      P(`${K} | Out-File s.yaml`, 'Out-File'),
+      P(`${K} 2>&1 | Out-File s.yaml`, '2>&1 | Out-File'),
+      P(`${K} | Tee-Object -FilePath s.yaml | Out-Null`, 'Tee-Object 뒤 Out-Null'),
+      P(`${K} | Measure-Object -Line`, 'Measure-Object'),
+      P(`${T} | Set-Content pw.txt`, 'Set-Content'),
+      // 찍지 않는 명령의 $( )
+      B(`mysql -p"$(${A})" -e 'select 1'`, 'mysql -p"$( )"'),
+      S(`docker run -e P="$(${A})" img`, 'docker run -e'),
+      S(`gh secret set X --body "$(${A})"`, 'gh secret set --body'),
+      B(`echo $(${A}) | docker login -u u --password-stdin`, 'echo 를 docker login 으로'),
+      B('kubeseal < <(' + K + ') > s.yaml', '<( ) 를 kubeseal 로'),
+      // 변수를 찍지 않고 씀
+      B(`X=$(${A}); npm test`, '받고 다른 명령'),
+      B(`X=$(${A}); echo done`, 'echo 는 X 를 안 씀'),
+      B(`X=$(${A}); set -e`, 'set -e 는 변수를 안 찍음'),
+      B(`X=$(${A}); env | grep -c X`, 'env 를 grep -c 로'),
+      B(`X=$(${A}); echo "$X" | docker login -u u --password-stdin`, 'echo $X 를 docker login 으로'),
+      B(`P=$(${T}) && mysql -p"$P" -e 'select 1'`, 'mysql -p"$P"'),
+      P(`$x = ${A}; $y = 1`, '받기만'),
+      P(`$x = ${A}; docker login -p $x`, '인자로만'),
+      P(`$p = ${T}; mysql -p$p`, 'mysql -p$p'),
+      P(`$s = ${K}; $s | kubeseal`, '$s 를 kubeseal 로'),
+      // 파일·클립보드를 찍지 않는 도구로
+      B(`${K} > s.yaml; vim s.yaml`, '편집기'),
+      B(`${K} > s.yaml; rm s.yaml`, 'rm'),
+      B(`${K} > s.yaml; kubeseal < s.yaml > sealed.yaml`, 'kubeseal < 파일'),
+      B(`${K} > s.yaml && cat s.yaml | kubeseal > x.yaml`, 'cat 을 kubeseal 로'),
+      P(`${K} > s.yaml; code s.yaml`, 'PowerShell 편집기'),
+      P(`${K} > s.yaml; Remove-Item s.yaml`, 'Remove-Item'),
+      B(`${K} | pbcopy`, 'pbcopy 만'),
+      P(`${K} | Set-Clipboard`, 'Set-Clipboard 만'),
+      // ( ) 묶음 뒤의 넘겨쓰기·파이프
+      B(`(${K}) > s.yaml`, '묶음 뒤 > 파일'),
+      B(`(${K}) | kubeseal`, '묶음 뒤 kubeseal'),
+      B(`(cd x && ${K}) > s.yaml`, '묶음 안 && 뒤, 묶음 뒤 > 파일'),
+      B(`(cd x; ${K}) 2>&1 | kubeseal > s.yaml`, '묶음 뒤 2>&1 | kubeseal'),
+      B(`true && (${K} | kubeseal) > s.yaml`, '묶음 안 kubeseal'),
+      // kubectl 이름표 칸·비밀이 아닌 --raw
+      S(`kubectl get secret app -o jsonpath='{.metadata.name}'`, 'metadata.name'),
+      S(`kubectl get secret app -o jsonpath='{.metadata.labels}'`, 'metadata.labels'),
+      S(`kubectl get secret app -o jsonpath='{.type}'`, '.type'),
+      S('kubectl get secrets.v1/app', '표(이름만)'),
+      S('kubectl get --raw /api/v1/namespaces/x/configmaps/app', '--raw configmap'),
+      S('kubectl get --raw /healthz', '--raw healthz'),
+    ],
+  },
+};

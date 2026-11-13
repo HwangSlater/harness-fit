@@ -18,7 +18,7 @@ export const readExisting = (file, cwd) => {
   }
 };
 
-// 이번 호출로 「새로」 들어가는 줄만. 이미 있던 줄은 고치지 않았으면 막지 않는다(docs/decisions.md 「기존 코드는 막지 않는다」).
+// 이번 호출로 「새로」 들어가는 줄만. 이미 있던 줄은 고치지 않았으면 막지 않는다(docs/decisions-hooks.md 「기존 코드는 막지 않는다」).
 //   Edit(edits 꼴 포함): new_string 줄 가운데 old_string 에 없던 줄(앞뒤 맥락으로 다시 적은 줄은 뺀다).
 //   Write: 파일이 이미 있으면 그 파일에 없던 줄, 없으면 전부.
 const lineSet = (s) => new Set(String(s || '').split(/\r?\n/).map((l) => l.trim()));

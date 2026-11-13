@@ -3,7 +3,9 @@
 import { isTestFile } from './secrets.mjs';
 import { commentOnly, extOf, normPath, OUTSIDE_CODE } from './lines.mjs';
 
-const TARGET = new Set(['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'mts', 'cts', 'vue', 'svelte', 'astro', 'html', 'htm']);
+// 서버 템플릿(Django·Jinja·Nunjucks)도 HTML 파일과 같이 본다 — 역할극 9 회차(2026-11-11)
+const TEMPLATE = new Set(['html', 'htm', 'jinja', 'jinja2', 'j2', 'njk']);
+const TARGET = new Set(['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'mts', 'cts', 'vue', 'svelte', 'astro', ...TEMPLATE]);
 export const unsafeHtmlTarget = (file) => TARGET.has(extOf(file)) && !isTestFile(file) && !OUTSIDE_CODE.test(normPath(file));
 
 // 정화·이스케이프를 거친 줄은 넣는 쪽 검사에서 뺀다(eval·new Function 은 정화로 안전해지지 않으므로 그대로 본다).
@@ -23,6 +25,7 @@ const SINKS = [
   { id: 'bypassSecurityTrustHtml', re: /\.bypassSecurityTrus[t]Html\s*\(/ },
   { id: 'createContextualFragment', re: /\.createContextualFragmen[t]\s*\(/ },
 ];
+export const EXEC_IDS = new Set(['eval', 'new Function']);
 const EXEC = [
   // eval( · window.eval( · globalThis.eval( · (0, eval)(  — redis.eval·page.$eval 같은 다른 함수는 아니다
   { id: 'eval', re: /(?:(?<![\w$.])|(?<=\b(?:window|globalThis|self|global)\.))eva[l]\s*\(|\(\s*0\s*,\s*eva[l]\s*\)/ },
@@ -33,6 +36,60 @@ const EXEC = [
 // 위 SINKS·EXEC 가 맞으려면 줄에 꼭 있어야 하는 글자 조각. 없으면 그 줄은 더 보지 않는다(큰 파일을 빨리 넘기려고).
 // SINKS·EXEC 를 고치면 여기도 함께 고친다(엄격 사례의 막음 꼴이 모두 이 조각을 지나야 막힌다 — strict-cases/code.mjs).
 export const MAY_HIT = /HT[M]L|ht[m]l|Ht[m]l|writ[e]|Fragmen[t]|eva[l]|Functio[n]/;
+
+// 템플릿의 자동 이스케이프 끄기: {{ x|safe }} · {{ x | safeseq }} · {% autoescape off %}(Django) · {% autoescape false %}(Jinja).
+// {{ … }}·{% … %} 안만 본다. || 는 JS 의 「또는」(Vue·Angular 의 {{ a || safe }}), |safeguard·|safe_join 은 다른 필터라 아니다.
+export const TEMPLATE_IDS = new Set(['|safe', '|safeseq', '{% autoescape off %}', '{% autoescape false %}']);
+const TEMPLATE_MAY = /sa[f]e|autoescap[e]/;
+const SAFE_FILTER = /(?<!\|)\|(?!\|)\s*(saf[e](?:seq)?)(?![\w-])/;
+const AUTOESCAPE_OFF = /^\{%-?\s*autoescap[e]\s+(off|false)(?![\w-])/i;
+// 템플릿 주석({# … #}·{% comment %} … {% endcomment %}, 여러 줄도)을 띄어쓰기로 바꾼 줄들. 줄마다 한 번 앞에서 뒤로 읽는다.
+const COMMENT_OPEN = /\{#|\{%-?\s*comment\b[^%]*%\}/g;
+const templateCode = (lines) => {
+  let close = null; // 열린 주석의 닫는 꼴
+  return lines.map((raw) => {
+    let out = '';
+    let at = 0;
+    while (at < raw.length) {
+      if (close) {
+        close.lastIndex = at;
+        const m = close.exec(raw);
+        if (!m) return out + ' '.repeat(raw.length - at);
+        out += ' '.repeat(m.index + m[0].length - at);
+        at = m.index + m[0].length;
+        close = null;
+        continue;
+      }
+      COMMENT_OPEN.lastIndex = at;
+      const m = COMMENT_OPEN.exec(raw);
+      if (!m) return out + raw.slice(at);
+      out += raw.slice(at, m.index) + ' '.repeat(m[0].length);
+      at = m.index + m[0].length;
+      close = m[0] === '{#' ? /#\}/g : /\{%-?\s*endcomment\s*-?%\}/g;
+    }
+    return out;
+  });
+};
+const HAS_TEMPLATE_COMMENT = /\{#|\{%-?\s*comment\b/;
+// 줄 하나에서 찾은 템플릿 꼴의 이름들
+// 한 줄을 앞에서 뒤로 한 번만 읽는다(여는 꼴은 lastIndex 로 이어 찾는다 — 조각마다 뒤를 잘라 내면 긴 줄에서 제곱 시간)
+const TAG_OPEN = /\{[{%]/g;
+const templateHits = (line) => {
+  const found = [];
+  TAG_OPEN.lastIndex = 0;
+  for (let m = TAG_OPEN.exec(line); m; m = TAG_OPEN.exec(line)) {
+    const tag = m[0] === '{{' ? '}}' : '%}';
+    const end = line.indexOf(tag, m.index + 2);
+    const seg = line.slice(m.index, end === -1 ? line.length : end + 2);
+    const f = SAFE_FILTER.exec(seg);
+    if (f && !found.includes(`|${f[1]}`)) found.push(`|${f[1]}`);
+    const a = tag === '%}' && AUTOESCAPE_OFF.exec(seg);
+    if (a) found.push(`{% autoescape ${a[1].toLowerCase()} %}`);
+    if (end === -1) break;
+    TAG_OPEN.lastIndex = end + 2;
+  }
+  return found;
+};
 
 // 줄 끝 `// 설명` 을 떼어 낸다. 따옴표·템플릿 속 `//`(주소 등)는 남긴다.
 export const stripLineComment = (line) => {
@@ -106,25 +163,33 @@ const matchInCode = (line, re, inStr) => {
 export const findUnsafeHtml = (lines, file, allow = null) => {
   if (!unsafeHtmlTarget(file)) return [];
   const jsFile = JS_FAMILY.has(extOf(file));
+  const template = TEMPLATE.has(extOf(file));
+  // 템플릿 주석을 가린 줄(주석이 하나도 없으면 원래 줄 그대로)
+  const code = template && lines.some((l) => HAS_TEMPLATE_COMMENT.test(l)) ? templateCode(lines) : lines;
   const hits = new Set();
   lines.forEach((raw, i) => {
-    if (!MAY_HIT.test(raw) || commentOnly(raw)) return;
-    const found = [];
-    const line = stripLineComment(raw);
-    const inStr = jsFile ? stringSpans(line) : null;
-    const clean = SANITIZED.test(line);
-    for (const s of SINKS) {
-      const m = matchInCode(line, s.re, inStr);
-      if (!m) continue;
-      const after = line.slice(m.index + m[0].length);
-      if (s.literalOk) {
-        // innerHTML: 고정 글자, 여러 줄 고정 템플릿, 모든 값이 정화 함수를 거친 대입은 둔다
-        if (LITERAL_ONLY.test(after) || literalTemplateFrom(lines, i, after) || (clean && allWrapped(after))) continue;
-      } else if (clean) continue;
-      found.push(s.id);
-    }
-    for (const s of EXEC) if (matchInCode(line, s.re, inStr)) found.push(s.id);
+    // 템플릿 꼴은 HTML 주석(<!-- -->) 속에서도 본다 — 서버가 그 안의 {{ }} 도 그려 내보낸다
+    const found = template && TEMPLATE_MAY.test(raw) ? templateHits(code[i]) : [];
+    if (MAY_HIT.test(raw) && !commentOnly(raw)) codeHits(lines, i, raw, jsFile, found);
     if (found.length && !allow?.(i, raw)) found.forEach((id) => hits.add(id));
   });
   return [...hits];
+};
+
+// JS·HTML 의 넣는 쪽(SINKS)과 실행(EXEC)을 줄 하나에서 찾아 found 에 더한다
+const codeHits = (lines, i, raw, jsFile, found) => {
+  const line = stripLineComment(raw);
+  const inStr = jsFile ? stringSpans(line) : null;
+  const clean = SANITIZED.test(line);
+  for (const s of SINKS) {
+    const m = matchInCode(line, s.re, inStr);
+    if (!m) continue;
+    const after = line.slice(m.index + m[0].length);
+    if (s.literalOk) {
+      // innerHTML: 고정 글자, 여러 줄 고정 템플릿, 모든 값이 정화 함수를 거친 대입은 둔다
+      if (LITERAL_ONLY.test(after) || literalTemplateFrom(lines, i, after) || (clean && allWrapped(after))) continue;
+    } else if (clean) continue;
+    found.push(s.id);
+  }
+  for (const s of EXEC) if (matchInCode(line, s.re, inStr)) found.push(s.id);
 };

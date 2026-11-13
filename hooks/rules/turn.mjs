@@ -44,7 +44,7 @@ export const commitHash = {
     // 셸 명령을 하나도 안 쓴 턴은 보지 않는다(그 사이 사용자가 터미널에서 한 커밋 때문에 묻지 않게)
     if (!turn || !turn.commands.length || !Number.isFinite(turn.since)) return null;
     if (turn.asked(markOf('commit-hash'))) return null;
-    const commits = reposOf(cwd, turn.commands).flatMap((root) => turnCommits(root, turn.since)).slice(0, MAX_COMMITS);
+    const commits = reposOf(cwd, turn.commands).flatMap((root) => turnCommits(root, turn.since, shared)).slice(0, MAX_COMMITS);
     if (!commits.length) return null;
     const last = typeof input.last_assistant_message === 'string' ? [{ text: input.last_assistant_message, at: null }] : [];
     // 답마다 해시 모양 글을 한 번만 뽑는다

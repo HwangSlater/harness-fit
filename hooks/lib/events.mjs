@@ -6,8 +6,9 @@ import { runRules } from './dispatch.mjs';
 import turnRules from '../rules/turn.mjs';
 import docsRules from '../rules/docs.mjs';
 import checklistRules from '../rules/checklist.mjs';
+import scratchRules from '../rules/scratch.mjs';
 
-export const EVENT_RULES = [...turnRules, ...docsRules, ...checklistRules].filter((r) => r.on !== 'write' && r.on !== 'shell');
+export const EVENT_RULES = [...turnRules, ...docsRules, ...checklistRules, ...scratchRules].filter((r) => r.on !== 'write' && r.on !== 'shell');
 
 // cfg: 진입점(entry.mjs)이 이미 읽은 설정(없으면 여기서 읽는다)
 export const evaluateEvent = (on, input, errors = [], cfg = loadConfig(input.cwd || process.cwd())) => {

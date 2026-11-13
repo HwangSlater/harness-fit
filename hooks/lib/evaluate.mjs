@@ -5,11 +5,11 @@ import { kindOf, loadRules, judge } from './pretool.mjs';
 
 const ALL = Object.fromEntries(await Promise.all(['shell', 'write', 'fetch'].map(async (on) => [on, await loadRules(on)])));
 
-// errors · notes · hints: pretool.mjs judge 와 같다.
-export const evaluate = (input, errors = [], notes = [], hints = []) => {
+// errors · notes · hints · asks: pretool.mjs judge 와 같다.
+export const evaluate = (input, errors = [], notes = [], hints = [], asks = []) => {
   const cfg = loadConfig(input.cwd || process.cwd());
   if (!cfg) return [];
   const on = kindOf(input.tool_name || '');
   if (!on) return [];
-  return judge(input, cfg, on, ALL[on], translator(pickLang(cfg.lang)), errors, notes, hints);
+  return judge(input, cfg, on, ALL[on], translator(pickLang(cfg.lang)), errors, notes, hints, asks);
 };

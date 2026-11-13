@@ -25,8 +25,13 @@ export const applyActions = ({ ui, t, current, ctx, payload, render, openPanel }
     try {
       ui.done = await api('/api/apply', payload(ui.applied.sel));
     } catch (e) {
-      // 연결이 끊겼으면 서버가 이미 적용하고 꺼졌을 수 있고, 서버 오류면 일부만 썼을 수 있다.
-      ui.panel = { kind: 'failed', maybeChanged: true, ...errInfo(t, e), ...(e.code === 'network' ? { text: t('applyNetwork') } : {}) };
+      // 연결이 끊겼으면 서버가 이미 적용하고 꺼졌을 수 있어 바뀌었을 수 있다고 본다.
+      // 서버가 답했으면 그 답대로: partial 이 아니면 스스로 되돌렸으니 바뀐 것이 없다 — 되돌리기를 권하면 지난 적용까지 지워진다(검토 2026-11-13)
+      const maybeChanged = e.code === 'network' || !e.answered || e.partial;
+      // 파일 오류는 사람 말로(읽기 전용·디스크 가득·잠김) — 「처리하다가 오류가 났어요」만으로는 무엇을 고칠지 몰랐다(화면 역할 평가 2026-11-13)
+      const FS = { EPERM: 'applyFsPerm', EACCES: 'applyFsPerm', EROFS: 'applyFsPerm', ENOSPC: 'applyFsSpace', EBUSY: 'applyFsBusy' };
+      const fsText = FS[e.fsCode] ? { text: t(FS[e.fsCode]) } : {};
+      ui.panel = { kind: 'failed', maybeChanged, nothingChanged: !maybeChanged, network: e.code === 'network', ...errInfo(t, e), ...fsText, ...(e.code === 'network' ? { text: t('applyNetwork') } : {}) };
     } finally {
       clearInterval(poll);
       ui.busy = false;

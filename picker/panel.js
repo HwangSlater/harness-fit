@@ -2,58 +2,29 @@
 // 한 번에 하나만 뜬다(ui.panel = { kind, … }). Esc·바깥 누르기·✕·닫기 단추는 모두 act.closePanel 로 모인다.
 // 내용: { title, sub, tall, size('sm'·'md'), tools: [], body: [] 또는 nav: [] + list: [], foot: [] }
 import { h } from './dom.js';
-import { label } from './parts.js';
-import { comboBy, flowBy, hookGroupsOf, skillBy, diffOf, ruleIds, stageOf } from './stats.js';
+import { skillBy, stageOf } from './stats.js';
 import { browsePanel } from './browse.js';
 import { rulePanel } from './rule-dialog.js';
 import { api, errText } from './api.js';
-
-const btn = (key, text, onClick, cls = '', extra = {}) => h(`button.btn.lg${cls}`, { type: 'button', 'data-key': key, on: { click: onClick }, ...extra }, text);
-
-// 「켜지는 것 보기」 — 전체 보기와 같은 틀, 넓이를 써서 두 칸
-function comboPanel(c, id) {
-  const { S, sel, t, act } = c;
-  const k = comboBy(S, id);
-  const add = new Set((k.addons || []).flatMap((a) => a.skills));
-  const tags = (names) => h('div.tags', {}, names.length ? names.map((n) => label(n)) : h('span.muted', {}, t('sumNone')));
-  const sec = (title, n, ...kids) => h('section.psec', {}, h('h3', {}, h('span', {}, title), h('span', {}, n)), ...kids);
-  const hooks = new Set(k.hooks);
-  const rules = ruleIds({ flow: k.flow, rules: new Set(k.rules) }, null);
-  const cur = sel.combo === id;
-  const diff = diffOf(sel, k);
-  return {
-    title: t('comboPanelTitle', { name: k.name }), sub: `${k.for} · ${t('comboPanelSub')}`,
-    body: [h('div.pgrid', {},
-      sec(t('step_skills'), t('nItems', { n: k.skills.length }), tags(k.skills.filter((s) => !add.has(s)).map((s) => skillBy(S, s)?.title || s)),
-        h('p.note', {}, add.size ? t('comboAddons') : t('comboNoAddons')),
-        add.size ? tags((k.addons || []).flatMap((a) => a.skills.map((s) => `${skillBy(S, s)?.title || s} · ${a.stacks.join(' · ')}`))) : null),
-      sec(t('step_hooks'), t('nItems', { n: hooks.size }), hookGroupsOf(S, t('groupOther')).map((g) => {
-        const names = g.hooks.filter((x) => hooks.has(x.id)).map((x) => x.name);
-        return names.length ? h('div.pline', {}, h('span.k', {}, g.name), h('span', {}, names.join(' · '))) : null;
-      })),
-      sec(t('step_rules'), t('nItems', { n: rules.length }), rules.map((rid) => h('div.pline', {},
-        h('span.k', {}, S.rules.find((r) => r.id === rid)?.name || t('flowRule', { name: flowBy(S, rid)?.name || rid })), h('span', {}, t('aboutTok', { n: S.ruleTokens[rid] || 0 }))))),
-      sec(t('comboFlow'), flowBy(S, k.flow)?.name || '', h('p.note', {}, t('comboFlowNote'))))],
-    foot: [h('span.muted', {}, cur ? t('comboCur') : diff.length ? `${t('diffLabel')} ${diff.map(([n, v]) => `${t(n)} ${v}`).join(' · ')}` : t('diffSame')),
-      btn('panelDone', t('close'), act.closePanel),
-      btn('pickHere', cur ? t('comboPicked') : t('comboPick'), () => act.pickCombo(k, true), '.primary', { disabled: cur })],
-  };
-}
+import { comboPanel } from './combo-panel.js';
+import { btn, withCode } from './parts.js';
 
 // 「그만두기」 확인: 실수로 눌러 고른 것을 잃지 않게. 기본 초점은 「계속 고르기」.
 const cancelPanel = ({ t, act }) => ({
   title: t('cancelTitle'), size: 'sm', body: h('p', {}, t('cancelBody')),
-  foot: [h('span.muted'), btn('keep', t('cancelKeep'), act.closePanel, '', { 'data-autofocus': true }), btn('cancelGo', t('cancelGo'), act.confirmCancel, '.danger')],
+  foot: [h('span.muted'), btn('keep', t('cancelKeep'), act.closePanel, '.lg', { 'data-autofocus': true }), btn('cancelGo', t('cancelGo'), act.confirmCancel, '.lg.danger')],
 });
 
 // 적용·그만두기가 실패했을 때. 적용이었다면 파일이 이미 바뀌었을 수 있으니 되돌리는 방법을 같이 알린다.
 const failedPanel = ({ S, t, act }, d) => ({
-  title: d.maybeChanged ? t('applyFailTitle') : t('errorTitle'), size: 'sm',
-  body: [h('p.err', { role: 'alert' }, d.text), d.maybeChanged ? h('p.undo', {}, t('applyFailMaybe', { cmd: S.undoCommand })) : null, d.detail ? h('p.hint', {}, t('errDetail', { detail: d.detail })) : null],
-  foot: [h('span.muted'), btn('failedOk', t('close'), act.closePanel, '.primary', { 'data-autofocus': true })],
+  // 연결이 끊긴 때는 「못 끝냈다」가 아니라 「결과를 못 받았다」 — 이미 끝났을 수 있다는 말과 어긋나지 않게. 되돌리기 명령은 코드 꼴로(화면 역할 평가 2026-11-13)
+  title: d.network ? t('applyLostTitle') : d.maybeChanged || d.nothingChanged ? t('applyFailTitle') : t('errorTitle'), size: 'sm',
+  body: [h('p.err', { role: 'alert' }, d.text), d.maybeChanged ? h('p.undo', {}, withCode(t(d.network ? 'applyLostUndo' : 'applyFailMaybe', { cmd: `\`${S.undoCommand}\`` }))) : null,
+    d.nothingChanged ? h('p', {}, t('applyFailNone')) : null, d.detail ? h('p.hint', {}, t('errDetail', { detail: d.detail })) : null],
+  foot: [h('span.muted'), btn('failedOk', t('close'), act.closePanel, '.lg.primary', { 'data-autofocus': true })],
 });
 
-const PANELS = { combo: (c, d) => comboPanel(c, d.id), browse: browsePanel, cancel: cancelPanel, failed: failedPanel, rule: rulePanel };
+const PANELS = { combo: comboPanel, browse: browsePanel, cancel: cancelPanel, failed: failedPanel, rule: rulePanel };
 
 const $ = (id) => document.getElementById(id);
 const SCROLLERS = ['#panelBody', '.gnav', '.glist'];
@@ -91,6 +62,14 @@ const HIT_MS = 1600; // 링크로 찾아온 줄을 밝혀 두는 시간
 let hitTimer;
 export const panelActions = ({ ui, t, render, lastClicked, state }) => {
   const a = {
+    // 켜지는 것 보기의 구획(전체·스킬·훅·지침·브랜치 전략)
+    comboGroup(g) {
+      if (!ui.panel) return;
+      ui.panel.g = g;
+      ui.panelFresh = true;
+      render();
+      document.querySelector(`#panel [data-key="cg:${CSS.escape(g)}"]`)?.focus();
+    },
     openPanel(d) {
       if (!ui.panel) ui.opener = document.activeElement?.dataset?.key || lastClicked(); // 닫으면 이 단추로 초점을 돌려준다
       ui.panel = d;
@@ -150,10 +129,11 @@ export const panelActions = ({ ui, t, render, lastClicked, state }) => {
 
 // 창 쪽 이벤트(창마다 한 번만 단다): ✕(<id>Close) · Esc(cancel) · 바깥 누르기. 창 안에서 누르기 시작해 바깥에서 뗀 경우는 닫지 않는다.
 // 큰 창(panel) 위에 작은 창(info)이 겹쳐 뜨면 Esc 는 맨 위 창에만 간다.
-export function wireDialog(id, onClose) {
+// onEsc: Esc 만 따로(안 주면 닫기와 같다)
+export function wireDialog(id, onClose, onEsc = onClose) {
   const dlg = $(id);
   $(`${id}Close`).addEventListener('click', onClose);
-  dlg.addEventListener('cancel', (e) => (e.preventDefault(), onClose()));
+  dlg.addEventListener('cancel', (e) => (e.preventDefault(), onEsc()));
   let down = false;
   dlg.addEventListener('pointerdown', (e) => (down = e.target === dlg));
   dlg.addEventListener('click', (e) => (e.target === dlg && down ? onClose() : null, (down = false)));

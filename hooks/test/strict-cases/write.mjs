@@ -1,6 +1,14 @@
 // 쓰기 훅 엄격 사례: secrets · protected-files · file-size. 커밋할 때 다시 보기(셸로 쓴 파일) 사례를 함께 둔다.
+import fs from 'node:fs';
 import path from 'node:path';
-import { S, B, P, W, E, N, FAKE, assign, linesOf, stage, both, gitHook, PLUGIN } from './helpers.mjs';
+import { S, B, P, W, E, N, FAKE, assign, linesOf, stage, both, keyed, gitHook, PLUGIN } from './helpers.mjs';
+
+// 보호 파일(config/joint_limits.yaml)을 커밋해 둔 저장소
+const committedLimits = keyed('limits', (r) => r.commit('config/joint_limits.yaml', 'max: 1\n', 'chore: 한계'));
+const limitsChanged = keyed('limits-changed', (r) => {
+  r.commit('config/joint_limits.yaml', 'max: 1\n', 'chore: 한계');
+  r.put('config/joint_limits.yaml', 'max: 2\n');
+});
 
 const tokenLine = `export const token = "${FAKE.github}";\n`;
 const commitMsg = 'git commit -m "feat: x"';
@@ -11,8 +19,14 @@ export default {
       W('src/config.js', tokenLine, 'GitHub 토큰(ghp_)'),
       W('src/aws.py', `KEY = "${FAKE.aws}"\n`, 'AWS 키(AKIA)'),
       W('src/ai.ts', `const k = '${FAKE.openai}';\n`, 'OpenAI 키(sk-)'),
+      W('detctl/siem.py', 'SIEM_API_TOKEN = "k8s9dF3jw0qPz7LmN2vB"\n', '대문자 상수 _TOKEN(역할극 12 회차)'),
+      W('enricher/feed.go', 'const REPUTATION_FEED_KEY = "a1b2c3d4e5f6g7h8i9j0"\n', '대문자 상수 _KEY'),
       W('deploy/key.txt', `${FAKE.privateKey}\nMIIE\n`, '개인 키 머리'),
       W('src/slack.js', `const s = "${FAKE.slack}";\n`, 'Slack 토큰'),
+      W('src/bot.py', `APP = "${FAKE.slackApp}"\n`, 'Slack 앱 토큰(xapp-, Socket Mode)'),
+      W('src/embed.py', `client = voyageai.Client("${FAKE.voyage}")\n`, 'Voyage 키(pa-)'),
+      W('scripts/train.py', `wandb.login(key="${FAKE.wandb}")\n`, 'wandb.login(key=…)'),
+      W('scripts/train.py', `os.environ["WANDB_API_KEY"] = "${FAKE.wandb}"\n`, 'os.environ["…_API_KEY"] = …'),
       W('src/maps.js', `const g = "${FAKE.google}";\n`, 'Google API 키'),
       W('src/auth.js', `const t = "${FAKE.jwt}";\n`, 'JWT 모양'),
       W('src/pay.rb', `KEY = "${FAKE.stripe}"\n`, 'Stripe live 키'),
@@ -22,6 +36,14 @@ export default {
       W('src/aws.ts', assign('const AWS_SECRET_ACCESS_KEY', FAKE.password) + ';\n', 'AWS_SECRET_ACCESS_KEY'),
       W('src/pay.ts', assign('const STRIPE_SECRET_KEY', FAKE.password) + ';\n', 'STRIPE_SECRET_KEY'),
       W('src/k.ts', assign('const API_KEY_PROD', FAKE.password) + ';\n', '뒤 낱말이 이름을 가리키지 않으면 값으로 본다(_PROD)'),
+      // 설정 파일의 따옴표 없는 값 — 역할극 8 회차(Spring)
+      W('src/main/resources/application.yml', `spring:\n  datasource:\n    password: ${FAKE.password}\n`, 'application.yml password: 값'),
+      W('src/main/resources/application.properties', `spring.datasource.password=${FAKE.password}\n`, '.properties 의 password=값'),
+      W('src/main/resources/application.yaml', 'jwt.secret: 9f8a' + '7b6c5d4e3f2a1b0c\n', 'jwt.secret: 값'),
+      W('config/app.toml', `[api]\napi-key = ${FAKE.password}\n`, '.toml 의 api-key = 값'),
+      W('deploy/app.ini', `[db]\ndb_password = ${FAKE.password} ; 운영\n`, '.ini 줄 끝 주석'),
+      W('docker-compose.yml', `services:\n  db:\n    environment:\n      - MYSQL_ROOT_PASSWORD=${FAKE.password}\n`, 'compose 목록의 _PASSWORD=값'),
+      S(commitMsg, '커밋: 셸로 쓴 application.yml', { setup: stage('src/main/resources/application.yml', `password: ${FAKE.password}\n`) }),
       B('git add app/settings.py && git commit -m "feat: x"', '커밋: SECRET_KEY', { setup: (r) => r.put('app/settings.py', assign('SECRET_KEY', FAKE.password) + '\n') }),
       E('src/a.js', 'const a = 1;', tokenLine, 'Edit 로 넣기', { setup: (r) => r.put('src/a.js', 'const a = 1;\n') }),
       N('nb/a.ipynb', `key = "${FAKE.aws}"`, 'NotebookEdit 로 넣기'),
@@ -54,6 +76,7 @@ export default {
     ],
     pass: [
       W('src/config.js', 'export const token = process.env.GH_TOKEN;\n', '환경 변수에서 읽기'),
+      W('src/cache.py', 'CACHE_KEY = "user:profile:summary"\nSORT_KEY = "created_at_descending"\nI18N_KEY = "settings.profile.title2"\n', '_KEY 이름표 값'),
       W('src/db.py', assign('password', 'your-password-here') + '\n', '자리표시자 값'),
       W('src/db.py', assign('password', '${DB_PASSWORD}') + '\n', '${} 참조'),
       W('src/login.test.js', assign('password', FAKE.password) + '\n', '테스트 파일은 대입 검사 제외'),
@@ -64,6 +87,17 @@ export default {
       W('src/form.ts', "const errors = { password: 'Required' };\n", '검사 문구(Required)'),
       W('src/http.ts', assign('const api_key_header', 'X-Api-Key') + ';\n', '값을 가리키는 이름(_header)'),
       W('src/vault.py', assign('DB_PASSWORD_ENV', 'DB_PASSWORD') + '\n', '값을 가리키는 이름(_ENV)'),
+      // 설정 파일의 비슷한 꼴
+      W('src/main/resources/application.yml', 'spring:\n  datasource:\n    password: ${DB_PASSWORD}\n    url: ${DB_URL:jdbc:h2:mem:test}\n', 'application.yml ${…} 참조'),
+      W('src/main/resources/application.yml', 'jwt:\n  secret: ${JWT_SECRET:local-dev-1}\n  token-expiry: 86400000\n  max_tokens: 40960000\n', '${…:기본값}·만료 시간 숫자'),
+      W('config/app.yml', 'validation:\n  password: required\n  token: optional\n', '낱말 값(required)'),
+      W('config/app.yml', 'password: {{ vault_db_password }}\napi_key: <your-api-key>\ntoken: changeme123\nsecret: xxxxxxxx1\n', '{{ }}·<…>·changeme·xxx'),
+      W('config/app.ini', 'password = %(db_pass)s\ntoken = $GH_TOKEN\napi_key = ENV[API_KEY]\n', '%(…)s·$변수·ENV[…]'),
+      W('config/app.yml', `# password: ${FAKE.password}\n`, '주석 줄'),
+      W('config/application.example.yml', `password: ${FAKE.password}\n`, '.example 설정 파일'),
+      W('src/test/resources/application.yml', `password: ${FAKE.password}\n`, '시험 폴더 설정 파일'),
+      W('charts/app/values.yaml', 'auth:\n  existingSecret: app-db-secret1\n  password: ENC(abc123def456)\n', 'Helm existingSecret·ENC(…)'),
+      W('config/messages.yml', 'password: 비밀번호를입력하세요\n', '번역 문구'),
       // git 훅이 돌면 커밋 내용은 그 훅이 실제 커밋 때 본다(hooks/test/git-hook.test.mjs) — PreToolUse 는 「미리 볼 수 없다」로 막지 않는다
       B('echo "x" > src/new.js && git add src/new.js && git commit -m "feat: a"', 'git 훅: 같은 명령에서 쓰고 커밋', { setup: gitHook() }),
       P("Set-Content src/new.js 'x'; git add src/new.js; git commit -m 'feat: a'", 'git 훅: PowerShell 로 쓰고 같은 명령에서 커밋', { setup: gitHook() }),
@@ -96,7 +130,7 @@ export default {
   },
 
   'protected-files': {
-    opts: { paths: ['credentials.json'] },
+    opts: { paths: ['credentials.json', './data/raw/', 'config\\joint_limits.yaml', '.hdf5'] },
     block: [
       W('.env', 'DB_HOST=localhost\n', '.env'),
       W('config/.env.local', 'X=1\n', '.env.local'),
@@ -110,6 +144,73 @@ export default {
       S('git commit -m "chore: x"', '커밋: 셸로 만든 .env 를 stage', { setup: stage('.env', 'X=1\n') }),
       B('git add .env.local && git commit -m "chore: x"', '커밋: 같은 명령의 add', { setup: (r) => r.put('.env.local', 'X=1\n') }),
       P('git add .env.local; git commit -m "chore: x"', '커밋: PowerShell 같은 꼴', { setup: (r) => r.put('.env.local', 'X=1\n') }),
+      // 경로 옵션: 앞 ./·뒤 /·\ 를 고르게 맞춘다(역할극 4 회차)
+      W('data/raw/hr-policy.pdf', 'x\n', '옵션 paths 폴더(뒤 / 로 적음)'),
+      W('src/arm/config/joint_limits.yaml', 'x: 1\n', '옵션 paths 파일(\\ 로 적음)'),
+      W('data/demos/run1.hdf5', 'x\n', '옵션 paths 확장자'),
+      // 셸로 바꾸거나 지우기(역할극 2·3·4 회차)
+      S('echo "DB_PASSWORD=x" >> .env', '셸: >> .env'),
+      S("sed -i 's/1.57/3.14/' config/joint_limits.yaml", '셸: sed -i 보호 파일'),
+      S('rm -rf data/raw', '셸: rm 보호 폴더'),
+      S('rm data/demos/run1.hdf5', '셸: rm 보호 확장자'),
+      S('cp .env.example .env', '셸: 있는 .env 를 예시로 덮어쓰기', { setup: (r) => r.put('.env', 'REAL=1\n') }),
+      S('cp backup.env .env', '셸: 예시 아닌 파일로 .env 만들기'),
+      S('echo "API_KEY=x" > ".env"', '셸: 따옴표 친 넘겨쓰기 대상'),
+      S("echo x > '.env.local'", '셸: 작은따옴표 대상'),
+      P('Remove-Item -Recurse -Force .env', 'PowerShell 스위치 뒤 경로'),
+      P('Remove-Item -Recurse data\\raw', 'PowerShell -Recurse 뒤 보호 폴더'),
+      P('Out-File -Append .env', 'Out-File -Append 뒤 경로'),
+      P('Copy-Item .env.example .env', 'Copy-Item 위치 인자 둘째로 있는 .env 덮어쓰기', { setup: (r) => r.put('.env', 'REAL=1\n') }),
+      P('Move-Item a.txt .env', 'Move-Item 받는 쪽'),
+      S('rm -rf data', '셸: 보호 경로를 품은 폴더 지우기'),
+      // Claude 가 보호 경로를 커밋에 넣기(역할극 7 회차 — git add -f 로 data/raw 가 커밋됐다)
+      S('git add -f data/raw/customers.csv', 'git add -f 보호 폴더', { setup: (r) => r.put('data/raw/customers.csv', 'x\n') }),
+      S('git add config/joint_limits.yaml && git commit -m "한계 바꿈"', 'git add 보호 파일 뒤 커밋', { setup: (r) => r.put('config/joint_limits.yaml', 'max: 2\n') }),
+      // 이 명령이 넓게 올리는 것(git add .·-A·commit -a)에 보호 경로가 든 것 — 앞 명령에서 올려 두고 따로 커밋하는 길도 여기서 막힌다(검토 2026-11-11)
+      S('git add .', 'git add . 이 고친 보호 파일을 올림', { setup: both(committedLimits, (r) => r.put('config/joint_limits.yaml', 'max: 2\n')) }),
+      S('git add -A', 'git add -A 가 새 보호 폴더 파일을 올림', { setup: (r) => r.put('data/raw/new.csv', 'x\n') }),
+      S('git commit -am "한계 바꿈"', 'commit -a 가 고친 보호 파일을 올림', { setup: both(committedLimits, (r) => r.put('config/joint_limits.yaml', 'max: 2\n')) }),
+      B('git add config && git commit -m "x"', '같은 명령의 폴더 add 가 보호 파일을 올림', { setup: both(committedLimits, (r) => r.put('config/joint_limits.yaml', 'max: 2\n')) }),
+      // 대소문자를 가리지 않는 파일 시스템(Windows·macOS)에서만 같은 폴더(검토 2026-11-11)
+      ...(process.platform === 'win32' || process.platform === 'darwin' ? [S('rm -rf Data', '셸: 대소문자만 다른 보호 폴더 지우기'), W('DATA/raw/a.csv', 'x\n', '대소문자만 다른 보호 폴더에 쓰기')] : []),
+      S('rm -rf ./data/', '셸: ./data/ 지우기'),
+      S('sudo -u app tee .env', '셸: sudo -u 값 뒤 tee'),
+      P("Set-Content -ErrorAction Stop .env 'X=2'", 'PowerShell 공통 매개변수 값 뒤 경로'),
+      S('rm -rf data/*', '셸: 보호 경로를 품은 폴더의 글롭'),
+      S('cd src && rm -rf ../data', '셸: cd 한 뒤 위 폴더로'),
+      S('cp limits.yaml --target-directory=config && mv config/limits.yaml config/joint_limits.yaml', '셸: --target-directory= 꼴과 mv'),
+      S('mv data/raw/a.pdf /tmp/', '셸: mv 로 보호 폴더에서 빼기'),
+      S('cat new.yaml | tee config/joint_limits.yaml', '셸: tee'),
+      P('Set-Content -Path .env -Value "X=1"', 'PowerShell Set-Content'),
+      P('Remove-Item .\\data\\raw -Recurse', 'PowerShell Remove-Item 보호 폴더'),
+      B('bash -c "echo X=1 > .env"', 'bash -c 안'),
+      // git 으로 바꾸거나 지우기(역할극 8·11 회차 — lib/git-writes.mjs)
+      S('git rm config/joint_limits.yaml', 'git rm 보호 파일', { setup: committedLimits }),
+      S('git rm -r data', 'git rm -r 보호 경로를 품은 폴더'),
+      S('git mv config/joint_limits.yaml config/old.yaml', 'git mv 보내는 쪽'),
+      S('git mv new.yaml config/joint_limits.yaml', 'git mv 받는 쪽'),
+      S('git checkout -- config/joint_limits.yaml', 'checkout -- 보호 파일(고친 것을 버림)', { setup: limitsChanged }),
+      S('git checkout HEAD~1 config/joint_limits.yaml', 'checkout <커밋> 경로(-- 없음)', { setup: committedLimits }),
+      S('git checkout main -- data/raw/a.csv', 'checkout <브랜치> -- 보호 폴더 파일'),
+      S('git restore config/joint_limits.yaml', 'restore 보호 파일', { setup: limitsChanged }),
+      S('git restore --source=HEAD~1 --staged --worktree config/joint_limits.yaml', 'restore --source --staged --worktree'),
+      S('git restore --source main --staged config/joint_limits.yaml', 'restore --staged 인데 다른 커밋에서(stage 에 다른 내용을 올림)'),
+      S('git clean -f data/raw', 'clean -f 보호 폴더'),
+      S('git clean -fdx -- .env', 'clean -- .env'),
+      // . 과 폴더도 그 안의 보호 파일이 실제로 바뀌면(검토 2026-11-11 — 전에는 danger-cmd 에만 맡겼다)
+      S('git checkout -- .', 'checkout -- . 이 고친 보호 파일을 되돌림', { setup: limitsChanged }),
+      S('git restore .', 'restore . 이 고친 보호 파일을 되돌림', { setup: limitsChanged }),
+      S('git checkout -- config', 'checkout -- 폴더가 고친 보호 파일을 되돌림', { setup: limitsChanged }),
+      // 앞 명령에서 올려 두는 다른 꼴(검토 2026-11-11): 저장소 맨 위 pathspec, 알 수 없는 대상
+      S('git add :/', 'git add :/ 는 저장소 전체', { setup: limitsChanged }),
+      S('git add ":(top)"', 'git add :(top) 은 저장소 전체', { setup: limitsChanged }),
+      S('git add :/config', 'git add :/폴더', { setup: limitsChanged }),
+      B('git ls-files -m | xargs git add', 'xargs git add(대상을 알 수 없음)', { setup: limitsChanged }),
+      B('git add $(git ls-files -m)', 'git add $(…)', { setup: limitsChanged }),
+      S('git add --pathspec-from-file=list.txt', '--pathspec-from-file', { setup: limitsChanged }),
+      S('git update-index --add config/joint_limits.yaml', 'update-index --add', { setup: limitsChanged }),
+      B('git ls-files -m | git update-index --stdin', 'update-index --stdin', { setup: limitsChanged }),
+      S('git add ":!src"', '빼는 pathspec 만 주면 저장소 전체', { setup: limitsChanged }),
     ],
     pass: [
       W('.env.example', 'DB_HOST=\n', '.env.example'),
@@ -120,7 +221,54 @@ export default {
       W('deploy/.ssh/id_rsa_deploy.pub', 'ssh-rsa x\n', '공개 키'),
       W('docs/keys.md', '# 키 관리\n', '문서'),
       S('git commit -m "chore: x"', '커밋: 보통 파일', { setup: stage('src/a.js', 'export const a = 1;\n') }),
+      S('git add src/data/raw_loader.py && git commit -m "data/raw 읽기 고침"', '보호 폴더 이름이 든 메시지·다른 파일'),
+      S('git add -f data/processed/a.csv', '보호 폴더 옆 폴더 git add'),
+      // 사용자가 손으로 stage 해 둔 보호 경로 — Claude 의 다른 커밋을 막지 않는다(검토 2026-11-11, decisions.md)
+      S('git commit -m "데이터 갱신"', '사용자가 stage 해 둔 보호 폴더 파일', { setup: stage('data/raw/a.csv', 'x\n') }),
+      S('git commit -m "fix: x"', '사용자가 stage 해 둔 보호 파일 고침', { setup: both(committedLimits, stage('config/joint_limits.yaml', 'max: 2\n')) }),
+      B('git add src/a.js && git commit -m "fix: x"', '다른 파일만 올리는 명령(보호 파일은 고친 채 stage 안 함)', { setup: both(committedLimits, (r) => r.put('config/joint_limits.yaml', 'max: 2\n'), (r) => r.put('src/a.js', 'x\n')) }),
+      S('git add -A', 'git add -A 가 gitignore 된 보호 폴더는 올리지 않음', { setup: (r) => { r.put('.gitignore', 'data/\n'); r.put('data/raw/new.csv', 'x\n'); } }),
       S('git rm --cached .env && git commit -m "chore: x"'.replace('&&', ';'), '커밋: .env 빼기', { setup: (r) => r.commit('.env', 'X=1\n', 'chore: 시작') }),
+      W('src/metadata.py', 'x = 1\n', '이름이 data 로 끝나도 경로 낱말이 다르면 통과'),
+      W('data/processed/a.csv', 'x\n', '보호 폴더 옆 폴더'),
+      W('pkg/data/raw/loader.py', 'x = 1\n', '폴더 꼴(data/raw/)은 맨 위 기준 — 하위 소스 폴더는 아님(역할극 3 회차 2차)'),
+      S('cat .env.example', '셸: 읽기만'),
+      S('cp .env.example .env.local.example', '셸: 예시 파일끼리'),
+      S('cp .env.example .env', '셸: .env 가 없을 때 예시로 처음 만들기'),
+      S('rm -rf raw', '셸: 이름만 같은 다른 폴더(맨 위의 raw)'),
+      S('cp -n .env.example .env', '셸: 덮어쓰지 않는 복사', { setup: (r) => r.put('.env', 'REAL=1\n') }),
+      S('test -f .env || cp .env.example .env', '셸: 없을 때만 만들기'),
+      P('Copy-Item config\\prod.json C:\\backup\\', 'Copy-Item 보내는 쪽은 읽기만'),
+      S('tee copy.txt < .env', '셸: < 로 읽기만'),
+      P('Remove-Item -Recurse -Force .\\dist', 'PowerShell 스위치 뒤 다른 폴더'),
+      S('ls data/raw > files.txt', '셸: 보호 폴더 목록을 다른 파일로'),
+      S('rm -rf data/processed', '셸: 보호 폴더 옆 지우기'),
+      S('echo "rm -rf data/raw"', '셸: echo 글'),
+      S('python scripts/train.py 2>&1 | tee logs/train.log', '셸: tee 로 로그 쓰기'),
+      // git: stage 만 바꾸기·보기만·브랜치 옮기기·다른 파일
+      S('git rm --cached config/joint_limits.yaml', 'git rm --cached 는 stage 에서만 뺀다', { setup: committedLimits }),
+      S('git restore --staged config/joint_limits.yaml', 'restore --staged(HEAD 에서) 는 올린 것을 내릴 뿐', { setup: limitsChanged }),
+      S('git checkout main', 'checkout <브랜치>'),
+      S('git checkout -b feature/x', 'checkout -b 새 브랜치'),
+      S('git checkout -b data origin/data', 'checkout -b 보호 폴더와 같은 이름의 브랜치'),
+      S('git checkout -', 'checkout - (앞 브랜치)'),
+      S('git rm -n config/joint_limits.yaml', 'git rm -n(보기만)', { setup: committedLimits }),
+      S('git clean -n data/raw', 'clean -n(보기만)'),
+      S('git clean data/raw', 'clean 은 -f 없이 지우지 않는다'),
+      S('git rm src/old.js', '다른 파일 git rm'),
+      S('git checkout -- src/a.js', '다른 파일 checkout --'),
+      S('git restore src/', '다른 폴더 restore'),
+      // checkout·restore 의 . 과 폴더는 보호 파일이 실제로 바뀔 때만(검토 2026-11-11 — 다른 파일만 되돌리면 통과)
+      S('git checkout -- .', 'checkout -- . 인데 보호 파일은 그대로', { setup: both(committedLimits, (r) => r.put('README.md', 'changed\n')) }),
+      S('git restore .', 'restore . 인데 보호 파일은 그대로', { setup: both(committedLimits, (r) => r.put('README.md', 'changed\n')) }),
+      S('git checkout -- config', 'checkout -- 폴더 인데 보호 파일은 그대로', { setup: committedLimits }),
+      // 이름으로 준 보호 경로가 지운 것뿐이거나 바뀌지 않음(검토 2026-11-11 회귀 — a8d8bfe 는 통과)
+      S('git commit config/joint_limits.yaml -m "chore: 빼기"', '사용자가 지운 보호 파일을 커밋', { setup: both(committedLimits, (r) => fs.rmSync(path.join(r.dir, 'config', 'joint_limits.yaml'))) }),
+      S('git add config/joint_limits.yaml', '바뀌지 않은 보호 파일 add', { setup: committedLimits }),
+      S('git add config/joint_limits.yaml', '지운 보호 파일 add', { setup: both(committedLimits, (r) => fs.rmSync(path.join(r.dir, 'config', 'joint_limits.yaml'))) }),
+      S('git add :/src', 'git add :/다른폴더(보호 파일은 바뀌었지만 올리지 않음)', { setup: both(limitsChanged, (r) => r.put('src/a.js', 'x\n')) }),
+      B('git add $(git ls-files -m)', 'git add $(…) 인데 보호 경로는 바뀌지 않음', { setup: (r) => r.put('src/a.js', 'x\n') }),
+      S('git update-index --assume-unchanged config/joint_limits.yaml', 'update-index 표시만 바꿈', { setup: limitsChanged }),
     ],
   },
 

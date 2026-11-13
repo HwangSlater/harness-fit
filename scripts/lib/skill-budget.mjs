@@ -102,13 +102,21 @@ export const currentListing = (root, { home, env = process.env, contextTokens = 
 
 // 적용 계획의 예산 줄(apply.mjs plan → 결과 JSON skillBudget). fresh: 새로 들어갈 카탈로그 스킬 id(폴더가 아직 없는 것).
 // trim: 「권장대로 줄이기」로 뺄 스킬(화면과 같은 차례 — 조합 목록은 combos.json 원래 목록, 스택 맞춤은 stackAddons 전부로 본다).
-export const planBudget = (all, sel, fresh, listing) => {
+// stacks: 저장소에서 읽은 스택(넘칠 때만 부른다 — 감지가 무거워서). 스택 맞춤은 그 스택과 맞는 stackAddons 의 스킬만(검토 2026-11-13: 아무 스택 맞춤 스킬이나 맨 나중으로 뺐다)
+export const planBudget = (all, sel, fresh, listing, stacks = () => []) => {
   const added = fresh.map((id) => all.catalog.skills.find((k) => k.id === id)).filter(Boolean);
   const b = budgetOf(listing, added);
   if (b.level === 'ok') return { ...b, trim: [] };
   const combo = all.combos.combos.find((c) => c.id === sel.combo);
   const overlaps = readJson(path.join(PLUGIN_ROOT, 'catalog', 'overlaps.json'))?.groups?.map((g) => g.skills) || [];
   const byId = new Map(added.map((k) => [k.id, k]));
-  const tierOf = trimTier({ comboSkills: new Set(combo?.skills || []), stackSkills: new Set((all.combos.stackAddons || []).flatMap((a) => a.skills)), overlaps }, fresh, (id) => byId.get(id)?.descChars ?? 0);
-  return { ...b, trim: trimPlan(listing, added, tierOf) };
+  // 저장소에 맞춘 것(맨 나중에 뺀다): 스택 맞춤 + PR 로 합치는 브랜치 방식이면 그 방식의 스킬(combos.json flowSkills)
+  const flowFit = all.combos.flowSkills || {};
+  const have = new Set(stacks() || []);
+  const fit = [...(all.combos.stackAddons || []).filter((a) => (a.when || []).some((s) => have.has(s))).flatMap((a) => a.skills), ...((flowFit.flows || []).includes(sel.flow) ? flowFit.skills || [] : [])];
+  const tierOf = trimTier({ comboSkills: new Set(combo?.skills || []), stackSkills: new Set(fit), overlaps, stagesOf: (id) => byId.get(id)?.stages || [] }, fresh, (id) => byId.get(id)?.descChars ?? 0);
+  const trim = trimPlan(listing, added, tierOf);
+  // trimTotal: 그것들을 뺀 뒤 합계 — 세션이 「5개 빼면 맞아요」처럼 어림하지 않고 이 숫자로 말하게(역할극 8 회차 다시)
+  const trimTotal = budgetOf(listing, added.filter((k) => !trim.includes(k.id))).total;
+  return { ...b, trim, trimTotal };
 };

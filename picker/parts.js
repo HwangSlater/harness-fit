@@ -22,9 +22,31 @@ export const toggleSwitch = (t, { key, on, labelId, label, disabled, onToggle })
   h('button.tgl', { type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-labelledby': labelId || null, 'aria-label': labelId ? null : label, 'data-key': key, disabled: !!disabled, on: { click: onToggle } },
     h('span.st', { 'aria-hidden': 'true' }, on ? t('tglOn') : t('tglOff')), h('span.track', { 'aria-hidden': 'true' }));
 
-// 체크 줄(여러 항목 가운데 고르기)
-export const checkRow = ({ key, on, label, disabled, onChange, cls = '' }) =>
-  h(`label.ck${cls}`, {}, h('input', { type: 'checkbox', checked: !!on, disabled: !!disabled, 'data-key': key, on: { change: onChange } }), h('span', {}, label));
+// 체크 줄(여러 항목 가운데 고르기, 훅 옵션의 켜고 끄기). describedBy: 아래 설명 글 id
+export const checkRow = ({ key, on, label, disabled, onChange, cls = '', describedBy }) =>
+  h(`label.ck${cls}`, {}, h('input', { type: 'checkbox', checked: !!on, disabled: !!disabled, 'data-key': key, 'aria-describedby': describedBy || null, on: { change: onChange } }), h('span', {}, label));
+
+// 단추(공통). cls: '.lg' 큰 단추, '.primary' 주 동작, '.on' 눌린 상태 등. extra: aria-pressed·disabled·title·data-autofocus 같은 속성
+export const btn = (key, text, onClick, cls = '', extra = {}) =>
+  h(`button.btn${cls}`, { type: 'button', 'data-key': key, on: { click: onClick }, ...extra }, text);
+
+// 주소로 가는 단추(<a> — 「확인으로」 처럼 다른 단계로 데려가는 것). 모양은 btn 과 같다
+export const btnLink = (key, text, href, cls = '') => h(`a.btn${cls}`, { href, 'data-key': key }, text);
+
+// 이름 + 칸 한 덩어리(훅 옵션의 고르기, GitHub 승인 수): 이름이 위, 4px 아래 칸, 그 아래 설명(있으면) — 옵션 배치 A안.
+// 이름을 칸 옆에 두면 좁은 화면에서 칸·메뉴가 오른쪽으로 밀려 넘쳤다(검토 2026-11-12)
+export const field = ({ name, nameId, control, help }) =>
+  h('div.fld', {}, h('span.fldn', { id: nameId }, name), control, help || null);
+
+// 창 왼쪽 목록 단추(전체 훅·스킬 보기, 켜지는 것 보기): 이름 · 개수. 지금 고른 것은 aria-current
+export const navItem = ({ key, current, name, count, cls = '', onClick }) =>
+  h(`button${cls}`, { type: 'button', 'aria-current': String(!!current), 'data-key': key, on: { click: onClick } },
+    h('span', {}, name), count == null ? null : h('span.n', {}, String(count)));
+
+// 붙은 단추 묶음에서 하나 고르기(짧게 / 전체 같은 보기 바꾸기). items: [[값, 글, data-key]]
+export const segmented = ({ label, items, value, onPick }) =>
+  h('span.seg', { role: 'group', 'aria-label': label },
+    items.map(([v, text, key]) => h('button', { type: 'button', 'aria-pressed': String(value === v), 'data-key': key, on: { click: () => onPick(v) } }, text)));
 
 // 구획 머리: 제목 · 개수 ……… 동작
 export const shead = (title, count, ...acts) =>
@@ -60,6 +82,7 @@ export const link = (key, text, onClick, extra = {}) => h('button.link', { type:
 // 지난번 적용 뒤 카탈로그에 새로 생긴 것(꺼진 채로 시작한다)
 export const isNew = (S, kind, id) => !!S.newSince?.[kind]?.includes(id);
 
+// (link 는 따로 서는 동작 단추, lk 는 문장·이름표 속에 끼는 글자 링크 — 모양과 누르는 넓이가 달라 둘 다 둔다)
 // 따라가는 링크 하나(이름표·알림 글 속). 보이는 크기는 글자 그대로, 누르는 넓이만 44px(.lk — 줄 높이는 늘리지 않는다).
 // popup: 작은 창을 여는 링크(aria-haspopup). 글은 <span> 안에 — 초점 테두리를 글자에만 두려고.
 export const lk = ({ key, text, title, popup, onClick }) =>
@@ -110,17 +133,17 @@ export function alreadyNote({ S, sel, t, act, dup, defaults }, kind, names) {
 export function previousLine({ S, ui, t, act }) {
   const p = S.previous;
   if (!p) return null;
-  if (ui.switched?.reset) return flash({ cls: '.info', role: 'status', title: t('resetDone'), act: h('button.btn', { type: 'button', 'data-key': 'undoSwitch', on: { click: act.undoSwitch } }, t('undoSwitch')) });
+  if (ui.switched?.reset) return flash({ cls: '.info', role: 'status', title: t('resetDone'), act: btn('undoSwitch', t('undoSwitch'), act.undoSwitch) });
   const n = S.newSince;
   const counts = [['diffSkill', n.skills.length], ['diffHook', n.hooks.length], ['diffRule', n.rules.length]].filter(([, x]) => x).map(([k, x]) => `${t(k)} ${x}`);
   return flash({ cls: '.info', role: 'status', title: p.at ? t('prevLine', { date: p.at }) : t('prevLineNoDate'),
     desc: counts.length ? t('prevNew', { list: counts.join(' · ') }) : null,
-    act: h('button.btn', { type: 'button', 'data-key': 'resetRec', on: { click: act.resetToRecommended } }, t('resetRec')) });
+    act: btn('resetRec', t('resetRec'), act.resetToRecommended) });
 }
 
 // 「자세히 보기」·「전체 보기」 단추: 전체 보기 창(browse.js)을 그 묶음으로 연다
 export const browseBtn = (c, text, kind, g = 'all', key = `browse:${kind}:${g}`) =>
-  h('button.btn', { type: 'button', 'data-key': key, 'aria-haspopup': 'dialog', on: { click: () => c.act.openBrowse(kind, g) } }, text);
+  btn(key, text, () => c.act.openBrowse(kind, g), '', { 'aria-haspopup': 'dialog' });
 
 // 항목 한 줄(스킬·검사 같은 꼴): 이름·이름표 / 쉬운 한 줄 / 정보 · 스위치 · 옵션 · 자세히(펼침)
 export function itemRow(c, { key, on, name, labels, plain, meta = [], keep, opts = [], scope, onToggle }) {
@@ -134,9 +157,10 @@ export function itemRow(c, { key, on, name, labels, plain, meta = [], keep, opts
       plain ? h('p.plain', {}, plain) : null,
       meta.filter(Boolean).map((m) => h('p.meta', {}, m)),
       keepNote(t, keep)),
-    h('div.tg', {}, toggleSwitch(t, { key: `tg:${key}`, on, labelId: `nm-${safe}`, onToggle })),
-    h('div.more', {},
+    // 스위치가 없으면(켜지는 것 보기 combo-panel.js) 켜고 끄지 않고 보여 주기만
+    onToggle ? h('div.tg', {}, toggleSwitch(t, { key: `tg:${key}`, on, labelId: `nm-${safe}`, onToggle })) : null,
+    opts.length || scope ? h('div.more', {},
       opts.length ? h('div.opts', {}, opts) : null,
-      link(`sc:${key}`, open ? t('scopeClose') : t('scopeOpen'), () => act.toggleOpen(key), { 'aria-expanded': String(open), class: 'scopebtn' }),
-      open ? h('div.scopefull', {}, scope) : null));
+      scope ? link(`sc:${key}`, open ? t('scopeClose') : t('scopeOpen'), () => act.toggleOpen(key), { 'aria-expanded': String(open), class: 'scopebtn' }) : null,
+      open && scope ? h('div.scopefull', {}, scope) : null) : null);
 }

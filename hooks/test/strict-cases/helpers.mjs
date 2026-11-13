@@ -27,6 +27,10 @@ export const FAKE = {
   jwt: 'ey' + 'JhbGciOiJIUzI1NiJ9.' + 'ey' + 'JzdWIiOiIxMjM0NTY3ODkwIn0.' + 'abcdefghijklmnop',
   stripe: 's' + 'k_live_' + 'Ab12Cd34Ef56Gh78Ij90Kl12',
   password: 'hunter2' + '-correct-horse',
+  // 역할극 3·4 회차에서 놓친 꼴(2026-11-11)
+  slackApp: 'xa' + 'pp-' + '1-A0123456789-abcdefghij',
+  voyage: 'p' + 'a-' + 'Ab12Cd34Ef56Gh78Ij90Kl12Mn34Op56Qr78St',
+  wandb: '0123456789abcdef' + '0123456789abcdef' + '01234567',
 };
 export const assign = (name, value) => `${name} = "${value}"`;
 

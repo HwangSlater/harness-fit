@@ -2,13 +2,30 @@
   "_설명": "훅마다 「막아야 하는 입력(block)」과 「막으면 안 되는 입력(pass)」. 사용자가 이미 가진 훅(전역·프로젝트 settings)에 넣어 보고, block 을 모두 막고 pass 를 모두 통과시키면 같은 일을 하는 훅으로 본다(scripts/lib/existing-hooks.mjs). pass 가 있어야 다른 이유로 막는 훅(예: 커밋 메시지를 한국어로만 받는 훅)을 같은 훅으로 잘못 보지 않는다. <probe> 는 테스트용 임시 저장소 경로. content 가 배열이면 이어 붙인다(이 파일이 비밀값 훅에 걸리지 않게). 이 입력은 harness-fit 훅도 그대로 막고 통과시켜야 한다(scripts/test/probes.test.mjs). 도구 호출 말고 Stop·SessionStart·UserPromptSubmit 테스트(event), 저장소 준비(setup), 대화 기록(transcript), 체크리스트(checklist), 보여 준 글로 판정(expect), 훅 옵션(opts)의 꼴은 scripts/lib/probe-run.mjs 맨 위에 적어 두었다. said 는 고르기 화면이 「이미 쓰고 있는 훅」 창에 보여 주는 한 줄(이 테스트들이 무엇을 막고 통과시켰는지 — block·pass 를 바꾸면 같이 고친다).",
   "secrets": {
     "said": { "ko": "토큰이 든 파일 쓰기는 막고, 환경 변수에서 읽는 코드는 통과시켰어요", "en": "Blocked writing a file with a token in it and let code that reads it from an environment variable through" },
-    "block": [{ "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/config.js", "content": ["export const token = \"gh", "p_Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNbVc", "\";\n"] } }],
+    "block": [
+      { "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/config.js", "content": ["export const token = \"gh", "p_Zx9Qw8Er7Ty6Ui5Op4As3Df2Gh1Jk0LmNbVc", "\";\n"] } },
+      { "tool_name": "Write", "tool_input": { "file_path": "<probe>/scripts/train.py", "content": ["wandb.lo", "gin(key=\"0123456789abcdef", "0123456789abcdef01234567\")\n"] } },
+      { "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/main/resources/application.yml", "content": ["spring:\n  datasource:\n    pass", "word: Zx9Qw8Er7", "Ty6Ui5Op\n"] } }
+    ],
     "pass": [{ "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/config.js", "content": "export const token = process.env.GH_TOKEN;\n" } }]
   },
   "protected-files": {
     "said": { "ko": ".env 파일 쓰기는 막고, 보통 코드 파일 쓰기는 통과시켰어요", "en": "Blocked writing .env and let an ordinary code file through" },
     "block": [{ "tool_name": "Write", "tool_input": { "file_path": "<probe>/.env", "content": "DB_HOST=localhost\n" } }],
     "pass": [{ "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/db.js", "content": "export const host = 'localhost';\n" } }]
+  },
+  "migration-edit": {
+    "said": { "ko": "이미 커밋한 마이그레이션(V1__init.sql·0001_initial.py) 고치기·지우기는 막고, 새 마이그레이션 만들기는 통과시켰어요", "en": "Blocked editing or deleting committed migrations (V1__init.sql, 0001_initial.py) and let a new migration through" },
+    "block": [
+      { "setup": { "committed": { "src/main/resources/db/migration/V1__init.sql": "CREATE TABLE users (id INT);\n" } }, "tool_name": "Edit", "tool_input": { "file_path": "<probe>/src/main/resources/db/migration/V1__init.sql", "old_string": "id INT", "new_string": "id INT, email TEXT" } },
+      { "setup": { "committed": { "shop/migrations/0001_initial.py": "operations = []\n" } }, "tool_name": "Bash", "tool_input": { "command": "rm shop/migrations/0001_initial.py" } },
+      { "setup": { "committed": { "db/migrate/20240101000000_create_users.rb": "class CreateUsers; end\n" } }, "tool_name": "Bash", "tool_input": { "command": "git mv db/migrate/20240101000000_create_users.rb db/migrate/20240102000000_create_users.rb" } }
+    ],
+    "pass": [
+      { "tool_name": "Write", "tool_input": { "file_path": "<probe>/src/main/resources/db/migration/V2__add_email.sql", "content": "ALTER TABLE users ADD email TEXT;\n" } },
+      { "setup": { "committed": { "src/main/resources/db/migration/R__views.sql": "CREATE VIEW v AS SELECT 1;\n" } }, "tool_name": "Edit", "tool_input": { "file_path": "<probe>/src/main/resources/db/migration/R__views.sql", "old_string": "SELECT 1", "new_string": "SELECT 2" } },
+      { "tool_name": "Write", "tool_input": { "file_path": "<probe>/shop/migrations/__init__.py", "content": "\n" } }
+    ]
   },
   "danger-cmd": {
     "said": { "ko": "받은 스크립트를 바로 실행하는 `curl … | sh` 는 막고, 파일로 받기만 하는 명령은 통과시켰어요", "en": "Blocked `curl … | sh` (running a downloaded script at once) and let a download-only command through" },
@@ -82,6 +99,15 @@
     "said": { "ko": "github.com 페이지를 웹으로 읽기는 막고, docs.github.com 읽기는 통과시켰어요", "en": "Blocked reading a github.com page over the web and let docs.github.com through" },
     "block": [{ "tool_name": "WebFetch", "tool_input": { "url": "https://github.com/octocat/Hello-World/blob/master/README", "prompt": "summarize" }, "expect": "gh" }],
     "pass": [{ "tool_name": "WebFetch", "tool_input": { "url": "https://docs.github.com/en/get-started", "prompt": "summarize" } }]
+  },
+  "ask-cmd": {
+    "said": { "ko": "원격 서버에 닿는 `ssh` 는 실행 전에 묻고, 읽기만 하는 `kubectl get` 은 통과시켰어요", "en": "Asked before `ssh` (reaches a remote server) and let read-only `kubectl get` through" },
+    "block": [
+      { "tool_name": "Bash", "tool_input": { "command": "ssh deploy@prod.example.com uptime" }, "ask": true },
+      { "tool_name": "Bash", "tool_input": { "command": "kubectl -n prod delete pod api-1" }, "ask": true },
+      { "tool_name": "Bash", "tool_input": { "command": "terraform apply -auto-approve" }, "ask": true }
+    ],
+    "pass": [{ "tool_name": "Bash", "tool_input": { "command": "kubectl get pods" } }, { "tool_name": "Bash", "tool_input": { "command": "terraform plan" } }]
   },
   "squash-push": {
     "said": { "ko": "커밋이 둘인 브랜치 푸시는 막고, 커밋을 하나로 묶은 브랜치 푸시는 통과시켰어요", "en": "Blocked pushing a branch with two commits and let a branch squashed to one through" },
@@ -298,6 +324,23 @@
         "event": "UserPromptSubmit",
         "checklist": "- [x] 끝난 테스트 항목\n",
         "expect": "끝난 테스트 항목"
+      }
+    ]
+  },
+  "stale-scratch": {
+    "said": { "ko": "임시 폴더에 지난 세션의 venv 가 남아 있으면 알리고, 하루 전 것은 알리지 않았어요", "en": "Reported an old session's venv left in the temp folder and stayed quiet about a day-old one" },
+    "block": [
+      {
+        "event": "SessionStart",
+        "setup": { "scratch": [{ "dir": "0123456789abcdef/old-session/scratchpad/venv", "files": ["pyvenv.cfg"], "days": 5 }] },
+        "expect": "old-session"
+      }
+    ],
+    "pass": [
+      {
+        "event": "SessionStart",
+        "setup": { "scratch": [{ "dir": "0123456789abcdef/old-session/scratchpad/venv", "files": ["pyvenv.cfg"], "days": 1 }] },
+        "expect": "old-session"
       }
     ]
   },

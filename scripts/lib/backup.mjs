@@ -8,6 +8,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { extractBlock, setBlock } from './claude-md.mjs';
+import { readPluginJson } from './paths.mjs';
 import { MARKER, launcherText, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
 
 export const BACKUP_DIR = path.join('.claude', 'harness-backup');
@@ -135,12 +136,42 @@ const EOL = (text) => (text.includes('\r\n') ? '\r\n' : '\n');
 const withoutLine = (text, line) => text.split(/\r?\n/).filter((l) => l.trim() !== line).join(EOL(text)); // 줄바꿈 모양은 그대로
 const writeOrRemove = (abs, text) => (text.trim() ? fs.writeFileSync(abs, text) : fs.rmSync(abs, { force: true }));
 
+// settings.json 에서 harness-fit 이 더한 마켓·플러그인 칸만 뺀 글(plan.mjs buildSettings 와 짝). 읽을 수 없으면 null — 그때는 고친 사본을 남기고 되돌린다.
+const parseOr = (text) => {
+  try {
+    return text ? JSON.parse(text.replace(/^﻿/, '')) : {};
+  } catch {
+    return null;
+  }
+};
+// 마켓·플러그인 이름은 플러그인 폴더의 config/sources.json 에서(지금 폴더 기준으로 읽으면 사용자 프로젝트에서 못 찾아
+// 아무것도 빼지 않고 「trimmed」 라고 하던 일 — 검토 2026-11-11). 적용 전에 있던 칸은 그 값으로 되살린다(꺼 두었던 플러그인이 켜진 채 남지 않게).
+const withoutShare = (now, before) => {
+  const cur = parseOr(now);
+  const old = parseOr(before);
+  if (!cur || typeof cur !== 'object' || old === null) return null;
+  const src = readPluginJson('config/sources.json');
+  for (const [key, id] of [['extraKnownMarketplaces', src.marketplace], ['enabledPlugins', src.pluginId]]) {
+    if (!id) continue;
+    if (old[key] && typeof old[key] === 'object' && id in old[key]) {
+      cur[key] = { ...(cur[key] && typeof cur[key] === 'object' ? cur[key] : {}), [id]: old[key][id] };
+      continue;
+    }
+    if (!cur[key] || typeof cur[key] !== 'object') continue;
+    delete cur[key][id];
+    if (!Object.keys(cur[key]).length) delete cur[key];
+  }
+  return Object.keys(cur).length ? JSON.stringify(cur, null, 2) + '\n' : '';
+};
+
 // 한 항목 되돌리기 → 'removed' | 'restored' | 'trimmed'(넣은 부분만 뺌) | 'saved'(고친 모습을 남기고 되돌림) | 'gone' | 'skipped'(믿을 수 없는 경로)
 // git 훅은 백업 폴더의 사본을 믿지 않는다(심어 둔 사본을 되살리면 다음 커밋 때 그 코드가 돈다).
 // 우리 표시가 있는 파일만 지우고, 「있던 우리 훅」은 지금 플러그인 경로로 새로 만든다. 표시가 없으면(사용자 훅) 건드리지 않는다.
+// 우리 표시가 없으면 'kept' — 적용 뒤 팀원이 pre-commit install·Husky 등으로 바꾼 훅이다. 지우면 팀의 커밋 검사가 소리 없이 멈춘다
+// (역할극 15 회차, 2026-11-13). 'skipped'(믿을 수 없는 백업)와 나눠 「남겨 뒀어요」로 알린다
 const undoGitHook = (abs, e) => {
   const now = readText(abs);
-  if (now !== null && !now.includes(MARKER)) return 'skipped';
+  if (now !== null && !now.includes(MARKER)) return 'kept';
   if (e.action === 'create') {
     if (now === null) return 'gone';
     fs.rmSync(abs, { force: true });
@@ -170,6 +201,15 @@ const undoEntry = (root, dir, e, savedDir) => {
       writeOrRemove(abs, withoutLine(now, GITIGNORE_LINE));
       return 'trimmed';
     }
+    // 팀원 공유 설정(settings.json): 적용 뒤 사용자가 고쳤으면(훅을 더하는 등) 우리가 더한 두 칸만 뺀다 — 통째로 되돌려
+    // 사용자가 더한 훅까지 사라지던 일(역할극 2 회차, 2026-11-11). 원래부터 있던 칸은 그대로 둔다.
+    if (e.kind === 'share') {
+      const trimmed = withoutShare(now, before);
+      if (trimmed !== null) {
+        writeOrRemove(abs, trimmed);
+        return 'trimmed';
+      }
+    }
     // 고친 모습을 남겨 두고 되돌린다(설정 파일이 남아 있으면 훅이 계속 켜져 있으므로).
     fs.cpSync(abs, path.join(savedDir, e.path), { recursive: true });
     result = 'saved';
@@ -186,11 +226,15 @@ export const undo = (root) => {
   if (!found) return { error: 'no-backup' };
   const { dir, manifest } = found;
   const savedDir = path.join(dir, 'edited');
-  const out = { undone: manifest.stamp, removed: [], restored: [], trimmed: [], saved: [], skipped: [] };
+  const out = { undone: manifest.stamp, removed: [], restored: [], trimmed: [], saved: [], skipped: [], kept: [] };
   for (const e of manifest.entries) {
     const r = undoEntry(root, dir, e, savedDir);
     if (out[r]) out[r].push(e.path);
   }
+  // pre-commit 프레임워크는 있던 훅(우리 실행기)을 pre-commit.legacy 로 옮겨 함께 돌린다 — 지우지 않고 알린다
+  // (설정 파일이 사라지면 그 실행기는 아무것도 막지 않는다)
+  if (out.kept.includes(GIT_HOOK_PATH) && (readText(path.join(root, `${GIT_HOOK_PATH}.legacy`)) || '').includes(MARKER)) out.kept.push(`${GIT_HOOK_PATH}.legacy`);
+  if (!out.kept.length) delete out.kept;
   if (out.saved.length) {
     // 고친 모습을 남겼으면 백업 폴더를 지우지 않고 이름만 바꾼다(다음 되돌리기 대상에서는 빠진다).
     const keep = `${dir}${UNDONE_SUFFIX}`;

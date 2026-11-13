@@ -6,8 +6,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { installSkill, setSkillName, reservedNames } from '../lib/install-skill.mjs';
 import { loadAll } from '../lib/catalog.mjs';
+import { makeNet } from '../lib/net.mjs';
 
 const sources = { githubApi: 'api', rawBase: 'raw' };
+// 진짜 gh 를 부르지 않게(토큰 없음). 이 파일의 스킬 항목은 fileList 가 없어 트리 API 로 받는 길(예비 길)을 시험한다.
+const offline = () => makeNet(sources, { token: async () => null });
 const repo = { sha: 'abc', license: 'MIT' };
 const ok = (body) => ({ ok: true, status: 200, json: async () => body, arrayBuffer: async () => new TextEncoder().encode(body).buffer });
 const stub = (tree, failOn) => (url) => {
@@ -27,7 +30,7 @@ test('SKILL.md 의 name 을 폴더 이름으로 맞춘다: 겹치는 이름(secu
   const real = globalThis.fetch;
   globalThis.fetch = (url) => Promise.resolve(url.includes('/git/trees/') ? ok({ tree: [{ type: 'blob', path: 'skills/security-review/SKILL.md', size: 10 }] }) : ok(md));
   try {
-    await installSkill({ sources, repo, skill: { id: 'sentry-security-review', repo: 'o/sentry', path: 'skills/security-review/SKILL.md' }, dest: dest('sentry-security-review') });
+    await installSkill({ sources, net: offline(), repo, skill: { id: 'sentry-security-review', repo: 'o/sentry', path: 'skills/security-review/SKILL.md' }, dest: dest('sentry-security-review') });
   } finally {
     globalThis.fetch = real;
   }
@@ -48,7 +51,7 @@ test('카탈로그 스킬 id 는 Claude Code 명령·번들 스킬 이름과 겹
   const names = reservedNames();
   assert.ok(names.has('security-review') && names.has('simplify') && names.has('review'), '명령·번들 스킬·별칭이 목록에 있다');
   assert.deepEqual(loadAll().catalog.skills.map((s) => s.id).filter((id) => names.has(id)), []);
-  await assert.rejects(installSkill({ sources, repo, skill: { id: 'simplify', repo: 'o/r', path: 'SKILL.md' }, dest: 'unused' }), /명령과 이름이 같음/);
+  await assert.rejects(installSkill({ sources, net: offline(), repo, skill: { id: 'simplify', repo: 'o/r', path: 'SKILL.md' }, dest: 'unused' }), /명령과 이름이 같음/);
 });
 
 
@@ -57,7 +60,7 @@ test('저장소 맨 위의 스킬은 SKILL.md 하나만 받는다(저장소 전�
   const real = globalThis.fetch;
   globalThis.fetch = stub({ tree: [{ type: 'blob', path: 'SKILL.md', size: 10 }, { type: 'blob', path: 'src/big.js', size: 10 }, { type: 'blob', path: 'README.md', size: 10 }] });
   try {
-    await installSkill({ sources, repo, skill: { id: 'top', repo: 'o/top', path: 'SKILL.md' }, dest: dest('top') });
+    await installSkill({ sources, net: offline(), repo, skill: { id: 'top', repo: 'o/top', path: 'SKILL.md' }, dest: dest('top') });
   } finally {
     globalThis.fetch = real;
   }
@@ -72,7 +75,7 @@ test('받다가 실패하면 반쯤 받은 폴더를 남기지 않고, 원래 �
   const real = globalThis.fetch;
   globalThis.fetch = stub({ tree: [{ type: 'blob', path: 'skills/sk/SKILL.md', size: 1 }, { type: 'blob', path: 'skills/sk/ref.md', size: 1 }] }, 'ref.md');
   try {
-    await assert.rejects(installSkill({ sources, repo, skill: { id: 'sk', repo: 'o/r', path: 'skills/sk/SKILL.md' }, dest: dest('sk') }), /502/);
+    await assert.rejects(installSkill({ sources, net: offline(), repo, skill: { id: 'sk', repo: 'o/r', path: 'skills/sk/SKILL.md' }, dest: dest('sk') }), /502/);
   } finally {
     globalThis.fetch = real;
   }
@@ -87,7 +90,7 @@ test('목록이 잘려 온 큰 저장소는 받지 않고 실패로 알린다', 
   const real = globalThis.fetch;
   globalThis.fetch = stub({ truncated: true, tree: [{ type: 'blob', path: 'x/SKILL.md', size: 1 }] });
   try {
-    await assert.rejects(installSkill({ sources, repo: { sha: 'def' }, skill: { id: 'x', repo: 'o/big', path: 'x/SKILL.md' }, dest: dest('x') }), /잘림/);
+    await assert.rejects(installSkill({ sources, net: offline(), repo: { sha: 'def' }, skill: { id: 'x', repo: 'o/big', path: 'x/SKILL.md' }, dest: dest('x') }), /잘림/);
   } finally {
     globalThis.fetch = real;
   }

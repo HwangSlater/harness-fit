@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildConfig, plan } from '../lib/plan.mjs';
-import { undo } from '../lib/apply-run.mjs';
+import { undo, apply } from '../lib/apply-run.mjs';
 import { buildClaudeMd } from '../lib/claude-md.mjs';
 import { loadAll, expandCombo, recommend } from '../lib/catalog.mjs';
 import { ruleHeading, ruleLine, escapeRe, tmpDir } from './helpers.mjs';
@@ -57,8 +57,11 @@ test('추천: 팀이면 팀 협업 + GitHub Flow, 스택 스킬이 붙는다', (
   assert.equal(r.combo, 'team');
   assert.equal(r.flow, 'github-flow');
   assert.ok(r.skills.includes('react-best-practices'));
-  assert.ok(r.skills.includes('setup-pre-commit'), '팀 조합에만 붙는 스킬');
-  assert.ok(!expandCombo(all, 'solo', det).skills.includes('setup-pre-commit'));
+  assert.ok(!r.skills.includes('setup-pre-commit'), '형식 도구 단서(Prettier·lint-staged)가 없으면 Husky 를 까는 스킬은 넣지 않는다');
+  const pretty = { ...det, stack: [...det.stack, 'Prettier'] };
+  assert.ok(recommend(all, pretty, 'ko').skills.includes('setup-pre-commit'), '팀 조합 + Prettier');
+  assert.ok(!expandCombo(all, 'solo', pretty).skills.includes('setup-pre-commit'));
+  assert.ok(!recommend(all, { ...pretty, stack: [...pretty.stack, 'Husky'] }, 'ko').skills.includes('setup-pre-commit'), '커밋 훅 관리 도구가 이미 있으면 뺀다');
 });
 
 test('조합에 적힌 스킬·훅은 모두 카탈로그에 있다', () => {
@@ -79,6 +82,17 @@ test('언어별 훅은 그 언어를 쓰는 저장소에서만 기본으로 켜�
   assert.ok(!expandCombo(all, 'solo', det([])).hooks.some((h) => h === 'swift-unsafe' || h === 'python-unsafe'));
   assert.ok(!expandCombo(all, 'light', det(['iOS', 'Python'])).hooks.includes('swift-unsafe'));
   for (const c of all.combos.combos) for (const id of ['squash-push', 'answer-lang']) assert.ok(!expandCombo(all, c.id, det(['iOS', 'Python'])).hooks.includes(id), `${c.id}: ${id}`);
+});
+
+test('스택에 딸린 훅 옵션: ROS 2 면 ask-cmd 가 ros2 launch 를 묻고, Claude API·MCP 면 ask-cmd 가 켜진다(역할극 2·6 회차 2차)', () => {
+  const det = (stack) => ({ stack, kinds: [], authors: 1, commits: 10, team: false, existing: {} });
+  const ros = expandCombo(all, 'solo', det(['Python', 'ROS 2']));
+  assert.ok(ros.hooks.includes('ask-cmd'));
+  assert.ok(ros.hookOpts['ask-cmd'].commands.includes('ros2 launch'));
+  assert.ok(expandCombo(all, 'solo', det(['TypeScript', 'Claude API'])).hooks.includes('ask-cmd'));
+  assert.equal(expandCombo(all, 'solo', det(['TypeScript'])).hookOpts['ask-cmd'], undefined);
+  const why = recommend(all, { ...det(['Python', 'ROS 2']), history: {} }, 'ko').why.join('\n');
+  assert.match(why, /ROS 2 → .*ros2 launch/);
 });
 
 test('조합에 적힌 규칙은 packs.json 에 있고 한국어·영어 글이 모두 있다', async () => {
@@ -163,5 +177,55 @@ test('요청 칸과 팀 공유는 파일 목록에 들어간다', () => {
   const kinds = plan(dir, { ...base, note: '커밋은 한국어로', share: true }, all).changes.map((c) => c.kind);
   assert.ok(kinds.includes('request') && kinds.includes('share') && kinds.includes('claude-md'));
   assert.ok(!plan(dir, { ...base, note: '  ', share: false }, all).changes.some((c) => c.kind === 'request' || c.kind === 'share'));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('명령줄 적용: 깨진 선택 파일은 bad-selection, 쓰기 실패는 mode 를 담은 write-failed(전체 검토 2026-11-13)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const dir = tmpDir('harness-cli-');
+  const cli = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..', 'apply.mjs');
+  const run = (...a) => {
+    try {
+      return JSON.parse(execFileSync(process.execPath, [cli, dir, ...a], { encoding: 'utf8' }));
+    } catch (e) {
+      return JSON.parse(e.stdout);
+    }
+  };
+  const bad = path.join(dir, 'sel.json');
+  fs.writeFileSync(bad, '{ 깨짐');
+  assert.equal(run('--selection', bad).error, 'bad-selection');
+  // 되돌릴 백업이 없으면 no-backup(쓰기 실패가 아니다)
+  assert.equal(run('--undo').error, 'no-backup');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('적용 실패: 자동 되돌리기가 백업을 못 찾거나(no-backup) 스킬 받기가 터지면 partial — 「바뀐 것 없음」이라 하지 않는다(검토 2026-11-13)', async () => {
+  const sel = { ...base, hooks: ['secrets'] };
+  // 쓰기 실패(읽기 전용 CLAUDE.md): 되돌리기가 해냈으면 partial 아님, no-backup 을 돌려주거나 던지면 partial
+  const failWrite = async (opts) => {
+    const dir = tmpDir('harness-partial-');
+    const md = path.join(dir, 'CLAUDE.md');
+    fs.writeFileSync(md, '# x\n');
+    fs.chmodSync(md, 0o444);
+    try {
+      await apply(dir, sel, () => {}, opts);
+      return 'no-error';
+    } catch (e) {
+      return e.code === 'EPERM' || e.code === 'EACCES' ? !!e.partial : `다른 오류: ${e.message}`;
+    } finally {
+      fs.chmodSync(md, 0o644);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  // root 는 읽기 전용 파일도 쓴다(그때는 쓰기 실패 꼴을 건너뛴다)
+  if (process.getuid?.() !== 0) {
+    assert.equal(await failWrite({ undoRun: () => ({ undone: 'x', removed: [], restored: [] }) }), false, '스스로 되돌렸다');
+    assert.equal(await failWrite({ undoRun: () => ({ error: 'no-backup' }) }), true, 'no-backup 은 되돌리지 못한 것');
+    assert.equal(await failWrite({ undoRun: () => { throw new Error('x'); } }), true);
+  }
+  // 스킬 받기가 터짐(진행 알림 오류 등) — 파일은 이미 썼다
+  const dir = tmpDir('harness-partial-');
+  await assert.rejects(apply(dir, sel, () => {}, { install: async () => { throw new Error('받기 준비 실패'); } }), (e) => e.partial === true && /받기 준비/.test(e.message));
+  await assert.rejects(apply(dir, sel, () => { throw new Error('진행 알림'); }), (e) => e.partial === true);
   fs.rmSync(dir, { recursive: true, force: true });
 });

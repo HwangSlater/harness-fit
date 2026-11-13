@@ -1,5 +1,9 @@
 {
   "_설명": "추천 조합. 조합은 '어떻게 일하나'로 나누고, 스택별 스킬과 언어별 훅(hooks)은 stackAddons 로 감지 결과에 따라 자동으로 더한다(조합 수를 늘리지 않으려고).",
+  "codeOnly": {"_설명": "앱 코드가 있어야 쓸모 있는 스킬 — 인프라 코드만 있는 저장소(detect code: false)면 기본에서 뺀다(역할극 15 회차, 2026-11-12)", "skills": ["tdd-lite", "test-driven-development"]},
+  "remoteSay": {"_설명": "원격·운영 명령 묻기(ask-cmd remote)의 이유 줄에 감지된 스택의 명령을 적는다 — 「ssh 등 원격 명령」으로만 적어 terraform·kubectl·helm 이 이미 묻기 대상인 줄 몰랐다(역할극 15 회차, 2026-11-13). try 는 실제로 묻는지 시험이 hooks/lib/remote-cmd.mjs 로 확인한다", "stacks": [{"stack": "Terraform", "say": "terraform apply·destroy", "try": ["terraform apply", "terraform destroy"]}, {"stack": "Kubernetes", "say": "kubectl delete·drain", "try": ["kubectl delete pod x", "kubectl drain node-1"]}, {"stack": "Helm", "say": "helm upgrade", "try": ["helm upgrade api charts/api"]}, {"stack": "Argo CD", "say": "argocd app sync", "try": ["argocd app sync api-prod"]}, {"stack": "Ansible", "say": "ansible-playbook", "try": ["ansible-playbook site.yml"]}, {"stack": "PostgreSQL", "say": "psql -h <host>", "try": ["psql -h db.example.com"]}, {"stack": "Kafka", "say": "kafka-topics --delete", "try": ["kafka-topics --delete --topic t"]}], "always": {"say": "ssh", "try": ["ssh host"]}, "max": 4},
+  "flowSkills": {"_설명": "PR 로 합치는 브랜치 방식이면 저장소 일하는 방식에 맞춘 스킬 — 스킬 목록 줄이기(picker/budget.js)에서 스택 맞춤과 함께 맨 나중에 뺀다. PR 팀에서 pr-writer 가 먼저 빠지던 일(역할극 16 회차, 2026-11-13)", "flows": ["github-flow", "git-flow"], "skills": ["pr-writer"]},
+  "githubOnly": {"_설명": "GitHub 에서만 쓰는 것 — GitLab 저장소면 기본에서 뺀다(역할극 14 회차, 2026-11-12)", "hooks": ["prefer-gh", "pr-merge"], "skills": ["pr-writer"]},
   "combos": [
     {
       "id": "light",
@@ -36,7 +40,7 @@
         "en": "Solo"
       },
       "desc": {
-        "ko": "가벼운 계획·디버깅·검증 + 스택 맞춤",
+        "ko": "가벼운 계획·디버깅·검증 + 프로젝트 맞춤",
         "en": "Light planning, debugging, verification + stack picks"
       },
       "skills": [
@@ -147,6 +151,7 @@
         "protected-files",
         "danger-cmd",
         "password-cli",
+        "ask-cmd",
         "git-add-all",
         "protect-branch",
         "commit-msg",
@@ -175,96 +180,34 @@
     }
   ],
   "stackAddons": [
-    {
-      "when": [
-        "React",
-        "Next.js"
-      ],
-      "skills": [
-        "react-best-practices"
-      ]
-    },
-    {
-      "when": [
-        "React",
-        "Next.js",
-        "Vue",
-        "Svelte",
-        "Angular"
-      ],
-      "skills": [
-        "frontend-ui-engineering"
-      ]
-    },
-    {
-      "when": [
-        "iOS"
-      ],
-      "skills": [
-        "swiftui-pro"
-      ],
-      "hooks": [
-        "swift-unsafe"
-      ]
-    },
-    {
-      "when": [
-        "Expo"
-      ],
-      "skills": [
-        "expo-router"
-      ]
-    },
-    {
-      "when": [
-        "React Native"
-      ],
-      "skills": [
-        "react-native-best-practices"
-      ]
-    },
-    {
-      "when": [
-        "Python"
-      ],
-      "skills": [
-        "modern-python"
-      ],
-      "hooks": [
-        "python-unsafe"
-      ]
-    },
-    {
-      "when": [
-        "Supabase"
-      ],
-      "skills": [
-        "supabase-postgres"
-      ]
-    },
-    {
-      "when": [
-        "GitHub Actions"
-      ],
-      "skills": [
-        "gha-security-review"
-      ]
-    },
-    {
-      "when": [
-        "TypeScript"
-      ],
-      "skills": [
-        "setup-pre-commit"
-      ],
-      "onlyIf": [
-        "team",
-        "strict"
-      ],
-      "unless": [
-        "Python"
-      ]
-    }
+    {"when":["React","Next.js"],"skills":["react-best-practices"]},
+    {"when":["React","Next.js","Vue","Svelte","Angular"],"skills":["frontend-ui-engineering"]},
+    {"when":["iOS"],"skills":["swiftui-pro"],"hooks":["swift-unsafe"],"rules":["ios"]},
+    {"when":["Expo"],"skills":["expo-router"]},
+    {"when":["React Native"],"skills":["react-native-best-practices"]},
+    {"when":["Python"],"hooks":["python-unsafe"],"skills":[]},
+    {"when":["uv"],"skills":["modern-python"],"unless":["ROS 2"]},
+    {"when":["Supabase","PostgreSQL"],"skills":["supabase-postgres"]},
+    {"when":["GitHub Actions"],"skills":["gha-security-review"]},
+    {"_설명":"Husky·lint-staged 를 까는 스킬. 형식 도구 단서(Prettier·lint-staged)가 있고 커밋 훅 관리 도구가 아직 없을 때만 — TypeScript 팀 저장소면 늘 넣다가, Prettier 없는 저장소에 Husky 를 깔아 harness-fit 의 git pre-commit 이 멈추게 하던 일(역할극 13 회차, 2026-11-13)","when":["Prettier","lint-staged"],"skills":["setup-pre-commit"],"onlyIf":["team","strict"],"unless":["Python","Husky","Lefthook","simple-git-hooks","pre-commit"]},
+    {"when":["MCP"],"skills":["mcp-builder"]},
+    {"when":["Terraform","Kubernetes","Helm","Argo CD","Ansible","Claude API","MCP","PostgreSQL","Kafka","Redis"],"skills":[],"hooks":["ask-cmd"]},
+    {"_설명":"vercel env pull 은 환경 변수(비밀값)를 .env 파일로 받아 저장소 폴더에 둔다(역할극 13 회차 M3, 2026-11-13). 보기만 하는 vercel env ls 는 앞 낱말이 달라 묻지 않는다. vercel alias 는 set 없는 꼴(vercel alias <배포> <도메인>)까지 — alias ls 는 hooks/lib/ask-match.mjs 가 읽기로 본다(역할극 13 회차). --target production(=production 도)은 --prod 와 같은 운영 배포, redeploy 는 배포를 다시 올린다 — --target preview 는 묻지 않는다(역할극 13 회차 4차)","when":["Vercel"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["vercel --prod","vercel deploy --prod","vercel --target production","vercel redeploy","vercel promote","vercel rollback","vercel env add","vercel env rm","vercel env pull","vercel alias"]}},"optWhy":{"ko":"운영에 배포하거나 되돌리고, 환경 변수(비밀값)를 바꾸거나 로컬 파일로 받아요","en":"deploys to or rolls back production, or changes environment variables (secrets) or downloads them to a local file"}},
+    {"when":["Netlify"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["netlify deploy --prod","netlify env:set","netlify env:unset","netlify env:import"]}}},
+    {"when":["Firebase"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["firebase deploy"]}}},
+    {"when":["Fly.io"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["fly deploy","flyctl deploy","fly secrets set","fly secrets unset","fly secrets import","flyctl secrets set","flyctl secrets unset"]}}},
+    {"when":["ROS 2"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["ros2 launch","ros2 topic pub","ros2 service call","ros2 action send_goal","ros2 bag play","ros2 param set"]}},"optWhy":{"ko":"로봇을 움직이거나 노드 값을 바꿔요","en":"moves the robot or changes node state"}},
+    {"_설명":"iOS 출시·서명·버전 명령(독립 검토 2026-11-13). 빌드·버전 번호 올리기(agvtool next-version·bump, fastlane run increment_build_number·increment_version_number — 역할극 16 회차)도. 앱 스토어에 올리기·공증 보내기·버전 번호 바꾸기·인증서 만들기와 지우기. 보기만 하는 하위 명령(notarytool history·agvtool what-version·security find-identity)은 앞 낱말이 달라 묻지 않는다. 태그 함께 올리기 --follow-tags 는 여기서만(평소 push 에 붙이는 사람이 있어 원격 묻기에 넣지 않음 — --tags·버전 태그 push 는 원격 묻기가 본다, 2026-11-13)","when":["iOS"],"skills":[],"hooks":["ask-cmd"],"hookOpts":{"ask-cmd":{"commands":["xcrun altool --upload-app","xcrun altool --upload-package","xcrun notarytool submit","agvtool new-marketing-version","agvtool new-version","fastlane deliver","fastlane pilot upload","fastlane pilot distribute","fastlane cert","fastlane sigh","fastlane produce","fastlane match nuke","security import","security delete-certificate","security delete-identity","git push --follow-tags","agvtool next-version","agvtool bump","fastlane run increment_build_number","fastlane run increment_version_number"]}},"optWhy":{"ko":"앱 스토어에 올리거나 버전 번호·출시 태그·서명 인증서를 바꿔요","en":"uploads to the App Store or changes version numbers, release tags or signing certificates"}},
+    {"when":["Claude API"],"skills":[],"rules":["llm"]},
+    {"when":["Django"],"skills":[],"rules":["django"]},
+    {"when":["Flyway","Django","Alembic","Prisma","Rails","SQL migrations"],"skills":[],"hooks":["migration-edit"]},
+    {"when":["Spring Boot"],"skills":[],"rules":["spring"]},
+    {"when":["PyTorch","scikit-learn","XGBoost","MLflow","Optuna","Hydra","wandb"],"skills":[],"rules":["ml"]},
+    {"when":["dbt"],"skills":[],"rules":["dbt"]},
+    {"_설명":"인프라 코드 지침은 Terraform(OpenTofu 포함)·Ansible 에만. 줄 대부분(prevent_destroy·publicly_accessible·required_providers·tfvars)이 Terraform 것이라 Kubernetes 매니페스트만 있는 앱 저장소에는 맞지 않았다(독립 검토 2026-11-13)","when":["Terraform","Ansible"],"skills":[],"rules":["iac"]},
+    {"when":["Rust"],"skills":[],"rules":["rust"]},
+    {"_설명":"결제·돈 계산 지침(사용자 결정 2026-11-13, 역할극 14 회차 M5·M7). Payments 는 결제 SDK 의존성이나 소스 경로의 돈 도메인 낱말 둘 이상으로만 잡힌다(scripts/lib/payments.mjs)","when":["Payments"],"skills":[],"rules":["payments"]},
+    {"when":["FastAPI","NestJS","Express","Django REST Framework","Spring Boot"],"skills":["api-and-interface-design"]}
   ],
   "recommend": [
     {

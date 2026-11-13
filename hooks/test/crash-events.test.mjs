@@ -139,8 +139,15 @@ test('git 없음(PATH 비움)·git 아님·설정 깨짐에서도 터지지 않�
   for (const entry of Object.keys(ENTRY)) {
     for (const [label, cwd, e] of [['git 없음', repo, env], ['git 아님', plain, undefined], ['설정 깨짐', broken, undefined]]) {
       try {
-        const j = ok(await run(entry, { session_id: 's2', cwd, transcript_path: t }, { env: e }), `${entry} · ${label}`);
-        if (label === '설정 깨짐') assert.deepEqual(j, {}, '깨진 설정 알림은 PreToolUse 가 한다');
+        const r = await run(entry, { session_id: 's2', cwd, transcript_path: t }, { env: e });
+        // 깨진 설정 알림은 PreToolUse 와 세션 시작(한 번뿐)만 — 답·메시지마다 겹치지 않게(전체 검토 2026-11-13)
+        if (label === '설정 깨짐' && entry === 'start') {
+          assert.equal(r.status, 0, `${entry} · ${label}: 종료 코드`);
+          assert.match(JSON.parse(r.stdout).systemMessage || '', /harness\.json/, '세션 시작에 깨진 설정을 알린다');
+          continue;
+        }
+        const j = ok(r, `${entry} · ${label}`);
+        if (label === '설정 깨짐') assert.deepEqual(j, {}, '깨진 설정 알림은 PreToolUse·세션 시작이 한다');
       } catch (err) {
         failures.push(err.message);
       }

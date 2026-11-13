@@ -115,7 +115,8 @@ test('걸린 시간(진단): 훅 한 번(진짜 커밋 또는 본체 직접)', (
 });
 
 test('커밋 때 다시 보는 훅 목록이 rules/commit.mjs 와 같다', () => {
-  assert.deepEqual(commitRules.map((r) => r.id).sort(), [...COMMIT_HOOK_IDS].sort());
+  // protected-files 는 커밋 내용 검사와 Claude 의 git add·commit 검사(사용자 경로) 둘이라 id 로 한 번만 센다
+  assert.deepEqual([...new Set(commitRules.map((r) => r.id))].sort(), [...COMMIT_HOOK_IDS].sort());
 });
 
 describe('git 훅이 터지거나 커밋을 잘못 막지 않는다', { concurrency: 4 }, () => {

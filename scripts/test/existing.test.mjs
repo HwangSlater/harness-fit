@@ -7,7 +7,7 @@ import path from 'node:path';
 import { loadAll, expandCombo, recommend, applyFlow } from '../lib/catalog.mjs';
 import { renderRule, ruleTexts } from '../lib/claude-md.mjs';
 import { parseArgs } from '../lib/args.mjs';
-import { listSkills } from '../lib/installed.mjs';
+import { listSkills, pluginActive } from '../lib/installed.mjs';
 import { withHints } from '../detect.mjs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -67,10 +67,12 @@ test('스택 스킬: RN 앱에 웹용 React 스킬을 넣지 않고, 파이썬�
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
-  const ts = expandCombo(all, 'team', det({}, { stack: ['TypeScript'] }));
+  const ts = expandCombo(all, 'team', det({}, { stack: ['TypeScript', 'lint-staged'] }));
   assert.ok(ts.skills.includes('setup-pre-commit'));
-  const both = expandCombo(all, 'team', det({}, { stack: ['TypeScript', 'Python'] }));
+  const both = expandCombo(all, 'team', det({}, { stack: ['TypeScript', 'lint-staged', 'Python', 'uv'] }));
   assert.ok(!both.skills.includes('setup-pre-commit') && both.skills.includes('modern-python'));
+  // uv 를 쓰지 않는 파이썬 저장소에는 uv 로 옮기기를 권하는 스킬을 넣지 않는다(역할극 7·9 회차 — pip 배포가 깨진다)
+  assert.ok(!expandCombo(all, 'solo', det({}, { stack: ['Python', 'Django'] })).skills.includes('modern-python'));
 });
 
 test('적용: 플러그인이 없으면 알리고 규칙을 글로 쓰고, 사용자가 둔 같은 이름 스킬은 건드리지 않고, .claude/ 를 git 이 무시하면 알린다', async () => {
@@ -152,5 +154,24 @@ test('이미 있는 스킬 목록: harness-fit 이 넣은 스킬은 「이미 �
     assert.deepEqual(got, ['project:mine:mine 설명', 'user:global-one:global-one 설명']);
   } finally {
     fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('플러그인 켜짐: setup 스킬이 부르면(--in-plugin) 켜진 것, 다른 이름 폴더라도 이 플러그인 자리면 켜진 것, 아무 근거 없으면 꺼짐', () => {
+  const home = tmpDir();
+  const root = tmpDir();
+  const saved = process.env.CLAUDE_PLUGIN_ROOT;
+  try {
+    delete process.env.CLAUDE_PLUGIN_ROOT;
+    assert.equal(pluginActive(root, home, ['node', 'apply.mjs', '.']), false);
+    assert.equal(pluginActive(root, home, ['node', 'apply.mjs', '.', '--in-plugin']), true);
+    // 받아 둔 폴더 이름이 harness-fit 이 아니어도(--plugin-dir 로 단 개발 폴더) 이 플러그인 자리면 켜진 것
+    process.env.CLAUDE_PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..');
+    assert.equal(pluginActive(root, home, ['node']), true);
+    // 이름에 harness-fit 이 들어 있어도 다른 자리면 근거가 아니다
+    process.env.CLAUDE_PLUGIN_ROOT = path.join(home, 'harness-fit');
+    assert.equal(pluginActive(root, home, ['node']), false);
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT; else process.env.CLAUDE_PLUGIN_ROOT = saved;
   }
 });

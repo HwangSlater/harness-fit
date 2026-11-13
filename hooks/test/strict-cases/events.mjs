@@ -1,4 +1,4 @@
-// 답을 끝낼 때·세션 시작·메시지 보낼 때 도는 훅의 엄격 사례: commit-hash · answer-lang · docs-check · work-checklist.
+// 답을 끝낼 때·세션 시작·메시지 보낼 때 도는 훅의 엄격 사례: commit-hash · answer-lang · docs-check · work-checklist · stale-scratch.
 // 대화 기록(transcript)은 저장소를 준비한 뒤 만든다(커밋 해시를 넣으려고 — (r) => 기록).
 import { W, E, ST, SS, UP, rec, turnSaying } from './helpers.mjs';
 
@@ -22,7 +22,11 @@ const index = (...links) => `# 문서\n\n> 최종 수정: ${today()} · 목차\n
 const docs = (files) => (r) => {
   for (const [f, text] of Object.entries(files)) r.put(f, typeof text === 'function' ? text() : text);
 };
-const sayDone = (r) => [rec.prompt('문서를 써 주세요'), rec.say('문서를 고쳤어요.')];
+// stale-scratch: 사례마다 따로 둔 임시 폴더의 claude/ 아래에 만들 것(P = 프로젝트 지문 폴더, <session> = 이 사례의 세션)
+const P = '0123456789abcdef';
+const STALE = 'Work folders left';
+const scratch = (entries) => ({ scratch: entries, expect: STALE });
+const sayDone =(r) => [rec.prompt('문서를 써 주세요'), rec.say('문서를 고쳤어요.')];
 const EN = 'I updated the config file and all the tests pass now. Let me know if you want anything else changed.';
 const KO = '설정 파일을 고쳤고 테스트가 모두 통과했어요. 더 바꿀 것이 있으면 알려 주세요.';
 
@@ -140,6 +144,25 @@ export default {
       UP('항목 글이 비었음', { checklist: '- [ ]\n- [ ]   \n', expect: '남은 항목' }),
       UP('다른 세션의 파일', { checklist: '- [ ] 남의 일\n', expect: '남의 일', otherSession: true }),
       UP('[ ] 가 항목 줄 가운데', { checklist: '설명에 - [ ] 라고 적음\n', expect: '라고 적음' }),
+    ],
+  },
+  'stale-scratch': {
+    block: [
+      SS('지난 세션 scratchpad 의 venv', scratch([{ dir: `${P}/old1/scratchpad/venv`, files: ['pyvenv.cfg'], days: 5 }])),
+      SS('지난 세션의 node_modules', scratch([{ dir: `${P}/old1/scratchpad/app/node_modules`, days: 5 }])),
+      SS('지난 세션의 브라우저 프로필', scratch([{ dir: `${P}/old1/scratchpad/profile`, files: ['Local State'], days: 5 }])),
+      SS('한 폴더에 캡처 그림 500장', scratch([{ dir: `${P}/old1/scratchpad/frames`, images: 500, days: 5 }])),
+      SS('무거운 것 없이 지난 폴더 21개', scratch(Array.from({ length: 21 }, (_, k) => ({ dir: `${P}/s${k}/scratchpad`, days: 5 })))),
+      SS('지문 폴더가 아닌 바로 아래 폴더의 venv', scratch([{ dir: 'my-test/venv', files: ['pyvenv.cfg'], days: 5 }])),
+    ],
+    pass: [
+      SS('작업 폴더 자리가 없음', { expect: STALE }),
+      SS('venv 가 있지만 1일 전', scratch([{ dir: `${P}/old1/scratchpad/venv`, files: ['pyvenv.cfg'], days: 1 }])),
+      SS('지금 세션 폴더의 오래된 venv', scratch([{ dir: `${P}/<session>/scratchpad/venv`, files: ['pyvenv.cfg'], days: 5 }])),
+      SS('무거운 것 없이 지난 폴더 20개', scratch(Array.from({ length: 20 }, (_, k) => ({ dir: `${P}/s${k}/scratchpad`, days: 5 })))),
+      SS('깊이 3의 venv 는 보지 않음', scratch([{ dir: `${P}/old1/scratchpad/a/b/venv`, files: ['pyvenv.cfg'], days: 5 }])),
+      SS('그림 499장', scratch([{ dir: `${P}/old1/scratchpad/frames`, images: 499, days: 5 }])),
+      SS('세션 폴더는 오래됐지만 scratchpad 를 오늘 고침', scratch([{ dir: `${P}/old1/scratchpad/venv`, files: ['pyvenv.cfg'], days: 5 }, { dir: `${P}/old1/scratchpad`, days: 0 }])),
     ],
   },
 };

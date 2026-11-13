@@ -24,10 +24,17 @@ export const secretsWrite = {
 export const protectedFiles = {
   id: 'protected-files',
   on: 'write',
-  check({ input, opts, t }) {
+  check({ input, cwd, project, opts, t }) {
     const file = targetFile(input.tool_input || {});
-    const why = file && forbiddenFile(file, opts.paths || []);
-    return why ? t('protected.write', { file, why: t(why) }) : null;
+    if (!file) return null;
+    // 사용자가 적은 경로는 프로젝트 맨 위 기준으로 맞춘다(secrets.mjs protectedBy)
+    const root = project || cwd || process.cwd();
+    const rel = path.relative(root, path.resolve(cwd || process.cwd(), file)).replace(/\\/g, '/');
+    const inRepo = rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+    const why = forbiddenFile(inRepo ? rel : file, opts.paths || []);
+    if (!why) return null;
+    // 사용자가 보호하기로 한 경로는 비밀값 안내 대신 「사용자에게 물어보라」
+    return why === 'file.protected' ? t('protected.user', { file }) : t('protected.write', { file, why: t(why) });
   },
 };
 

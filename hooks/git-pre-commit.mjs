@@ -19,7 +19,7 @@ const main = async () => {
   }
   const ids = COMMIT_HOOK_IDS.filter((id) => cfg.rules[id]);
   if (!ids.length) return 0;
-  const [{ stagedPlan }, { INSPECT }, { allowReport, allowNotice }, { runRules }] = await Promise.all([
+  const [{ stagedPlan }, { INSPECT, claudeEnv }, { allowReport, allowNotice }, { runRules }] = await Promise.all([
     import('./lib/staged.mjs'),
     import('./rules/commit.mjs'),
     import('./lib/allow.mjs'),
@@ -31,7 +31,7 @@ const main = async () => {
   const allows = allowReport();
   // 검사 하나가 터져도 나머지는 본다(막지는 않는다). 대신 그 검사 없이 커밋된다고 알린다.
   const rules = ids.map((id) => ({ id, check: INSPECT[id] }));
-  const found = new Set(runRules(rules, cfg, (rule, opts) => rule.check(plan, { opts, t, root, allows }), { errors: crashed, allows, t }));
+  const found = new Set(runRules(rules, cfg, (rule, opts) => rule.check(plan, { opts, t, root, allows, claude: claudeEnv(process.env.CLAUDECODE) }), { errors: crashed, allows, t }));
   if (crashed.length) say(`harness-fit: ${t('gitHook.ruleCrashed', { ids: crashed.join(', ') })}`);
   if (!found.size) {
     // 허용 주석으로 넘긴 줄은 커밋을 막지 않되 하나하나 알린다

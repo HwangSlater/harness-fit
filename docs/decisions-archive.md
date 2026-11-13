@@ -1,6 +1,6 @@
 # 결정 원문 보관
 
-> 최종 수정: 2026-11-09 · 2026-11-09 정리 전 decisions.md 원문 그대로. 지금 유효한 결정은 [decisions.md](decisions.md)
+> 최종 수정: 2026-11-13 · 2026-11-09 정리 전 decisions.md 원문 그대로와 2026-11-13 나눌 때 뒤집히거나 합쳐진 줄. 지금 유효한 결정은 [decisions.md](decisions.md)·[decisions-hooks.md](decisions-hooks.md)·[decisions-recommend.md](decisions-recommend.md)
 
 이 문서는 고치지 않는다. 정리 직전(커밋 d13b5cf) `docs/decisions.md` 의 본문(제목·날짜 줄 아래 전부)을 한 글자도 바꾸지 않고 옮겼다. 정리본에서 빠지거나 줄어든 내용(긴 근거, 측정값, 줄마다 판단한 표, 옛 이름)은 모두 여기 있다.
 
@@ -24,6 +24,60 @@
 | 사용자에게 보이는 「시험」·「린트」·「스킬 목록 예산」 | 2026-11-09 「테스트」·「코드 검사(lint)」·「스킬 목록 한도」 |
 | 「사용자 전역 훅에서 옮길 것」 등 원문의 「검사」·「자동 검사」·「추천」·「브랜치 방식」·「push」 낱말 | 용어표(2026-11-06)에 따라 훅·권장·브랜치 전략·푸시로 |
 | 「끝내기 전 확인」은 실험 갈래에만(v0.2.2 이력) | harness-fit 에 넣지 않음. 전역 Stop 훅 실험으로만 남음 |
+| 2026-11-12 역할극 15 회차 독립 검토 「도구가 만드는 폴더(TOOL_OUTPUT_DIRS)는 글롭 때문에 지우기를 막지 않는다」 | 두 번째 검토에서 이름이 분명한 폴더만 늘 건너뛰고, dist·build·target 등은 git 이 무시하고 추적하지 않는 파일일 때만 건너뜀 |
+| 2026-11-12 같은 검토 「비밀값을 찍지 않고 넘기면(파이프·파일·$( )) 묻지 않는다」 | 두 번째 검토에서 「안 찍힌다고 아는 곳만 둔다」로, 세 번째 검토에서 「분명히 화면에 닿을 때만 묻는다」로 다시 뒤집음 |
+| 2026-11-12 같은 검토 「kubectl jsonpath 등은 .data·.stringData 를 쓸 때만 묻는다」 | 두 번째 검토에서 꺼내는 칸이 모두 이름표 칸일 때만 안 묻는 것으로 |
+| 2026-11-11 네 번째 검토 「인프라만 보이는 저장소는 general 을 함께 둔다」 | 2026-11-13 전체 검토에서 앱 코드가 없으면 general 을 두지 않음 |
+| 2026-11-12 역할극 13·14 회차 「남은 것: GitLab 팀에 흐름 글을 PR 대신 MR 로」 | 2026-11-12 옵션 칩 결정에서 하지 않기로 함(지침 조각에 저장소별 낱말 바꾸기 장치가 없다) |
+| 「권장대로 줄이기」 차례의 「같은 차례면 설명이 긴 것부터」만 | 2026-11-11 첫 stage 중요도 순과 되살리기가 더해짐(decisions.md 에 합침) |
+
+## 2026-11-13 정리 때 옮긴 것
+
+decisions.md 를 셋(decisions.md·decisions-hooks.md·decisions-recommend.md)으로 나눌 때, 뒤집히거나 다른 줄에 합쳐진 줄과 회차 결과·머리 줄을 원문 그대로(커밋 bd87ff5) 옮겼다. 줄 앞의 제목은 원래 있던 항목이다.
+
+### 「실행 전에 묻는 훅 ask-cmd」
+- (옛 메모) 권한 건너뛰기 모드: 훅의 ask 를 다룬 공식 문장은 없다. 역할극 3 회차에서 세션이 만든 ask 훅이 --dangerously-skip-permissions 세션에서 확인 창을 띄운 것을 사용자 역이 보았다(관찰 한 번). 여러 훅이 다르게 내면 문서상 deny > ask.
+
+### 「네 번째 검토(2026-11-11)」
+- 회귀 둘을 고쳤다: npx·npm exec·pnpm exec 의 -c "명령" 속 명령을 다시 나눠 본다(값으로 건너뛰어 놓쳤다). 인프라만 보이는 저장소는 general 을 함께 둔다(Fastify + k8s 폴더에서 보안의 웹·서버 줄이 빠졌다).
+
+### 「역할극 2~6 회차의 나머지 고칠 점」
+- 「권장대로 줄이기」 차례: 겹침 → 직접 더한 것 → 조합·스택이 켜는 것은 첫 stage(주된 일)의 중요도 순 — git·ci·deploy·meta·docs·files < plan < review·security < impl·refactor·perf·design·ui < test·debug, 같으면 스택 맞춤을 조금 더 오래. 같은 차례면 설명이 긴 것부터 빼고, 다 뺀 뒤 중요한 것부터 다시 넣어 보아 목표 아래에 머물면 되살린다(겹침은 되살리지 않음). 설명 길이로만 줄이다가 「끝내기 전 확인」 이 먼저 빠졌다. `picker/budget.js` trimTier·trimPlan, 차례표에 카탈로그 stage 가 다 있는지 시험이 본다.
+
+### 「역할극 10·11 회차 뒤 검토」
+- ask-cmd 시험 실행: `--dry-run=false·0·no·off` 를 시험 실행으로 쳐서 묻지 않았다 — 켜는 값(true·1·yes·on, kubectl·helm 의 client·server, all)만 시험 실행. make 는 `-n`·`-kn` 처럼 값 없는 짧은 옵션 묶음의 n, `--just-print`·`--dry-run`·`--recon`. 적은 스크립트가 `--dry-run`·`--plan` 을 무시하면(그 옵션을 읽지 않는 스크립트) 그대로 실행된다 — 훅은 스크립트 속을 보지 않으므로 막을 수 없다.
+
+### 「7·8·9 를 다시 돌린 회차(2026-11-11, 사본 6e937f9)」
+- 결과: 셋 다 동작 기준(점검 0·관련 없음 0·M 「없음」 0)은 넘었고, 「이미 켜져 있는 것」을 세션이 잘못 말한 보고 틀림만 남았다. 지난 회차 판정의 고칠 점은 대부분 반영됐다(Spring 감지·Flyway 보호·Django 템플릿 검사·저장소 단서).
+- 예산 줄이기: 목표를 80% 선과 「지금 목록과 한도의 가운데」 가운데 큰 쪽으로(6,313/6,400자에서 11개를 다 빼라고 나왔다 — 8 회차. 처음엔 새 스킬 합계로 정했다가 다시 누를 때마다 절반씩 빠져 바꿨다). 뺀 뒤 합계(skillBudget.trimTotal)를 내고, 세션은 그 숫자로만 말한다. 팀 저장소면 지금 목록이 이 PC 의 개인 스킬이라는 점과 「팀에는 다 넣기」 선택지를 말한다(SKILL.md).
+
+### 「역할극 13·14 회차(2026-11-12, 사본 ee9f5b6)」
+- 결과: 13 프론트엔드(shop-web)·14 백엔드(payments-api) 둘 다 통과 못 함. 13 은 `vercel --prod` 가 처음 추천에 없었고 NEXT_PUBLIC_ 비밀 이름이 지나갔다. 14 는 goose 마이그레이션을 몰랐고, origin 없는 GitLab 저장소에 gh·PR 병합 훅이 들어갔고, Go `:=` 대입이 비밀값 검사를 지나갔다(설명은 「대입을 막음」 — 보고 틀림).
+- 뒤 검토(2026-11-12): 공개 접두 이름은 비밀 낱말(+ _KEY·_TOKEN)로 끝날 때만, 시험 파일·문서는 보지 않는다(REACT_APP_PASSWORD_RESET_URL 을 막았다). 주소 속 비밀번호는 localhost·127.*·아이디가 든 값은 둔다(app12345@localhost 를 막았다). 화면의 브랜치 방식이 fitOff 로 뺀 훅(GitLab 의 pr-merge)을 다시 켜던 일. 미리 채운 배포 명령은 바꾸는 하위 명령만(vercel env add·rm, fly secrets set·unset — env pull·secrets list 까지 묻던 것), netlify 는 env:set 꼴. 4KB 넘는 값은 경로 검사를 하지 않는다(4MB 값에서 스택이 넘쳐 통과). rclone --compare-dest·--copy-dest 는 값 옵션.
+- 남은 것: GitLab 팀에 흐름 글을 PR 대신 MR 로.
+
+### 「역할극 15 회차(인프라)」
+- 사례: `hooks/test/strict-cases/infra.mjs`(followup.mjs 처럼 이어 붙임).
+- 2026-11-12 독립 검토 뒤(사례 `strict-cases/infra-review.mjs`, 훑기는 `hooks/test/path-glob.test.mjs`):
+  - (아래 두 번째 검토에서 좁힘) 도구가 만드는 폴더(`path-glob.mjs` TOOL_OUTPUT_DIRS — .terraform·node_modules·dist·build·target·.next·coverage·__pycache__·.venv 등)는 글롭 때문에 지우기를 막지 않고 훑을 때도 들어가지 않는다. `*.tfstate*` 로 `rm -rf .terraform` 이 막혔다(terraform init 이 `.terraform/terraform.tfstate` 에 백엔드 정보를 쓴다), `dist/assets/kubeconfig-ABCD.js` 로 `rm -rf dist` 도. 꼴이 그 이름을 마디로 적었으면(`.terraform/*.tfstate`) 본다. 훑기는 너비 우선(readdir 순서에 따라 5,000개 안에 드는 것이 바뀌지 않게), 건너뛴 폴더는 세지 않는다. 화면 예시는 `*.tfstate`·`*.tfstate.*`.
+  - (아래 두 번째 검토에서 뒤집음) 비밀값을 찍지 않고 넘기면 묻지 않는다: 파이프(`| kubeseal`), `>`·`>>` 파일, `$( )`·백틱으로 받기(`echo $(…)` 은 물음). 파이프 끝이 찍는 도구(cat·jq·yq·base64·grep·head·tail·less, PowerShell ConvertFrom-Json·Select-String 등)이거나 tee 가 끼면 물음. `2>`·`>&2` 는 화면에 남아 물음. 넘겨쓰기 낱말은 terraform output 이름으로 읽지 않는다.
+  - kubectl 종류는 get 바로 뒤 낱말(쉼표로 여럿)과 종류/이름 꼴만(`get configmap secrets`·`get pod secret` 은 이름). jsonpath·go-template·custom-columns 는 `.data`·`.stringData` 를 쓸 때만 묻고(아래에서 뒤집음), 틀 파일(-file)은 안을 못 보니 묻지 않는다. `vault read sys/…` 는 서버 상태라 묻지 않고 `sys/raw` 만 묻는다. vault 옵션은 `--address` 처럼 `--` 도(secret-read·remote-cmd 가 같은 목록).
+- 2026-11-12 두 번째 독립 검토 뒤(사례 `strict-cases/infra-review2.mjs`) — 위 두 「안 묻는」 고침이 막을 목록(deny-list)이라 빈틈이 컸다. 둘 다 뒤집었다:
+  - (아래 세 번째 검토에서 다시 뒤집음) 비밀값 출력(`hooks/lib/secret-sink.mjs`, secret-read.mjs 에서 떼어 냄): 안 찍힌다고 치는 것은 셋뿐 — 진짜 파일(/dev/stdout·/dev/tty·/dev/stderr·CON·- 는 화면, 같은 명령줄에서 그 파일을 다시 부르면 물음), 파이프 뒤가 모두 값을 찍지 않는 도구(kubeseal·kubectl apply -f -·Out-File·Set-Content·Out-Null·clip·Set-Clipboard·pbcopy·wc·Measure-Object·-o 파일을 준 gpg -e·age), 변수에 받기(X=$( )·export X=$( )·백틱·PowerShell `$x = …`·`$x = ( … )`)에서 같은 명령줄에 그 변수를 다시 안 쓸 때($X·${X}·printenv·맨 env·$x·Get-Variable, 내보낸 변수는 이름만 나와도). `| xargs echo`·`| python -c print`·`| sh -c cat`·`| busybox cat`·`| { cat; }`·`| gzip -d`·`| kubectl neat` 같은 모르는 도구, 변수에 받지 않는 `$( )`(echo "$(…)"·PowerShell "$(…)"·Write-Host "$(…)"), `( … )` 묶음·`<( … )` 는 묻는다. 큰따옴표·백틱·heredoc 속 치환은 조각으로 나뉘지 않아 따로 훑는다(hiddenSecret). 이유: 찍는 도구는 끝이 없고(언어 실행기·압축·인코딩) 놓치면 값이 대화 기록에 남는다 — 묻는 쪽이 싸다.
+- 2026-11-12 세 번째 독립 검토 뒤(사례 `strict-cases/infra-review3.mjs`, 큰 폴더 시간은 `hooks/test/stress/glob-keep-big.test.mjs`):
+
+### 「전체 검토 1-A」
+- 독립 검토 뒤(2026-11-13):
+- 검토 뒤(2026-11-13, 셋째):
+  - iOS 는 앱 단서가 있을 때만: Package.swift 만으로 Vapor 서버·SPM 라이브러리가, Swift 소스만으로 명령줄 도구가 iOS(mobile, iOS 지침·xcrun·agvtool 묻기)가 됐다. 그런 저장소는 스택 Swift(앱 코드, 종류는 general — 빈 저장소 질문을 받지 않게). macOS 앱도 Xcode 프로젝트가 있으면 iOS 로 본다(iOS 지침이 대체로 맞다).
+  - Xcode 프로젝트는 git 이 아는 `*.xcodeproj/project.pbxproj`·`*.xcworkspace/contents.xcworkspacedata` 로 깊이 상관없이(같은 git ls-files 한 번에 더함) — Kotlin Multiplatform 의 iosApp/iosApp.xcodeproj(Swift 2개)가 Java/Kotlin 으로만 보였다. Pods·Carthage·.build·vendor 안의 것은 아님, RN·Expo·Flutter·Capacitor 의 ios/ 는 그대로 뺀다.
+- 검토 뒤(2026-11-13, 넷째 — 정답지 다시 매기기, 사례 `hooks/test/strict-cases/ask-review.mjs`·`scripts/test/fastlane.test.mjs`):
+  - 역할극 사본(git clone --local) 전후: 16 회차 정답지 M2·M3 의 묻는 꼴 중 altool --upload-package·fastlane deliver·pilot upload·sigh·produce·security import·git push --tags·--follow-tags·origin v1.3.0 이 지나가다 묻고, match --readonly 는 묻다가 지나간다. 14 회차 M2 의 psql·goose up/down 을 운영 변수로 하면 묻고, $DATABASE_URL·make migrate-up·kubectl get 은 그대로 지나간다. 추천 결과(묻는 명령 목록 말고)는 둘 다 그대로.
+- 검토 뒤(2026-11-13, 다섯째 — 헛물음·느림 고치기, 사례 `hooks/test/strict-cases/ask-review.mjs`·`scripts/test/fastlane.test.mjs`·`record-payments.test.mjs`·`apply.test.mjs`):
+  - 역할극 사본(git clone --local, 11·13·14·16) 전후 추천 결과는 넷 다 그대로(11 offer 넷, 14 Payments·payments 지침, 13·16 Payments 아님). 13 사본에 app/refund-policy/page.tsx 를 더하면 전에는 Payments, 이제는 아님.
+
+### 「「권장대로 줄이기」 차례」
+- 결정: 같은 일을 하는 스킬 → 직접 더한 것 → 조합 스킬 → 스택 맞춤 순, 같은 차례면 설명이 긴 것부터. 목표는 80% 선과 「지금 목록과 한도의 가운데」 가운데 큰 쪽(새 스킬 묶음과 상관없이 정해 다시 눌러도 더 빠지지 않는다), 지금 있는 것만으로 이미 80% 이상이면 한도(100%) 아래까지. 뺀 것은 되돌릴 수 있다(2026-11-11 검토로 바꿈 — 처음엔 80% 아래까지·80% 이상이면 앞의 두 차례만).
 
 ## 원문
 
@@ -210,3 +264,4 @@
 - 2026-11-07: 릴리스 글을 이유까지 자세히 쓰기로(v0.3.0·v0.3.1 고침).
 - 2026-11-09: 조합 기본값(개인 습관 훅 끔, 형식 훅은 저장소 기록이 그 꼴일 때만, pin-deps 는 꼼꼼하게·라이브러리 아님, prefer-gh 알림), 확인 단계 알림 한 줄 + 자세히, 개발용 스크립트 scripts/dev/ 로.
 - 2026-11-09: 브랜치 전략 카드를 git 그래프 그림으로.
+- 2026-11-13: 「2026-11-13 정리 때 옮긴 것」과 「지금은 유효하지 않은 것」 여섯 줄을 더함(decisions.md 를 셋으로 나눔). 원문은 그대로.

@@ -95,8 +95,18 @@ test('pr-merge: squash·브랜치 지우기가 없으면 막는다', () => {
 
 test('규칙 글: 훅이 켜지면 그 줄만 빠지고, 스킬이 맡는 줄(주입·권한·로그)은 스킬이 있을 때만 빠진다', () => {
   const noSkill = renderRule('security', 'ko', ['secrets', 'danger-cmd', 'pin-deps']);
-  assert.match(noSkill, /SQL·셸·파일 경로·HTML/);
+  assert.match(noSkill, /SQL·셸·파일 경로/);
+  assert.match(noSkill, /HTML 에 넣을 때는 이스케이프/, '종류를 모르면 웹 줄도 넣는다');
   assert.match(noSkill, /개인정보/);
+  // 저장소 종류를 알면 웹·서버 줄(HTML·로그인)은 그 종류일 때만(역할극 2·3 회차)
+  const robot = renderRule('security', 'ko', ['secrets'], [], [], {}, ['robotics']);
+  // HTML 줄은 저장소에 HTML·템플릿 파일이 있을 때만(kinds 의 html) — general 이어도 파일이 없으면 넣지 않는다(역할극 12 회차)
+  assert.doesNotMatch(renderRule('security', 'ko', ['secrets'], [], [], {}, ['general']), /HTML/, 'general 만으로는 HTML 줄 없음');
+  assert.match(renderRule('security', 'ko', ['secrets'], [], [], {}, ['general', 'html']), /HTML/, 'HTML 파일이 있으면 넣는다');
+  assert.match(renderRule('security', 'ko', ['secrets'], [], [], {}, ['general']), /로그인이 필요한 곳/, '종류를 모르면(general) 서버 줄은 넣는다');
+  assert.match(robot, /SQL·셸·파일 경로/);
+  assert.doesNotMatch(robot, /HTML|로그인/);
+  assert.match(renderRule('security', 'ko', ['secrets'], [], [], {}, ['backend']), /로그인이 필요한 곳/);
   assert.doesNotMatch(noSkill, /정확한 버전/);
   const skill = renderRule('security', 'ko', [], [], ['security-and-hardening']);
   assert.doesNotMatch(skill, /SQL·셸|개인정보|권한 검사/);

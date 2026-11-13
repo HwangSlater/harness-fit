@@ -40,33 +40,49 @@ export const budgetOf = (listing, added = []) => {
 // 「권장대로 줄이기」에서 먼저 뺄 차례(작을수록 먼저):
 //   0 같은 일을 하는 스킬이 함께 골라짐(catalog/overlaps.json — 묶음에서 가장 짧은 것 하나는 남긴다)
 //   1 조합·스택 추천 밖에서 직접 더한 것
-//   2 조합이 켜는 것
-//   3 저장소 스택에 맞춘 것(combos.json stackAddons) — 이 저장소에 가장 맞으므로 마지막까지 남긴다
+//   2~ 조합이 켜는 것 — 하는 일(catalog stages)이 중요한 것일수록 늦게: git·meta·ci < plan < review·security·perf < impl·design·ui < test·debug
+//      (설명 길이로만 줄이다가 「끝내기 전 확인」 이 먼저 빠지던 일 — 역할극 5 회차, 2026-11-11). stagesOf 를 안 주면 예전처럼 조합 2·스택 3.
+//   STACK_TIER~ 저장소 스택에 맞춘 것(combos.json stackAddons) — 일반 작업 스킬을 다 뺀 뒤에야. 그 저장소에 맞춘 유일한 스킬
+//      (프론트엔드 저장소의 frontend-ui-engineering, Postgres 의 supabase-postgres)이 brainstorming 보다 먼저 빠지던 일(역할극 13·14 회차, 2026-11-13)
 // 같은 차례면 설명이 긴 것부터(적게 빼고 많이 줄이려고).
-export const trimTier = ({ comboSkills, stackSkills, overlaps = [] }, chosenIds, charsOf) => {
+// 카탈로그 stage 16개 모두(화면 묶음 picker/stats.js STAGES 와 같은 무리 — scripts/test 가 빠진 것을 잡는다). 스킬의 첫 stage(주된 일)로 본다.
+export const STAGE_KEEP = { test: 5, debug: 5, impl: 4, refactor: 4, perf: 4, design: 4, ui: 4, review: 3, security: 3, plan: 2, git: 1, ci: 1, deploy: 1, meta: 1, docs: 1, files: 1 };
+const STACK_TIER = 10; // 조합 스킬의 가장 높은 차례(2 + 5)보다 위
+export const trimTier = ({ comboSkills, stackSkills, overlaps = [], stagesOf = null }, chosenIds, charsOf) => {
   const chosen = new Set(chosenIds);
   const redundant = new Set();
   for (const g of overlaps) {
     const inSel = g.filter((id) => chosen.has(id)).sort((a, b) => charsOf(a) - charsOf(b));
     inSel.slice(1).forEach((id) => redundant.add(id));
   }
-  return (id) => (redundant.has(id) ? 0 : stackSkills.has(id) ? 3 : comboSkills.has(id) ? 2 : 1);
+  const keep = (id) => (stackSkills.has(id) ? STACK_TIER : 2) + (STAGE_KEEP[(stagesOf?.(id) || [])[0]] ?? 2);
+  return (id) => (redundant.has(id) ? 0 : !stackSkills.has(id) && !comboSkills.has(id) ? 1 : stagesOf ? keep(id) : stackSkills.has(id) ? 3 : 2);
 };
 
-// 뺄 스킬 id 들. 예산의 80% 아래로 내려갈 때까지 뺀다.
-// 지금 있는 스킬만으로 이미 80% 이상이면 새 스킬을 다 빼도 알림이 사라지지 않으므로, 차례 0·1(겹침·직접 더한 것)만 뺀다.
+// 뺄 스킬 id 들. 한도 아래로 내려갈 때까지 가벼운 차례부터 뺀다.
+// 목표 = 한도. 한도 안이면 설명이 빠지지 않으니(문서: 넘칠 때만 빠진다) 뺄 것이 없다 — 80% 선은 알리기만 한다.
+// 전에는 목표를 한도 밑((지금 목록 + 한도) / 2 = 7,156자)에 두어, 778자 넘었는데 1,687자(5개)를 빼라고 했다(역할극 14 회차, 2026-11-13).
+// 목표가 「지금 목록」과 상관없이 한도라 줄인 뒤 다시 눌러도 더 빠지지 않고, 넘친 만큼만 늘어 개수가 뛰지 않는다.
+// 셈의 여유(줄 사이 기호 몇 자)는 문서에 정한 값이 없어 두지 않는다.
 export const trimPlan = (listing, added, tierOf) => {
   const cap = listing.maxDesc;
-  const target = listing.budget * NEAR;
+  const target = listing.budget;
   const order = [...added].sort((a, b) => tierOf(a.id) - tierOf(b.id) || catalogChars(b, cap) - catalogChars(a, cap));
-  const onlyLight = listing.current >= target;
   let total = budgetOf(listing, added).total;
   const drop = [];
   for (const k of order) {
-    if (total < target) break;
-    if (onlyLight && tierOf(k.id) > 1) break;
+    if (total <= target) break;
     drop.push(k.id);
     total -= catalogChars(k, cap);
+  }
+  // 뺀 것 가운데 중요한 것부터 다시 넣어 본다 — 목표 아래에 머물면 굳이 뺄 필요가 없었던 것(설명이 긴 중요한 스킬 하나로 충분했던 경우, 검토 2026-11-11)
+  for (const id of [...drop].filter((x) => tierOf(x) > 0).sort((a, b) => tierOf(b) - tierOf(a))) {
+    const k = added.find((x) => x.id === id);
+    const c = catalogChars(k, cap);
+    if (total + c <= target) {
+      total += c;
+      drop.splice(drop.indexOf(id), 1);
+    }
   }
   return drop;
 };

@@ -86,7 +86,10 @@ test('다시 받은 스킬도 지문이 남아, 그 뒤 고친 것은 되돌릴 
     const first = await apply(dir, { ...sel, skills: ['handoff'] });
     assert.deepEqual(first.failed.map((f) => f.skill), ['handoff']);
     globalThis.fetch = async (url) => ok(url.includes('/git/trees/') ? tree : '받은 글');
-    assert.deepEqual((await retry(dir, ['handoff'])).installed, ['handoff']);
+    // 카탈로그에 없는 이름은 unknown 으로 돌려준다 — 말없이 빠지던 일(전체 검토 2026-11-13)
+    const got = await retry(dir, ['handoff', 'no-such-skill']);
+    assert.deepEqual(got.installed, ['handoff']);
+    assert.deepEqual(got.unknown, ['no-such-skill']);
   } finally {
     globalThis.fetch = real;
   }
@@ -132,6 +135,50 @@ test('고친 설정 파일·스킬 폴더는 고친 모습을 따로 남기고 �
   assert.match(r.savedIn, /\.undone\/edited$/);
   assert.equal(fs.readFileSync(path.join(dir, r.savedIn, '.claude', 'skills', 'mine', 'note.md'), 'utf8'), '내가 더함');
   assert.deepEqual(undo(dir), { error: 'no-backup' }, '남겨 둔 백업은 다음 되돌리기 대상이 아니다');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('팀원 공유 settings.json: 적용 뒤 사용자가 훅을 더했으면 우리가 더한 마켓·플러그인 칸만 빼고 남긴다(역할극 2 회차)', async () => {
+  const dir = tmp();
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  const st = path.join(dir, '.claude', 'settings.json');
+  fs.writeFileSync(st, JSON.stringify({ permissions: { deny: ['Bash(psql:*)'] } }, null, 2) + '\n');
+  await apply(dir, { ...sel, share: true });
+  const after = JSON.parse(fs.readFileSync(st, 'utf8'));
+  assert.ok(after.enabledPlugins && after.extraKnownMarketplaces, '공유 칸이 들어갔다');
+  // 사용자가 자기 훅을 더한다
+  fs.writeFileSync(st, JSON.stringify({ ...after, hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'node .claude/hooks/robot-guard.mjs' }] }] } }, null, 2) + '\n');
+  // 실제처럼 사용자 프로젝트 폴더에서 되돌린다(플러그인 폴더에서만 돌면 설정 파일을 우연히 찾는다 — 검토 2026-11-11)
+  const was = process.cwd();
+  process.chdir(dir);
+  let r;
+  try {
+    r = undo(dir);
+  } finally {
+    process.chdir(was);
+  }
+  assert.ok(r.trimmed?.includes('.claude/settings.json'), JSON.stringify(r));
+  const back = JSON.parse(fs.readFileSync(st, 'utf8'));
+  assert.deepEqual(back.permissions, { deny: ['Bash(psql:*)'] }, '원래 있던 칸은 그대로');
+  assert.ok(back.hooks?.PreToolUse, '사용자가 더한 훅은 남는다');
+  assert.ok(!back.enabledPlugins && !back.extraKnownMarketplaces, '우리가 더한 칸만 빠진다');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('팀원 공유 settings.json: 적용 전에 우리 칸이 있었으면(꺼 둔 플러그인) 그 값으로 되살린다', async () => {
+  const dir = tmp();
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  const st = path.join(dir, '.claude', 'settings.json');
+  fs.writeFileSync(st, '﻿' + JSON.stringify({ enabledPlugins: { 'harness-fit@harness-fit': false, 'other@m': true } }, null, 2) + '\n');
+  await apply(dir, { ...sel, share: true });
+  const after = JSON.parse(fs.readFileSync(st, 'utf8').replace(/^﻿/, ''));
+  fs.writeFileSync(st, JSON.stringify({ ...after, permissions: { deny: ['Bash(psql:*)'] } }, null, 2) + '\n');
+  const r = undo(dir);
+  assert.ok(r.trimmed?.includes('.claude/settings.json'), JSON.stringify(r));
+  const back = JSON.parse(fs.readFileSync(st, 'utf8'));
+  assert.deepEqual(back.enabledPlugins, { 'harness-fit@harness-fit': false, 'other@m': true }, '꺼 두었던 값으로');
+  assert.ok(!back.extraKnownMarketplaces, '없던 마켓 칸은 빠진다');
+  assert.deepEqual(back.permissions, { deny: ['Bash(psql:*)'] }, '사용자가 더한 칸은 남는다');
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

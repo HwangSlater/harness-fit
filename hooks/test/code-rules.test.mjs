@@ -128,3 +128,34 @@ test('CLAUDE.md 문장: 훅을 켜면 훅이 다 막는 줄만 빠지고, 끄면
     }
   for (const lang of ['ko', 'en']) assert.doesNotMatch(renderRule('structure', lang, []), /커밋|commit/i, '커밋 나누기는 collab 규칙에만');
 });
+
+test('unsafe-html 문구: eval 만이면 코드 실행 안내, HTML 만이면 HTML 안내, 섞이면 둘 다(역할극 6 회차 2차)', async () => {
+  const { unsafeHtmlMessage } = await import('../lib/messages.mjs');
+  const keys = [];
+  const t = (k) => (keys.push(k), k);
+  unsafeHtmlMessage(['src/agent/run.ts: eval'], t);
+  unsafeHtmlMessage(['innerHTML'], t);
+  unsafeHtmlMessage(['eval', 'innerHTML'], t);
+  assert.deepEqual(keys.filter((k) => k.startsWith('unsafeHtml.')), ['unsafeHtml.exec', 'unsafeHtml.html', 'unsafeHtml.write']);
+});
+
+test('템플릿·Django 문구: |safe 만이면 템플릿 안내, 섞이면 HTML 안내 + 템플릿 한 줄, mark_safe·csrf_exempt 는 Django 안내(역할극 9 회차)', async () => {
+  const { unsafeHtmlMessage, langMessage } = await import('../lib/messages.mjs');
+  const keys = [];
+  const t = (k) => (keys.push(k), k);
+  unsafeHtmlMessage(['shop/templates/a.html: |safe', '{% autoescape off %}'], t);
+  unsafeHtmlMessage(['|safe', 'innerHTML'], t);
+  const MS = 'mark_' + 'safe(';
+  langMessage('python-unsafe', [`3째 줄 ${MS}`, 'csrf_exempt'], t);
+  langMessage('python-unsafe', [`shop/v.py: ${MS}`, 'shell=True'], t);
+  langMessage('python-unsafe', ['shell=True'], t);
+  assert.deepEqual(keys.filter((k) => /^(?:unsafeHtml|python-unsafe)\./.test(k)), [
+    'unsafeHtml.template',
+    'unsafeHtml.templateHint',
+    'unsafeHtml.html',
+    'python-unsafe.django',
+    'python-unsafe.djangoHint',
+    'python-unsafe.write',
+    'python-unsafe.write',
+  ]);
+});

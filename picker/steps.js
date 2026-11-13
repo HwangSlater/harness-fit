@@ -1,6 +1,6 @@
 // 1 조합·브랜치 단계, 5 요청 단계. (2 스킬은 skills.js, 3 자동 검사는 hooks.js, 4 규칙은 rules.js, 6 확인은 review.js)
 import { h, icon } from './dom.js';
-import { previousLine, shead, flash, label, link } from './parts.js';
+import { previousLine, shead, flash, label, link, btn } from './parts.js';
 import { coverage, ruleCount, comboBy, flowBy, hookBy } from './stats.js';
 import { stepHead } from './frame.js';
 import { flowArt } from './flow-art.js';
@@ -79,7 +79,7 @@ export function comboStep(c) {
       previousLine(c),
       h('div.combos', {}, S.combos.map((k) => comboCard(c, k))),
       ui.switched && !ui.switched.reset ? flash({ cls: '.info', role: 'status', title: t('switched', { name: comboBy(S, c.sel.combo)?.name }),
-        act: h('button.btn', { type: 'button', 'data-key': 'undoSwitch', on: { click: act.undoSwitch } }, t('undoSwitch')) }) : null,
+        act: btn('undoSwitch', t('undoSwitch'), act.undoSwitch) }) : null,
       h('p.hint', {}, t('covTitle')),
       flows(c)),
   ];
@@ -97,7 +97,7 @@ export function requestStep(c) {
       h('div.under', {}, h('span.muted', {}, t('noteWhere')), h('span.count', { id: 'noteCount' }, t('noteCount', { n: sel.note.length, max: S.noteMax }))),
       h('div.exs', {}, h('span.muted', {}, t('noteEx')), examples.map((ex, i) => {
         const has = sel.note.includes(ex);
-        return h('button.btn', { type: 'button', 'data-key': `ex:${i}`, disabled: has, title: has ? t('noteDup') : null, on: { click: () => act.addNote(ex) } }, icon(has ? 'i-check' : 'i-plus'), ex);
+        return btn(`ex:${i}`, [icon(has ? 'i-check' : 'i-plus'), ex], () => act.addNote(ex), '', { disabled: has, title: has ? t('noteDup') : null });
       })))),
   ];
 }

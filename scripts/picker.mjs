@@ -22,6 +22,7 @@ import { currentListing } from './lib/skill-budget.mjs';
 import { offerAll } from './lib/github-settings.mjs';
 import { readStatic } from './lib/static.mjs';
 import { SHARED_KINDS } from '../picker/team.js';
+import { uncommittedShared } from './lib/shared-files.mjs';
 
 const args = process.argv.slice(2);
 const { lang, root, hints } = parseArgs(args);
@@ -86,7 +87,7 @@ const reply = (code, body, after) => ({ [REPLY]: true, code, body, after });
 // 팀원 공유를 켰으면 팀원에게 닿게 할 일(화면 picker/team.js 와 같은 기준): 올릴 파일 · 열 때 설치 안내 · git 훅은 공유 안 됨
 const teammatesOf = (sel) => {
   if (!sel.share) return null;
-  const shared = plan(root, sel, all, { listing: listingNow() }).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : ''));
+  const shared = [...new Set([...plan(root, sel, all, { listing: listingNow() }).changes.filter((c) => SHARED_KINDS.has(c.kind)).map((c) => rel(c.path) + (c.kind === 'skill' ? '/' : '')), ...uncommittedShared(root, sel.skills)])];
   return { commitAndPush: shared, installPromptOnOpen: `${all.sources.pluginRepo} ${all.sources.pluginRef}`, gitPreCommitShared: false, gitPreCommitHowTo: readStrings(sel.lang || lang).teamGitHookHowTo };
 };
 
@@ -112,7 +113,7 @@ const routes = {
     const { changes, manual, warnings, skipped, gitHookCmd, skillBudget } = plan(root, sel, all, { active, listing: listingNow() });
     // 지침 글은 적용과 같은 기준으로(plan.mjs mdSelection)
     const mdSel = mdSelection(sel, active);
-    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), manual, warnings, skipped, gitHookCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
+    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, path: rel(c.path) })), uncommittedShared: uncommittedShared(root, sel.skills), manual, warnings, skipped, gitHookCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
   },
   'POST /api/apply': async (url, req) => {
     // 적용은 한 번에 하나만(두 번 눌리면 같은 임시 폴더를 두고 다투고 결과가 두 번 나간다).
@@ -125,6 +126,10 @@ const routes = {
       const teammates = teammatesOf(sel);
       const result = await apply(root, sel, (p) => (progress = p), { listing: listingNow() });
       return reply(200, result, () => finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) }));
+    } catch (e) {
+      // 화면이 되돌리기를 권할지 가르도록 알린다: partial 이 아니면 apply-run 이 스스로 되돌렸다(바뀐 것 없음).
+      // 그때 되돌리기를 권하면 지난 적용까지 지워진다(검토 2026-11-13 — 명령줄 SKILL.md 와 같은 기준)
+      return reply(500, { error: String(e?.message || e).slice(0, 300), partial: !!e?.partial, fsCode: typeof e?.code === 'string' && /^E[A-Z]+$/.test(e.code) ? e.code : null });
     } finally {
       applying = false;
     }

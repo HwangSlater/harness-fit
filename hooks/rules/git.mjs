@@ -4,11 +4,12 @@
 // 명령은 셸(bash·PowerShell)마다 따옴표를 다르게 읽으므로 check 가 받은 shell 을 그대로 넘긴다.
 import fs from 'node:fs';
 import path from 'node:path';
-import { git, shortFlags, gitSegments } from '../lib/core.mjs';
+import { git, shortFlags, gitSegments, repoState } from '../lib/core.mjs';
 import { ADD_SUB, commitStagesAll } from '../lib/commit-args.mjs';
 import { branchCreated, worktreeCreated, parseSwitch, timelineOf, anyBranchExists } from '../lib/branches.mjs';
 import { commitMsg, commitMessage } from './message.mjs';
 import { noVerify } from './no-verify.mjs';
+import { findRepo } from '../lib/repo-files.mjs';
 
 // 보호 브랜치 기본값(화면의 옵션 기본값과 같아야 한다 — scripts/test/hook-options.test.mjs)
 export const DEFAULT_PROTECTED = ['main', 'master'];
@@ -34,8 +35,6 @@ export const addAll = {
     return null;
   },
 };
-
-const hasCommits = (root) => git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']) !== null;
 
 // 명령 안의 브랜치 흐름(lib/branches.mjs — push·history 규칙도 같이 쓴다)
 export { timelineOf };
@@ -113,26 +112,63 @@ export const pickCommits = (root, sub, words) => {
   return true;
 };
 
+// GitLab 저장소인지(막는 글을 「PR」 대신 「MR」 로 쓰려고만 — 역할극 14 회차, 2026-11-13). scripts/detect.mjs hostOf 와 같은 기준:
+// origin 주소에 gitlab 이 들면, origin 이 없으면 .gitlab-ci.yml·.gitlab/ 이 있으면. .git/config 를 파일로 먼저 읽고, 애매하면 git config 한 번.
+// 막을 때만 부른다(통과하는 명령에는 들지 않는다)
+// 줄마다 읽는다: [remote "origin"] 아래 첫 url. [include]·[includeIf] 가 있으면 다른 파일이 바꿀 수 있어 git 에게 묻는다
+const urlInConfig = (text) => {
+  let inOrigin = false;
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('[')) {
+      if (/^\[\s*include/i.test(line)) return null;
+      inOrigin = /^\[\s*remote\s+"origin"\s*\]$/i.test(line);
+    } else if (inOrigin && /^url\s*=/i.test(line)) return line.slice(line.indexOf('=') + 1).trim();
+  }
+  return '';
+};
+const originUrl = (root) => {
+  const repo = findRepo(root);
+  if (repo) {
+    try {
+      const url = urlInConfig(fs.readFileSync(path.join(repo.commonDir, 'config'), 'utf8').slice(0, 256 * 1024));
+      if (url !== null) return url;
+    } catch {}
+  }
+  return (git(root, ['config', '--get', 'remote.origin.url'], { okCodes: [1] }) || '').trim();
+};
+const onGitlab = (root) => {
+  const url = originUrl(root);
+  if (url) return /gitlab/i.test(url);
+  return ['.gitlab-ci.yml', '.gitlab'].some((f) => fs.existsSync(path.join(root, f)));
+};
+
 export const protectBranch = {
   id: 'protect-branch',
   on: 'shell',
-  check({ cmd, shell, root, opts, t }) {
+  check({ cmd, shell, root, repo, opts, t }) {
     if (!root) return null;
     const branches = Array.isArray(opts.branches) ? opts.branches : DEFAULT_PROTECTED;
     const isProtected = (b) => branches.includes(b);
-    const branchAt = timelineOf(cmd, shell, root);
+    // 커밋을 만드는 조각·push 가 없으면(git status·git log 등) 브랜치·HEAD 를 구하지 않는다
+    const commits = opts.allowCommit ? [] : gitSegments(cmd, 'commit', shell);
+    const picks = opts.allowCommit ? [] : PICK_SUBS.flatMap((sub) => gitSegments(cmd, sub, shell).map((c) => ({ ...c, sub })));
+    const pushes = gitSegments(cmd, 'push', shell);
+    if (!commits.length && !picks.length && !pushes.length) return null;
+    const state = repo || repoState(root);
+    const branchAt = timelineOf(cmd, shell, root, state);
 
-    if (!opts.allowCommit && hasCommits(root)) {
-      for (const c of gitSegments(cmd, 'commit', shell)) {
+    if ((commits.length || picks.length) && state.hasHead()) {
+      for (const c of commits) {
         const branch = branchAt(c.start);
-        if (isProtected(branch)) return t('git.protectedCommit', { branch });
+        if (isProtected(branch)) return t(onGitlab(root) ? 'git.protectedCommitMr' : 'git.protectedCommit', { branch });
       }
-      for (const sub of PICK_SUBS) for (const c of gitSegments(cmd, sub, shell)) {
+      for (const c of picks) {
         const branch = branchAt(c.start);
-        if (isProtected(branch) && pickCommits(root, sub, c.words)) return t('git.protectedPick', { branch, sub });
+        if (isProtected(branch) && pickCommits(root, c.sub, c.words)) return t('git.protectedPick', { branch, sub: c.sub });
       }
     }
-    for (const { words, start } of gitSegments(cmd, 'push', shell)) {
+    for (const { words, start } of pushes) {
       const branch = branchAt(start);
       const { force, targets, all, tagsOnly } = parsePush(words, branch);
       if (tagsOnly) continue;
@@ -142,7 +178,7 @@ export const protectBranch = {
       if (deleted) return t('git.protectedDelete', { branch: deleted.ref });
       const hitsProtected = all || (targets.length ? hit.length > 0 : isProtected(branch));
       if ((hitsProtected && force) || hit.some((x) => x.plus)) return t('git.protectedForce');
-      if (hitsProtected && opts.noDirectPush) return t('git.protectedPush');
+      if (hitsProtected && opts.noDirectPush) return t(onGitlab(root) ? 'git.protectedPushMr' : 'git.protectedPush');
     }
     return null;
   },

@@ -2,7 +2,8 @@
 // 규칙 파일끼리 서로 가져오지 않도록 여기 모았다 — 같은 것을 찾으면 같은 문구로 알린다.
 import { allowHint, allowAtTop, recordAllow, allowFor } from './allow.mjs';
 import { extOf, normPath, OUTSIDE_CODE, CODE_EXT, countLines } from './lines.mjs';
-import { findLangUnsafe, langTarget } from './lang-unsafe.mjs';
+import { findLangUnsafe, langTarget, LANGS } from './lang-unsafe.mjs';
+import { EXEC_IDS, TEMPLATE_IDS } from './unsafe-html.mjs';
 
 const MAX_SHOWN = 3;
 // 찾은 것 목록: 앞 몇 개만 보이고 나머지는 「외 N개」
@@ -10,7 +11,19 @@ export const list = (items, t) =>
   items.length > MAX_SHOWN ? `${items.slice(0, MAX_SHOWN).join(', ')} ${t('list.more', { n: items.length - MAX_SHOWN })}` : items.join(', ');
 
 // 코드 쓰기(위험한 HTML·의존성 범위·워크플로)
-export const unsafeHtmlMessage = (hits, t) => t('unsafeHtml.write', { hits: hits.join(', '), hint: allowHint('unsafe-html', t) });
+// 찾은 것이 코드 실행(eval·new Function)뿐이면 실행 문구, HTML 넣기뿐이면 HTML 문구 — 서버 코드의 eval 에 「textContent·DOMPurify」 안내가 나와
+// 화면 규칙으로 읽히던 일(역할극 6 회차 2차, 2026-11-11). 찾은 것은 「id」 또는 「파일: id」.
+const idOf = (h) => String(h).replace(/^.*: /, '');
+const isExec = (h) => EXEC_IDS.has(idOf(h));
+// 서버 템플릿의 |safe·autoescape off 는 템플릿 문구(format_html·escape) — textContent 안내는 브라우저 코드에만 맞는다(역할극 9 회차)
+const isTemplate = (h) => TEMPLATE_IDS.has(idOf(h));
+export const unsafeHtmlMessage = (hits, t) => {
+  const rest = hits.filter((h) => !isTemplate(h));
+  const hint = allowHint('unsafe-html', t);
+  if (!rest.length) return t('unsafeHtml.template', { hits: hits.join(', '), hint });
+  const key = rest.every(isExec) ? 'unsafeHtml.exec' : rest.some(isExec) ? 'unsafeHtml.write' : 'unsafeHtml.html';
+  return t(key, { hits: hits.join(', '), hint: rest.length < hits.length ? `${t('unsafeHtml.templateHint')} ${hint}` : hint });
+};
 export const pinDepsMessage = (hits, t) => t('pinDeps.write', { hits: list(hits, t) });
 export const ghaMessage = (hits, t) => {
   const kinds = [...new Set(hits.map((h) => h.kind))];
@@ -21,7 +34,15 @@ export const ghaMessage = (hits, t) => {
 // 언어별(swift-unsafe·python-unsafe)
 export const trimmedSet = (lines) => new Set(lines.map((l) => l.trim()).filter(Boolean));
 export const langWhere = (h, t) => (h.no ? t('lang.at', { what: h.label, no: h.no }) : h.label);
-export const langMessage = (id, hits, t) => t(`${id}.write`, { hits: list(hits, t), hint: allowHint(id, t) });
+// Django 꼴(mark_safe·csrf_exempt)만 걸리면 Django 문구, 섞이면 기본 문구 + Django 안내. 찾은 것은 「…줄 이름」 글이라 이름이 들었는지로 본다.
+const DJANGO = LANGS['python-unsafe'].patterns.filter((p) => p.kind === 'django').map((p) => p.label);
+const isDjango = (h) => DJANGO.some((l) => String(h).includes(l));
+export const langMessage = (id, hits, t) => {
+  const hint = allowHint(id, t);
+  if (id !== 'python-unsafe' || !hits.some(isDjango)) return t(`${id}.write`, { hits: list(hits, t), hint });
+  if (hits.every(isDjango)) return t('python-unsafe.django', { hits: list(hits, t), hint });
+  return t(`${id}.write`, { hits: list(hits, t), hint: `${t('python-unsafe.djangoHint')} ${hint}` });
+};
 // 커밋 계획(lib/staged.mjs)에서: 그 언어 파일마다 이번 커밋이 더하는 줄
 export const langCommitHits = (id, plan, t, allows) =>
   plan.files.filter((f) => langTarget(id, f)).flatMap((f) => {

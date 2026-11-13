@@ -3,7 +3,7 @@
 // 보여 주는 것은 서버가 읽기만 한 데이터(dup.js 의 found·from, 상태의 probeSaid)이고, 글은 모두 textContent 로만 넣는다
 // — 이미 있는 스킬의 이름·설명은 사용자 PC 의 SKILL.md 에서 온다.
 import { h } from './dom.js';
-import { toggleSwitch, withCode } from './parts.js';
+import { toggleSwitch, withCode, btn } from './parts.js';
 import { skillBy, hookBy } from './stats.js';
 
 const $ = (id) => document.getElementById(id);
@@ -28,12 +28,12 @@ const foot = (c, kind, id, name) => {
   const set = kind === 'skill' ? 'skills' : 'hooks';
   return [h('span.muted', {}, t('infoToggle', { name })),
     h('span.rtg', {}, toggleSwitch(t, { key: `info-tg:${id}`, on: sel[set].has(id), label: name, onToggle: () => act.toggle(set, id) })),
-    h('button.btn.lg.primary', { type: 'button', 'data-key': 'infoDone', on: { click: act.closeInfo } }, t('close'))];
+    btn('infoDone', t('close'), act.closeInfo, '.lg.primary')];
 };
 
 // 겹침이 없어졌으면(드물다 — 창을 연 채 상태가 바뀜) 그렇게만 알린다
 const gone = ({ t, act }) => ({ title: t('infoGone'), body: [h('p', {}, t('infoGoneD'))],
-  foot: [h('span.muted'), h('button.btn.lg.primary', { type: 'button', 'data-key': 'infoDone', on: { click: act.closeInfo } }, t('close'))] });
+  foot: [h('span.muted'), btn('infoDone', t('close'), act.closeInfo, '.lg.primary')] });
 
 function skillInfo(c, id) {
   const { S, t, dup } = c;

@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { QUOTED_OR_WORD, GIT_CMD } from './cmdline.mjs';
+import { QUOTED_OR_WORD, GIT_CMD, stripQuoted } from './cmdline.mjs';
+import { findRepo, headOf, refExists, hasRemoteRefsOf } from './repo-files.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CONFIG_FILE = path.join('.claude', 'harness.json');
@@ -57,6 +58,15 @@ export const hint = (context, message = '') => {
   process.exit(0);
 };
 
+// 막지 않고 사용자에게 확인을 받는다(Claude Code 가 확인 창을 띄운다 — 권한 건너뛰기 모드에서도). reason 은 사용자에게 보인다.
+// message: 함께 알릴 글(검사 오류·허용 주석 알림 — 묻기 때문에 사라지지 않게, 검토 2026-11-11)
+export const ask = (reason, message = '') => {
+  const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason } };
+  if (message) out.systemMessage = message;
+  process.stdout.write(JSON.stringify(out));
+  process.exit(0);
+};
+
 export const deny = (reason) => {
   process.stdout.write(
     JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }),
@@ -66,17 +76,42 @@ export const deny = (reason) => {
 
 // git 을 못 찾거나(PATH 에 없음), 저장소가 깨졌거나, 출력이 maxBuffer 를 넘으면 null.
 // timeout·windowsHide 는 주지 않는다 — Windows 에서 git 한 번이 70ms → 250ms 로 느려졌다(2026-11-06 측정). 멈춘 git 은 Claude Code 의 훅 시간 한도가 끊는다.
-export const git = (cwd, args, { maxBuffer = 1024 * 1024 } = {}) => {
+// input: 표준 입력으로 줄 글(git check-ignore --stdin 등). okCodes: 실패가 아닌 끝 코드(check-ignore 는 맞는 것이 없으면 1) — 그때는 그 출력
+export const git = (cwd, args, { maxBuffer = 1024 * 1024, input = null, okCodes = [] } = {}) => {
   try {
-    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer });
-  } catch {
-    return null;
+    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: [input === null ? 'ignore' : 'pipe', 'pipe', 'ignore'], maxBuffer, ...(input === null ? {} : { input }) });
+  } catch (e) {
+    return okCodes.includes(e.status) && typeof e.stdout === 'string' ? e.stdout : null;
   }
 };
 
+// 저장소 맨 위. .git 을 파일로 찾고(lib/repo-files.mjs), 애매할 때만 git 에게 묻는다.
 export const repoRoot = (dir) => {
+  const found = findRepo(dir);
+  if (found) return found.root;
+  if (found === false) return null;
   const out = git(dir, ['rev-parse', '--show-toplevel']);
   return out ? path.resolve(out.trim()) : null;
+};
+
+// 저장소 하나의 HEAD 상태(지금 브랜치·커밋이 있나·원격 추적 브랜치가 있나). 값마다 처음 물을 때 한 번만 구한다 —
+// 파일로 읽고, 애매하면 git 에게. memo: 도구 호출 하나 동안 같은 저장소를 나눠 쓰는 표(lib/pretool.mjs judge 가 만든다).
+export const repoState = (root, memo = null) => {
+  if (memo?.has(root)) return memo.get(root);
+  let repo;
+  const files = () => (repo === undefined ? (repo = (root && findRepo(root)) || null) : repo);
+  const cache = {};
+  const once = (k, f) => (k in cache ? cache[k] : (cache[k] = f()));
+  const head = () => once('head', () => headOf(files()));
+  const state = {
+    branch: () => once('branch', () => head()?.branch ?? (git(root, ['symbolic-ref', '--short', 'HEAD']) || '').trim()),
+    hasHead: () => once('hasHead', () => head()?.hasHead ?? git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']) !== null),
+    // 브랜치가 있나(refs/heads/<이름> 이 커밋을 가리키나)
+    isBranch: (name) => once(`b:${name}`, () => refExists(files(), `refs/heads/${name}`) ?? git(root, ['rev-parse', '--verify', '--quiet', `refs/heads/${name}^{commit}`]) !== null),
+    hasRemoteRefs: () => once('remotes', () => hasRemoteRefsOf(files()) ?? (git(root, ['for-each-ref', '--count=1', 'refs/remotes']) || '').trim() !== ''),
+  };
+  memo?.set(root, state);
+  return state;
 };
 
 // 프로젝트 설정. cwd 에서 위로 올라가며 .claude/harness.json 을 찾되, 저장소 맨 위(.git 이 있는 폴더)에서 멈춘다.
@@ -140,7 +175,11 @@ export { GIT, SUB_END, BASH, POWERSHELL, shellOf, stripQuoted, shortFlags, split
 const unquote = (s) => s.replace(/^["']|["']$/g, '');
 export const commandCwd = (cmd, cwd) => {
   let dir = cwd;
-  const cd = cmd.match(/(?:^|[;&|]\s*)cd\s+("[^"]+"|'[^']+'|\S+)\s*(?:&&|;)/);
+  // PowerShell 의 Set-Location·Push-Location·pushd 도(Set-Location shop; git rm -r --cached . 가 맨 위로 읽히던 일 — 검토 2026-11-11).
+  // 따옴표 속(커밋 메시지의 "wip; cd foo")은 보지 않는다 — 따옴표를 가린 글에서 자리를 찾고 원래 글에서 경로를 읽는다. 두 글자 sl 은 Sapling 과 겹쳐 뺐다
+  const CD = /(?:^|[;&|]\s*)(?:cd|chdir|pushd|set-location|push-location)\s+(?:-path\s+)?("[^"]+"|'[^']+'|[^\s;&|]+)\s*(?:&&|;)/i;
+  const at = CD.exec(stripQuoted(cmd));
+  const cd = at ? CD.exec(cmd.slice(at.index)) : null;
   if (cd) dir = path.resolve(dir, unquote(cd[1]));
   const dashC = cmd.match(new RegExp(String.raw`${GIT_CMD}(?:(?:-c\s+${QUOTED_OR_WORD}|--[\w-]+(?:=${QUOTED_OR_WORD})?|-[pP])\s+)*-C\s+(${QUOTED_OR_WORD})`));
   if (dashC) dir = path.resolve(dir, unquote(dashC[1]));

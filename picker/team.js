@@ -1,7 +1,7 @@
 // 팀원도 같은 훅을 쓸지(sel.share → .claude/settings.json 의 extraKnownMarketplaces·enabledPlugins, apply.mjs buildSettings).
 // 브랜치 전략을 정했으면 확인 단계에서 꼭 묻는다(답하기 전엔 적용 단추를 잠근다). 「네」면 팀원이 할 일을 코드가 실제로 하는 대로 보여 준다.
 import { h } from './dom.js';
-import { lrow, toggleSwitch } from './parts.js';
+import { lrow, toggleSwitch, btn } from './parts.js';
 import { moreToggle } from './review-notes.js';
 
 // 저장소에 올라가 팀원에게 가는 것(apply.mjs plan 의 kind). git 훅(.git/hooks)·백업은 올라가지 않는다.
@@ -10,7 +10,8 @@ export const mustAsk = (sel) => sel.flow !== 'none';
 export const shareOpen = (sel, ui) => mustAsk(sel) && !ui.shareAnswered;
 
 // 커밋하고 푸시할 파일(스킬은 폴더 하나씩). p = 미리보기
-export const sharedPaths = (p) => [...new Set((p?.changes || []).filter((x) => SHARED_KINDS.has(x.kind)).map((x) => (x.kind === 'skill' ? `${x.path}/` : x.path)))];
+// 이번에 바뀌는 공유 파일 + 아직 커밋하지 않은 공유 파일(전에 적용하고 커밋하지 않은 것 — scripts/lib/shared-files.mjs)
+export const sharedPaths = (p) => [...new Set([...(p?.changes || []).filter((x) => SHARED_KINDS.has(x.kind)).map((x) => (x.kind === 'skill' ? `${x.path}/` : x.path)), ...(p?.uncommittedShared || [])])];
 
 // 팀원이 할 일. done = 끝 화면(이미 적용함)
 export function teamHowTo(c, p, done = false) {
@@ -38,7 +39,7 @@ export function teamBox(c) {
   }
   const ans = ui.shareAnswered ? sel.share : null;
   const moreQ = moreToggle(c, 'teamQ', t('teamQD'));
-  const pick = (v, text) => h(`button.btn${ans === v ? '.on' : ''}`, { type: 'button', 'data-key': `share:${v}`, 'aria-pressed': String(ans === v), on: { click: () => act.answerShare(v) } }, text);
+  const pick = (v, text) => btn(`share:${v}`, text, () => act.answerShare(v), ans === v ? '.on' : '', { 'aria-pressed': String(ans === v) });
   return h('div.stack', {},
     h(`div.box${ans === null ? '.ask' : ''}`, {},
       h('div.lrow.ask', {}, h('div.main', {}, h('b', { id: 'q-share' }, t('teamQ')), h('span.d', {}, moreQ[0]), moreQ[1], ans === null ? h('span.d.warn', {}, t('teamQNeed')) : null),

@@ -5,7 +5,8 @@
 // — 기존 훅이 로그·상태를 쓰더라도 사용자 홈이 아니라 임시 폴더에 쓰게(spaceEnv).
 // 시험 입력의 꼴:
 //   event       'PreToolUse'(기본) · 'Stop' · 'SessionStart' · 'UserPromptSubmit'
-//   setup       { commits: n(지금 브랜치에 커밋 n개), files: { 경로: 내용 }(커밋하지 않은 새 파일) }
+//   setup       { commits: n(지금 브랜치에 커밋 n개), committed: { 경로: 내용 }(커밋 하나로 넣어 두는 파일), files: { 경로: 내용 }(커밋하지 않은 새 파일),
+//               scratch: [{ dir, files?: [이름], images?: n, days }](임시 폴더 <Temp>/claude 아래에 만들고 그 경로의 폴더들을 days 일 전으로) }
 //   transcript  대화 기록 줄들(배열). 글 속 <probe>·<hash>(setup 의 마지막 커밋)·<today>·<ts:초>(지금 기준 몇 초 앞뒤 시각)를 채운다
 //   checklist   UserPromptSubmit 시험: 세션 시작 훅들이 알려 준 .md 경로(임시 홈·저장소 안만)에 이 글을 써 둔다
 //   expect      이 글이 훅 출력에 보이면 「막음」(보여 주기만 하는 훅의 시험), 없으면 종료 코드 2 · block · deny 가 「막음」
@@ -44,6 +45,7 @@ const fillRecord = (v, vars) => {
 const HOME_DIRS = {
   APPDATA: ['AppData', 'Roaming'], LOCALAPPDATA: ['AppData', 'Local'], CLAUDE_CONFIG_DIR: ['.claude'],
   XDG_CONFIG_HOME: ['.config'], XDG_DATA_HOME: ['.local', 'share'], XDG_STATE_HOME: ['.local', 'state'], XDG_CACHE_HOME: ['.cache'],
+  TEMP: ['tmp'], TMP: ['tmp'], TMPDIR: ['tmp'],
 };
 // 시험 동안 임시 폴더로 바꾸는 환경 변수 이름(existing-hooks.mjs 가 명령 속 이 변수들을 실제 값으로 펼칠 때도 쓴다)
 export const HOME_VARS = Object.freeze(['HOME', 'USERPROFILE', ...Object.keys(HOME_DIRS)]);
@@ -55,9 +57,33 @@ export const makeHome = () => {
   return home;
 };
 
+// 임시 폴더 시험 자리(stale-scratch): 폴더·파일을 다 만든 뒤, 적은 차례대로 그 경로의 폴더들 날짜를 days 일 전으로 돌린다
+// (파일을 만들면 부모 폴더 날짜가 바뀌므로 만들기를 먼저 끝낸다)
+const DAY_MS = 86400000;
+export const buildScratch = (root, entries) => {
+  for (const e of entries) {
+    const dir = path.join(root, e.dir);
+    fs.mkdirSync(dir, { recursive: true });
+    for (const name of e.files || []) fs.writeFileSync(path.join(dir, name), '');
+    for (let k = 0; k < (e.images || 0); k++) fs.writeFileSync(path.join(dir, `f${k}.png`), '');
+  }
+  for (const e of entries) {
+    const when = new Date(Date.now() - (e.days || 0) * DAY_MS);
+    for (let d = path.join(root, e.dir); d.length > root.length; d = path.dirname(d)) fs.utimesSync(d, when, when);
+  }
+};
+
 // git 한 번(비동기 — 고르기 서버가 시험하는 동안에도 화면 요청에 답하게)
 export const gitAsync = (dir, args, env = process.env) =>
   new Promise((resolve, reject) => execFile('git', ['-C', dir, ...args], { env },(e, out) => (e ? reject(e) : resolve(String(out).trim()))));
+
+// 시험 자리 지우기. 시간이 넘어 끝내는 중인 훅이 아직 그 폴더를 쥐고 있으면 Windows 는 지우지 못한다(EPERM·EBUSY) —
+// 몇 번 다시 해 보고, 그래도 안 되면 임시 폴더에 남겨 둔다(시험 결과까지 버리지 않게).
+export const removeDir = (dir) => {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  } catch {}
+};
 
 // 시험 자리: makeRepo() 가 만든 저장소(비동기도 됨)에 setup 을 하고 임시 홈을 붙인다. → { dir, home, vars, cleanup }
 export const makeSpace = async (x, makeRepo) => {
@@ -71,15 +97,25 @@ export const makeSpace = async (x, makeRepo) => {
     await git('add', '-A', 'src');
     await git('commit', '-q', '-m', `feat: 테스트 단계 ${k + 1}`);
   }
-  if (commits) vars.hash = await git('rev-parse', '--short', 'HEAD');
-  for (const [rel, text] of Object.entries(x.setup?.files || {})) {
+  const put = (rel, text) => {
     const abs = path.join(dir, rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, fillText(String(text), vars));
+  };
+  const committed = Object.entries(x.setup?.committed || {});
+  if (committed.length) {
+    for (const [rel, text] of committed) {
+      put(rel, text);
+      await git('add', '-f', '--', rel);
+    }
+    await git('commit', '-q', '-m', 'chore: 테스트 파일');
   }
+  if (commits || committed.length) vars.hash = await git('rev-parse', '--short', 'HEAD');
+  for (const [rel, text] of Object.entries(x.setup?.files || {})) put(rel, text);
+  if (x.setup?.scratch) buildScratch(path.join(home, 'tmp', 'claude'), x.setup.scratch);
   const cleanup = () => {
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.rmSync(home, { recursive: true, force: true });
+    removeDir(dir);
+    removeDir(home);
   };
   return { dir, home, vars, cleanup };
 };
@@ -171,7 +207,10 @@ export const verdict = (x, r) => {
   if (r.timedOut || r.failed) return false;
   if (typeof x.expect === 'string') return r.code === 0 && shownText(r.out).includes(x.expect);
   const j = parsed(r.out);
-  return r.code === 2 || !!(j && (j.decision === 'block' || j.hookSpecificOutput?.permissionDecision === 'deny' || j.continue === false));
+  // 묻기(ask)는 묻는 훅의 시험(x.ask)에서만 「걸림」 — 막는 훅의 시험에서 묻기만 하는 남의 훅을 같은 훅으로 보면, 한 번 누르면 통과하는 훅이
+  // 막는 훅을 대신하게 된다(검토 2026-11-11). 묻는 훅의 시험에서는 막는 것도 걸림으로 본다(더 세다).
+  const decided = x.ask ? ['deny', 'ask'] : ['deny'];
+  return r.code === 2 || !!(j && (j.decision === 'block' || decided.includes(j.hookSpecificOutput?.permissionDecision) || j.continue === false));
 };
 
 // 출력 속 .md 절대 경로(체크리스트 파일)

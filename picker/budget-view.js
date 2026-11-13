@@ -1,7 +1,7 @@
 // 스킬 목록 예산 알림(확인 단계·요약 카드)과 끝 화면의 「새 스킬 부르기」. 숫자는 서버 미리보기(/api/preview 의 skillBudget)를 그대로 쓴다 —
 // 적용 결과 JSON 과 같은 셈(apply.mjs plan → picker/budget.js). 「권장대로 줄이기」가 뺄 스킬도 서버가 정한 trim 그대로.
 import { h, icon } from './dom.js';
-import { num, withCode } from './parts.js';
+import { num, withCode, btn } from './parts.js';
 import { skillBy } from './stats.js';
 import { catalogChars, NEAR } from './budget.js';
 import { noteFlash } from './review-notes.js';
@@ -21,17 +21,17 @@ export function budgetBox(c) {
   const { S, ui, t, act } = c;
   const trimmed = ui.trimmed?.length ? h('div.flash.info', { role: 'status' }, icon('i-info'),
     h('div.sp', {}, h('b', {}, t('budgetTrimmed', { n: ui.trimmed.length, list: names(S, ui.trimmed) }))),
-    h('button.btn', { type: 'button', 'data-key': 'undoTrim', on: { click: act.undoTrim } }, t('budgetUndo'))) : null;
+    btn('undoTrim', t('budgetUndo'), act.undoTrim)) : null;
   const b = budgetWarn(ui);
   if (!b) return trimmed;
   const trim = b.trim || [];
   const freed = trim.reduce((a, id) => a + charsOf(S, id), 0);
   const heavy = b.current >= b.budget * NEAR;
   // 한 줄: 제목 · 예산의 몇 % · 「권장대로 줄이기」. 까닭·숫자·뺄 스킬·예산 늘리는 법은 「자세히」 안에
-  const btn = trim.length ? h('button.btn', { type: 'button', 'data-key': 'trimSkills', on: { click: () => act.trimSkills(trim) } }, t('budgetTrim')) : null;
+  const trimBtn = trim.length ? btn('trimSkills', t('budgetTrim'), () => act.trimSkills(trim)) : null;
   return [trimmed, noteFlash(c, {
-    key: 'budget', cls: `.budget${ui.previewStale ? '.stale' : ''}`, attrs: { 'data-key': 'budgetBox' }, btn,
-    title: t(b.level === 'over' ? 'budgetOverT' : 'budgetNearT'), aside: t('budgetPct', { pct: pctOf(b) }),
+    key: 'budget', cls: `.budget${ui.previewStale ? '.stale' : ''}`, attrs: { 'data-key': 'budgetBox' }, btn: trimBtn,
+    title: t(b.level === 'over' ? (b.ratio > 1 ? 'budgetPastT' : 'budgetOverT') : 'budgetNearT'), aside: t('budgetPct', { pct: pctOf(b) }),
     body: [
       h('p', {}, withCode(t('budgetWhy'))),
       h('p.bnums', {}, t('budgetNums', { current: num(S, b.current), added: num(S, b.added), total: num(S, b.total), label: t(`budgetLabel_${b.budgetSource}`), budget: num(S, b.budget), pct: pctOf(b) })),
@@ -45,7 +45,7 @@ export function budgetBox(c) {
 export function budgetLine({ ui, t }) {
   const b = budgetWarn(ui);
   if (!b || ui.step === 'review') return null;
-  return h(`a.sbudget${ui.previewStale ? '.stale' : ''}`, { href: '#review', 'data-key': 'sumBudget' }, icon('i-warn'), h('span', {}, t('sumBudget', { pct: pctOf(b) })));
+  return h(`a.sbudget${ui.previewStale ? '.stale' : ''}`, { href: '#review', 'data-key': 'sumBudget' }, icon('i-warn'), h('span', {}, t(b.ratio > 1 ? 'sumBudgetPast' : 'sumBudget', { pct: pctOf(b) })));
 }
 
 // 끝 화면: 받은 스킬을 부르는 명령(/이름)과 실제 크기를 보는 곳

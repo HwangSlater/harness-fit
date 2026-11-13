@@ -1,13 +1,14 @@
 // 6 확인 단계(고른 것 + 「바꾸기」, 적용하면 생기는 것, 팀원 공유, GitHub 설정)와 끝 화면.
 import { h, icon } from './dom.js';
-import { lrow, flash, shead, num, link, withCode } from './parts.js';
+import { lrow, flash, shead, num, link, withCode, btn } from './parts.js';
 import { teamBox, teamHowTo } from './team.js';
-import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy } from './stats.js';
+import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy, failedText } from './stats.js';
 import { stepHead, sumRows } from './frame.js';
 import { outcomeItems, warningsOf, pathLines, changeGroups } from './changes.js';
 import { githubBox, githubResult } from './github.js';
 import { budgetBox, skillCommands } from './budget-view.js';
 import { noteFlash } from './review-notes.js';
+import { optionTable, changedOptions } from './option-table.js';
 
 const short = (t, names, n = 3) => (names.length > n ? t('listMore', { list: names.slice(0, n).join(' · '), n: names.length - n }) : names.join(' · ') || t('sumNone'));
 
@@ -20,7 +21,7 @@ function details(c) {
   return {
     combo: comboBy(S, sel.combo)?.desc || '',
     skills: short(t, [...sel.skills].map((id) => skillBy(S, id)?.title || id)),
-    hooks: groups.map(([n, k]) => `${n} ${k}`).join(' · ') || t('hooksNone'),
+    hooks: (groups.map(([n, k]) => `${n} ${k}`).join(' · ') || t('hooksNone')) + (changedOptions(c).length ? ` · ${t('rvOptsBelow')}` : ''),
     rules: short(t, ruleIds(sel, ui).map(ruleName)),
     request: note ? (note.length > 80 ? `${note.slice(0, 80)}…` : note) : t('noteNone'),
   };
@@ -34,7 +35,7 @@ function filesBox(c) {
   if (!p) return h('div.box', {}, head, h('div.lrow.note', { role: 'status' }, t('previewLoading')));
   if (p.error) {
     return h('div.box', {}, head, h('div.lrow.note', { role: 'alert' }, h('div.main', {}, h('b', {}, p.error), h('span.d', {}, p.text), p.detail ? h('span.d', {}, t('errDetail', { detail: p.detail })) : null),
-      h('button.btn', { type: 'button', 'data-key': 'retryPreview', on: { click: act.retryPreview } }, t('retry'))));
+      btn('retryPreview', t('retry'), act.retryPreview)));
   }
   return h(`div.box${ui.previewStale ? '.stale' : ''}`, {}, head,
     outcomeItems(c).map(([ic, title, desc]) => lrow({ ic, title, desc })),
@@ -53,6 +54,7 @@ export function reviewStep(c) {
         h('div.box-h', {}, h('span', {}, t('sumTitle')), h('span.muted', {}, t('reviewCost', { n: num(S, total), pct: pct(S, total) }))),
         sumRows(c).map(([id, k, v]) => h('div.lrow.rv', {}, h('span.k', {}, k), h('div.main', {}, h('b', {}, v), h('span.d', {}, d[id])),
           h('a.link', { href: `#${id}`, 'data-key': `change:${id}`, 'aria-label': t('changeLabel', { name: k }) }, t('change'))))),
+      optionTable(c),
       shead(t('s7'), ''),
       h('div.cols', {},
         h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([id, title, desc]) => noteFlash(c, { key: `warn:${id}`, title, body: h('p', {}, withCode(desc)), attrs: { 'data-key': `warn:${id}` } }))),
@@ -64,18 +66,21 @@ export function reviewStep(c) {
   ];
 }
 
+// 받지 못한 스킬 알림의 글은 stats.js failedText(한도에 걸린 것과 다른 실패를 따로 — apply-run.mjs installAll 의 reason·waitMin)
+
 // 끝 화면. c.sel·c.ui.preview 는 「확인하고 적용」을 누른 순간의 사본이다(app.js).
 export function finished(c, result) {
   const { S, sel, ui, t } = c;
   if (!result) return h('section.step.done', {}, h('h1.qt', { tabindex: '-1' }, t('cancelled')), h('p.qs', {}, t('cancelledD')));
   const p = ui.preview && !ui.preview.error && ui.preview.changes ? ui.preview : null;
-  const names = (list) => list.map((x) => skillBy(S, x.skill)?.title || x.skill).join(', ');
+  const nameOf = (x) => skillBy(S, x.skill)?.title || x.skill;
+  const names = (list) => list.map(nameOf).join(', ');
   return h('section.step.done', {},
     h('p.stepno', {}, icon('i-check'), h('span', {}, t('doneKicker'))),
     h('h1.qt', { tabindex: '-1' }, t('doneTitle')),
     h('p.qs', {}, t('done'), sel.note.trim() ? ` ${t('doneNote')}` : ''),
     h('div.qb.stack', {},
-      result.failed?.length ? flash({ role: 'alert', title: t('doneFailed', { list: names(result.failed) }) }) : null,
+      result.failed?.length ? flash({ role: 'alert', ...failedText(t, result.failed, nameOf) }) : null,
       result.manual?.length ? flash({ cls: '.info', title: t('doneManual', { list: names(result.manual) }) }) : null,
       githubResult(c, result.github),
       p ? h('div.box', {}, h('div.box-h', {}, h('span', {}, t('doneWhat'))), changeGroups(c, p, result.failed)) : null,

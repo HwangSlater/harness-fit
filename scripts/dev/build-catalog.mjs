@@ -42,12 +42,30 @@ const repos = research.repos.map((r) => ({
 }));
 const repoBy = Object.fromEntries(repos.map((r) => [r.repo, r]));
 
+// 저장소 전체 라이선스가 없어도 스킬 폴더에 자기 라이선스 파일이 있는 경우(anthropics/skills 의 mcp-builder 등 — Apache-2.0,
+// docx·pdf 는 독점). 고정 커밋의 그 폴더 LICENSE 글을 읽어 확실히 알아보는 것만 인정한다(역할극 6 회차 2차, 2026-11-11).
+const LICENSE_TEXT = [
+  [/^\s*Apache License\s+Version 2\.0/, 'Apache-2.0'],
+  [/^\s*MIT License\b/, 'MIT'],
+];
+const skillLicense = (repo, sha, dir) => {
+  if (!sha || dir === '.') return null;
+  for (const name of ['LICENSE.txt', 'LICENSE', 'LICENSE.md']) {
+    try {
+      const text = execFileSync('gh', ['api', `repos/${repo}/contents/${dir}/${name}?ref=${sha}`, '-H', 'Accept: application/vnd.github.raw'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      return LICENSE_TEXT.find(([re]) => re.test(text))?.[1] ?? null;
+    } catch {}
+  }
+  return null;
+};
+
 const skills = [];
 for (const s of research.skills) {
   const file = path.join(dlDir, `${s.repo.replace('/', '_')}_${s.path.replace(/\//g, '_')}`);
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const fm = skillMeta(text, s.id);
   const desc = fm.description;
+  const own = repoBy[s.repo]?.license ? null : skillLicense(s.repo, repoBy[s.repo]?.sha, path.posix.dirname(s.path));
   skills.push({
     id: s.id,
     repo: s.repo,
@@ -58,7 +76,8 @@ for (const s of research.skills) {
     summary: { ko: s.summary, en: enSummaries[s.id] || desc.split(/(?<=\.)\s/)[0].slice(0, 160) || s.summary },
     always: text ? estimateTokens(`${fm.name || s.id}: ${desc}`) : null,
     onUse: text ? estimateTokens(text) : null,
-    install: repoBy[s.repo]?.license ? 'copy' : 'plugin',
+    install: repoBy[s.repo]?.license || own ? 'copy' : 'plugin',
+    ...(own ? { license: own } : {}),
     // 목록 예산(picker/budget.js) — scripts/dev/check-descriptions.mjs 와 같은 셈
     ...(text ? { descChars: (fm.whenToUse ? `${desc} ${fm.whenToUse}` : desc).length, saysWhen: saysWhen(fm) } : {}),
   });

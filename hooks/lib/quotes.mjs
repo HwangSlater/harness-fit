@@ -12,8 +12,9 @@ export const POWERSHELL = 'powershell';
 export const shellOf = (toolName) => (toolName === 'PowerShell' ? POWERSHELL : BASH);
 
 // ── heredoc(bash) ───────────────────────────────────────────────
-// 여는 표시(<<WORD, <<-'WORD'). `<<<`(here-string)는 heredoc 이 아니다.
-const HEREDOC_OP = /(?<!<)<<-?[ \t]*(['"]?)(\w+)\1/g;
+// 여는 표시(<<WORD, <<-'WORD', <<\WORD — 역슬래시도 따옴표처럼 치환을 끈다, 검토 2026-11-13). `<<<`(here-string)는 heredoc 이 아니다.
+// m[1]: 따옴표·역슬래시(없으면 빈 글), m[3]: 끝 낱말
+const HEREDOC_OP = /(?<!<)<<-?[ \t]*(\\|(['"]?))(\w+)\2/g;
 // 끝 줄: 앞뒤 공백 + 낱말 하나(`"$(cat <<'EOF' … EOF)"` 처럼 바로 `)` 가 붙어도).
 const HEREDOC_END = /^[ \t]*(\w+)[ \t\r]*(?:\)|$)/;
 
@@ -48,7 +49,7 @@ export const heredocs = (cmd) => {
   for (const m of cmd.matchAll(HEREDOC_OP)) {
     if (m.index < done) continue; // 앞 heredoc 본문 안의 글
     const line = upperBound(starts, m.index) - 1;
-    const rows = ends.get(m[2]);
+    const rows = ends.get(m[3]);
     const last = rows && rows[upperBound(rows, line)];
     if (last === undefined) continue;
     const start = starts[line + 1];

@@ -3,6 +3,7 @@ import { S, B, P, W, E, F, stage } from './helpers.mjs';
 
 const IH = 'inner' + 'HTML';
 const EV = 'ev' + 'al';
+const SF = 'sa' + 'fe';
 const pkg = (deps) => JSON.stringify({ name: 'app', ...deps }, null, 2) + '\n';
 const wf = (steps, on = 'push') => `on: ${on}\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n${steps}`;
 const prt = (body) => `on:\n  pull_request_target:\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n${body}`;
@@ -37,6 +38,16 @@ export default {
       W('src/run.ts', `const s = "x"; ${EV}(code);\n`, '글자 뒤의 eval('),
       W('src/run.ts', `const s = \`\${${EV}(code)}\`;\n`, '템플릿 ${ } 안의 eval('),
       W('public/a.html', `<button onclick="${EV}(location.hash)">x</button>\n`, 'HTML 속성 값 속 eval('),
+      // 서버 템플릿(Django·Jinja) — 역할극 9 회차
+      W('shop/templates/shop/item.html', `<div>{{ item.body|${SF} }}</div>\n`, 'Django {{ x|safe }}'),
+      W('shop/templates/shop/item.html', `<div>{{ item.body | ${SF} }}</div>\n`, '{{ x | safe }} 띄어쓰기'),
+      W('shop/templates/shop/list.html', `{{ notes|${SF}seq|join:", " }}\n`, '|safeseq'),
+      W('shop/templates/shop/item.html', `{% autoescape off %}\n{{ item.body }}\n{% endautoescape %}\n`, '{% autoescape off %}'),
+      W('app/templates/mail.jinja2', `{%- autoescape false -%}{{ body }}{%- endautoescape -%}\n`, 'Jinja {% autoescape false %}'),
+      W('views/page.njk', `<p>{{ text | ${SF} }}</p>\n`, 'Nunjucks .njk'),
+      W('app/templates/a.j2', `{# 설명 #}<p>{{ text|${SF} }}</p>\n`, '주석 뒤의 |safe'),
+      W('shop/templates/shop/item.html', `<!-- {{ item.body|${SF} }} -->\n`, 'HTML 주석 속도 서버가 그린다'),
+      S('git commit -m "feat: x"', '커밋: 셸로 쓴 템플릿', { setup: stage('shop/templates/shop/a.html', `{{ item.body|${SF} }}\n`) }),
       E('src/view.js', 'const a = 1;', `el.${IH} = name;`, 'Edit 로 넣기', { setup: (r) => r.put('src/view.js', 'const a = 1;\n') }),
       S('git commit -m "feat: x"', '커밋: 셸로 쓴 파일', { setup: stage('src/r.js', `el.${IH} = name;\n`) }),
       S('git commit -am "feat: x"', '커밋: commit -a', {
@@ -69,6 +80,16 @@ export default {
       W('src/a.py', `${EV}(x)\n`, '대상 아닌 언어'),
       E('src/view.js', `el.${IH} = name;\nconst a = 1;`, `el.${IH} = name;\nconst a = 2;`, '이미 있던 줄', { setup: (r) => r.put('src/view.js', `el.${IH} = name;\nconst a = 1;\n`) }),
       S('git commit -m "feat: x"', '커밋: 안전한 파일', { setup: stage('src/r.js', 'el.textContent = name;\n') }),
+      // 템플릿의 비슷한 꼴
+      W('shop/templates/shop/item.html', `{# {{ item.body|${SF} }} 는 쓰지 않는다 #}\n`, '{# #} 주석 속'),
+      W('shop/templates/shop/item.html', `{% comment %}\n{{ item.body|${SF} }}\n{% endcomment %}\n`, '{% comment %} 블록 속'),
+      W('shop/templates/shop/item.html', `<p>{{ item.body|${SF}guard }} {{ x|${SF}_join }}</p>\n`, '|safeguard 같은 다른 필터'),
+      W('shop/templates/shop/item.html', '<p>{{ item.body|escape }} {{ item.body }}</p>\n', '|escape·그냥 값'),
+      W('src/app.component.html', `<p>{{ a || ${SF} }}</p>\n`, 'Vue·Angular 의 || (또는)'),
+      W('shop/templates/shop/item.html', '{% autoescape on %}{{ x }}{% endautoescape %}\n', 'autoescape on'),
+      W('shop/templates/shop/item.html', `<p>${SF} 하게 쓰세요 | ${SF}</p>\n`, '{{ }} 밖의 글'),
+      W('shop/templates/shop/item.html', `{{ item.body|${SF} }} {# lint:allow unsafe-html 관리자가 쓴 고정 안내문 #}\n`, '템플릿 허용 주석'),
+      W('tests/templates/item.html', `{{ item.body|${SF} }}\n`, '시험 폴더의 템플릿'),
     ],
   },
 

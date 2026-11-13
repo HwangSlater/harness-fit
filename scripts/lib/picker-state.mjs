@@ -95,10 +95,11 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     noteMax: cfg.noteMaxChars,
     undoCommand: UNDO_COMMAND,
     pluginRepo: all.sources.pluginRepo,
+    githubWeb: all.sources.webBase, // 화면의 저장소 링크(주인/이름 앞에 붙인다)
     pluginRef: all.sources.pluginRef,
     combos: all.combos.combos.map((c) => { const k = expandCombo(all, c.id, det); return { id: c.id, name: L(c.name), desc: L(c.desc), for: L(c.for), ...k, rules: k.rules.filter(keepRule) }; }),
     skills: all.catalog.skills.map((s) => ({
-      id: s.id, repo: s.repo, stars: repoBy[s.repo]?.stars, license: repoBy[s.repo]?.license, sha: (repoBy[s.repo]?.sha || '').slice(0, 7),
+      id: s.id, repo: s.repo, stars: repoBy[s.repo]?.stars, license: s.license || repoBy[s.repo]?.license, sha: (repoBy[s.repo]?.sha || '').slice(0, 7),
       stages: s.stages, stacks: s.stacks, needs: s.needs, summary: L(s.summary), always: s.always, onUse: s.onUse, install: s.install,
       files: s.files, scripts: s.scripts || [], overlapsHook: s.overlapsHook || null, descChars: s.descChars, longDesc: (s.always || 0) >= longAt,
       title: L(titles[s.id]?.title) || s.id, when: L(titles[s.id]?.when) || L(s.summary),
@@ -108,14 +109,15 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     // 훅 묶음(화면은 이 순서로 묶어 보여 주고, 훅이 하나도 없는 묶음은 숨긴다). 묶음에 없는 group 은 화면이 「그 밖」으로 모은다.
     hookGroups: all.packs.hookGroups.map((g) => ({ id: g.id, name: L(g.name), desc: L(g.desc) })),
     hooks: all.packs.hooks.map((h) => ({ id: h.id, group: h.group || null, kind: h.kind, ...stackOf(h.id), name: L(h.name), desc: L(h.desc), bad: L(h.example?.bad), fix: L(h.example?.fix), detail: L(h.detail), downside: L(h.downside),
-      options: (h.options || []).map((o) => ({ ...o, label: L(o.label), help: L(o.help), choices: o.choices?.map((c) => ({ value: c.value, label: L(c.label) })) })) })),
+      options: (h.options || []).map((o) => ({ ...o, label: L(o.label), help: L(o.help), choices: o.choices?.map((c) => ({ value: c.value, label: L(c.label), ...(c.desc ? { desc: L(c.desc) } : {}) })) })) })),
     prevRules: isObj(prev?.rules) ? prev.rules : {},
     rules: all.packs.rules.filter((r) => keepRule(r.id)).map((r) => ({ id: r.id, name: L(r.name), desc: L(r.desc) })),
     // 지침마다 「켜면 그 줄을 대신 맡는 훅」(rules/*.md 의 {{!hook:id}}) — 화면 「줄을 대신 맡는 훅」 칩
     ruleHooks: ruleHookTags(lang),
-    // 형식 훅(fitOff): 이 저장소 기록과 맞지 않으면 브랜치 전략을 골라도 켜지 않는다(fitDropped 로 남겨 훅 단계가 이유를 보여 준다)
+    // 형식 훅(fitOff): 이 저장소 기록과 맞지 않으면 브랜치 전략을 골라도 켜지 않는다(fitDropped 로 남겨 훅 단계가 이유를 보여 준다).
+    // 저장소 전체에 맞지 않는 훅(fit.hooks — GitLab 의 pr-merge)도 — 「추천대로」·브랜치 방식 다시 고르기가 다시 켜던 일(검토 2026-11-12)
     fit,
-    flows: all.packs.flows.map((f) => ({ id: f.id, name: L(f.name), desc: L(f.desc), for: L(f.for), hooksOn: f.hooksOn.filter((h) => !fit.flows[f.id]?.[h]), fitDropped: f.hooksOn.filter((h) => fit.flows[f.id]?.[h]), hooksOff: f.hooksOff, override: Lmap(f.override), hooks: f.hooks || {}, githubNotes: Object.fromEntries(Object.entries(f.github?.notes || {}).map(([k, v]) => [k, L(v)])) })),
+    flows: all.packs.flows.map((f) => ({ id: f.id, name: L(f.name), desc: L(f.desc), for: L(f.for), hooksOn: f.hooksOn.filter((h) => !fit.flows[f.id]?.[h] && !fit.hooks[h]), fitDropped: f.hooksOn.filter((h) => fit.flows[f.id]?.[h] || fit.hooks[h]), hooksOff: f.hooksOff, override: Lmap(f.override), hooks: f.hooks || {}, githubNotes: Object.fromEntries(Object.entries(f.github?.notes || {}).map(([k, v]) => [k, L(v)])) })),
     ruleTokens: tokens,
     overlaps: readJson('catalog/overlaps.json').groups.map((g) => g.skills), // 하는 일이 같은 스킬 묶음(화면이 「비슷한 스킬이 이미 들어 있어요」를 보여 준다)
     // 기존 훅 시험(catalog/probes.json)이 무엇을 막고 통과시켰는지 한 줄 — 「이미 쓰고 있는 훅」 창
@@ -138,6 +140,8 @@ export const cleanSelection = ({ all, cfg, det }, sel, fallbackLang) => {
     rules: ids(sel.rules, new Set(all.packs.rules.map((r) => r.id))),
     flow: all.packs.flows.some((f) => f.id === sel.flow) ? sel.flow : 'none',
     commands: det?.commands || {},
+    // 저장소 종류도 서버가 읽은 것({{kind:…}} 규칙 줄을 고르는 데 쓴다 — claude-md.mjs)
+    kinds: Array.isArray(det?.kinds) ? det.kinds : null,
     explore: (Array.isArray(sel.explore) ? sel.explore : []).filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r)).slice(0, 10),
     share: sel.share === true,
     // GitHub 저장소 설정도 바꿀지(화면의 스위치를 켰을 때만 true. 기본 꺼짐 — scripts/lib/github-settings.mjs)
@@ -148,7 +152,8 @@ export const cleanSelection = ({ all, cfg, det }, sel, fallbackLang) => {
     // 훅 옵션({ 훅 id: { key: 값 } }) — packs.json 의 옵션 꼴에 맞는 값만
     hookOpts: cleanHookOpts(all.packs.hooks, sel.hookOpts),
     // 사용자가 직접 쓴 수정 요청. .claude/harness-request.md 에 남기고, 적용 뒤 Claude 가 읽고 반영한다.
-    note: typeof sel.note === 'string' ? sel.note.trim().slice(0, cfg.noteMaxChars) : '',
+    // 요청마다 한 줄 — auto 에서 Claude 가 배열로 적어도 받는다(검토 2026-11-11: 배열이면 소리 없이 사라졌다)
+    note: (typeof sel.note === 'string' ? sel.note : Array.isArray(sel.note) ? sel.note.filter((x) => typeof x === 'string').join('\n') : '').trim().slice(0, cfg.noteMaxChars),
     // 이미 CLAUDE.md 에 있어 넣지 않을 규칙 줄(아는 규칙·브랜치 방식 id 와 양의 정수만)
     skipLines: Object.fromEntries(Object.entries(sel.skipLines && typeof sel.skipLines === 'object' ? sel.skipLines : {})
       .filter(([id]) => all.packs.rules.some((r) => r.id === id) || all.packs.flows.some((f) => f.id === id))

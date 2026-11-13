@@ -91,10 +91,16 @@ export const SHELL_REDOS = [
   'chmod ' + big(N, '7'), 'dd of=/dev/' + big(N), 'mysql -p' + big(N), 'curl -u ' + big(N, 'a:'), 'postgres://' + big(N / 2, 'a:') + '@', big(N / 8, 'PASSWORD=') + 'x',
   '--password ' + big(N, '"'), 'gh pr merge ' + big(N / 4, '-a '), 'bash -c "' + big(N / 10, 'bash -c \\"') + '"', 'pwsh -Command "' + big(N / 10, '& { ') + '"',
   'echo ' + big(N / 4, '$(echo ') + big(N / 4, ')'), big(N / 2, '\'"'), big(N / 2, '"\''), big(N / 3, '"a" '), big(N / 4, '#!'),
+  // 운영 변수 DB·마이그레이션, 버전 태그 push, python -m (검토 2026-11-13)
+  'psql ' + big(N / 6, '$PROD_'), 'psql "' + big(N / 4, '${A_') + '"', 'goose ' + big(N / 4, 'up ') + '$PROD_X', 'git push origin ' + big(N / 2, '1.'), 'git push origin ' + big(N / 4, 'tag '),
+  'python -m ' + big(N / 2, 'a.'), 'python ' + big(N / 4, '-m a ') + 'x',
 ];
 export const FILE_REDOS = [
   ['src/a.js', 'const password = "' + big(N)],
   ['src/a.js', big(N / 4, 'password=') + '"x"'],
+  // 대문자 상수 _KEY·_TOKEN 과 비밀값 이름 뒤 낱말(검토 2026-11-11 — 400KB 한 줄에 2분 넘게 걸렸다)
+  ['src/a.js', 'A_' + big(N, 'B_') + 'K' + 'EY = "x'],
+  ['src/a.js', big(N / 3, 'secret_') + 'x = "abc"'],
   ['src/a.js', 'eyJ' + big(N) + '.eyJ' + big(N) + '.'],
   ['src/a.js', 'sk-' + big(N, '-')],
   ['src/a.js', 'ghp_' + big(N)],

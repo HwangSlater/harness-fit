@@ -6,6 +6,8 @@ const EX = 'ex' + 'ec';
 const TRY = 'try' + '!';
 const PR = 'pri' + 'nt';
 const SH = 'shell' + '=True';
+const MS = 'mark_' + 'safe';
+const CE = 'csrf_' + 'exempt';
 
 // 원격(origin/main)에 지금 커밋을 둔 뒤 branch 를 만들어 커밋 n 개
 const unpushed = (n, branch = 'feature/x') =>
@@ -97,6 +99,15 @@ export default {
       W('app/run.py', `doc = """\ntext\n"""\n${EV}(x)\n`, '세 따옴표 뒤의 코드'),
       W('app/run.pyw', `${EV}(x)\n`, '.pyw'),
       S('git commit -m "feat: x"', '커밋: 셸로 쓴 파일', { setup: stage('app/b.py', `${EV}(x)\n`) }),
+      // Django — 역할극 9 회차
+      W('shop/views.py', `return ${MS}(item.body)\n`, 'mark_safe(값)'),
+      W('shop/views.py', `return ${MS}(f"<b>{name}</b>")\n`, 'mark_safe(f-글자)'),
+      W('shop/views.py', `return ${MS}("<b>%s</b>" % name)\n`, 'mark_safe(글자 % 값)'),
+      W('shop/utils.py', `from django.utils import safestring\nhtml = safestring.${MS}(text)\n`, 'safestring.mark_safe('),
+      W('shop/views.py', `@${CE}\ndef hook(request):\n    return HttpResponse()\n`, '@csrf_exempt'),
+      W('shop/urls.py', `urlpatterns = [path("hook/", ${CE}(views.hook))]\n`, 'csrf_exempt(view)'),
+      W('shop/views.py', `@method_decorator(${CE}, name="dispatch")\nclass Hook(View):\n    pass\n`, 'method_decorator(csrf_exempt'),
+      S('git commit -m "feat: x"', '커밋: 셸로 쓴 Django 뷰', { setup: stage('shop/v.py', `@${CE}\ndef hook(request):\n    pass\n`) }),
     ],
     pass: [
       W('app/run.py', 'subprocess.run(["git", "log", name])\n', '인자 목록'),
@@ -113,6 +124,15 @@ export default {
       W('.venv/lib/x.py', `${EV}(x)\n`, '가상 환경'),
       W('app/notes.txt', `${EV}(x)\n`, 'Python 파일이 아님'),
       W('app/run.py', `x = ${EV}(text)  # lint:allow python-unsafe 고정된 식만 받음\n`, '허용 주석'),
+      // Django 의 비슷한 꼴
+      W('shop/views.py', `br = ${MS}("<br>")\nnote = ${MS}(_("<b>안내</b>"))\n`, 'mark_safe(고정 글자)·_("…")'),
+      W('shop/views.py', `html = ${MS}(\n    "<br>"\n)\n`, '여러 줄 고정 글자'),
+      W('shop/views.py', 'html = format_html("<b>{}</b>", name)\n', 'format_html'),
+      W('shop/views.py', `from django.views.decorators.csrf import ${CE}\nfrom django.utils.safestring import ${MS}\n`, '가져오기만'),
+      W('shop/views.py', `from django.views.decorators.csrf import (\n    ${CE},\n)\n`, '여러 줄 가져오기'),
+      W('shop/views.py', `# @${CE} 는 쓰지 않는다\ns = "${MS}(x)"\n`, '주석·글자 속'),
+      W('shop/views.py', `@${CE}  # lint:allow python-unsafe 결제 웹훅은 서명으로 확인\ndef hook(request):\n    pass\n`, 'csrf_exempt 허용 주석'),
+      W('shop/tests/test_views.py', `@${CE}\ndef hook(request):\n    pass\n`, '시험 코드의 csrf_exempt'),
     ],
   },
 };

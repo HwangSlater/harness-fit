@@ -3,7 +3,7 @@
   "hookGroups": [
     { "id": "danger", "name": { "ko": "비밀·위험", "en": "Secrets & danger" }, "desc": { "ko": "되돌릴 수 없는 사고를 막아요", "en": "Stops mistakes you cannot undo" } },
     { "id": "git", "name": { "ko": "git 기록", "en": "Git history" }, "desc": { "ko": "협업 기록을 깨끗하게 지켜요", "en": "Keeps shared history clean" } },
-    { "id": "code", "name": { "ko": "코드", "en": "Code" }, "desc": { "ko": "새로 쓰는 코드의 위험한 꼴을 막아요", "en": "Blocks risky patterns in new code" } },
+    { "id": "code", "name": { "ko": "코드", "en": "Code" }, "desc": { "ko": "새로 쓰는 코드의 위험한 패턴을 막아요", "en": "Blocks risky patterns in new code" } },
     { "id": "lang", "name": { "ko": "언어·도구별", "en": "Per language" }, "desc": { "ko": "쓰는 언어에서만 켜져요", "en": "Only for the languages you use" } },
     { "id": "work", "name": { "ko": "일하는 방식", "en": "Way of working" }, "desc": { "ko": "끝낼 때 빠뜨린 것을 알려 줘요", "en": "Reminds you of what was left out" } },
     { "id": "tokens", "name": { "ko": "토큰 아끼기", "en": "Saving tokens" }, "desc": { "ko": "같은 일을 더 적은 토큰으로 해요", "en": "Same work, fewer tokens" } }
@@ -34,7 +34,7 @@
         "en": "Blocks writing or committing keys and tokens"
       },
       "downside": {
-        "ko": "예시·문서에 넣은 가짜 키도 진짜 키 꼴이면 막혀요. 허용 주석은 기본으로 꺼져 있어, 넘기려면 옵션 「허용 주석 받기」를 켜야 해요",
+        "ko": "예시·문서에 넣은 가짜 키도 진짜 키 형식이면 막혀요. 허용 주석은 기본으로 꺼져 있어, 넘기려면 옵션 「허용 주석 받기」를 켜야 해요",
         "en": "Fake keys in examples or docs are blocked too if they look real. Allow comments are off by default; turn on \"Accept allow comments\" to let such a line through"
       },
       "example": {
@@ -48,8 +48,8 @@
         }
       },
       "detail": {
-        "ko": "적어 둔 꼴만 막아요: GitHub(ghp_·github_pat_)·AWS(AKIA)·OpenAI(sk-)·Slack(xox)·Google(AIza)·Stripe(sk_live_) 키, 개인 키 머리(BEGIN … PRIVATE KEY), JWT 모양 글자, password·secret·api_key·access_token 같은 이름(SECRET_KEY 처럼 뒤에 _낱말이 붙어도)에 따옴표로 8자 이상 실제 값을 넣는 대입(테스트 파일·자리표시자·$변수·경로 모양 값·Password·Required 같은 대문자로 시작하는 영어 낱말 하나, api_key_header·SECRET_NAME 처럼 값을 가리키는 이름(_header·_name·_env·_url 등)은 대입 검사 제외). Write·Edit 로 쓸 때, 그리고 커밋이 더하는 줄과 .env·키 파일. 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요. 허용 주석은 기본으로 받지 않아요(진짜 키에 주석만 달아 넘기기 쉬워서). 옵션 「허용 주석 받기」를 켜면 그 줄 끝이나 바로 위 주석 줄의 `lint:allow secrets <이유>` 로 그 줄만 통과하고, 쓸 때마다 알려요.",
-        "en": "Only the listed forms: GitHub (ghp_, github_pat_), AWS (AKIA), OpenAI (sk-), Slack (xox), Google (AIza) and Stripe (sk_live_) keys, private key headers (BEGIN … PRIVATE KEY), JWT-shaped strings, and quoted real values of 8+ characters assigned to names like password, secret, api_key or access_token (also with a _suffix such as SECRET_KEY; tests, placeholders, $VAR, path-like values, a single capitalised English word such as Password or Required, and names that point to the value such as api_key_header or SECRET_NAME (_header, _name, _env, _url …) are not checked for assignments). Checked on Write/Edit, and for the lines a commit adds and for .env/key files. At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked. Allow comments are not accepted by default (it is too easy to wave a real key through with a comment). With the option \"Accept allow comments\" on, `lint:allow secrets <reason>` at the end of the line or in a comment line right above it lets that line through, and you are told every time."
+        "ko": "적어 둔 형식만 막아요: GitHub(ghp_·github_pat_)·AWS(AKIA)·OpenAI(sk-)·Slack(xox·xapp-)·Google(AIza)·Stripe(sk_live_)·Voyage(pa-) 키, wandb.login(key=…) 의 40자리 키, 개인 키 머리(BEGIN … PRIVATE KEY), JWT 모양 글자, password·secret·api_key·access_token 같은 이름(SECRET_KEY 처럼 뒤에 _낱말이 붙어도, os.environ[\"WANDB_API_KEY\"] 처럼 [\"…\"] 안이어도)에 따옴표로 8자 이상 실제 값을 넣는 대입(테스트 파일·자리표시자·$변수·경로 모양 값·Password·Required 같은 대문자로 시작하는 영어 낱말 하나, api_key_header·SECRET_NAME 처럼 값을 가리키는 이름(_header·_name·_env·_url 등)은 대입 검사 제외), 대문자 상수 이름이 _TOKEN·_KEY 로 끝나고 값이 무작위 글자처럼 보이는 대입(16자 넘고 숫자가 셋 넘거나 대소문자·숫자가 섞인 것 — PUBLIC·PUBLISHABLE·SITE·LOCALSTORAGE·FLAG·SORT·CACHE·PATH·S3 같은 공개 키·이름표 낱말이 든 이름, uploads/2024/report.pdf 처럼 낱말을 / 로 이은 경로 값, pk_·pk. 로 시작하는 공개 키, myAppAuthStateV2·orders.Created.v2024·XSRF-TOKEN-2024-v1 처럼 낱말을 이은 값은 제외), Go 의 := 대입도 같아요. 낙타 이름이 Key·Token 으로 끝나고 값이 24자 이상의 무작위 글자인 대입(webhookKey := \"…\" — cacheKey·storageKey·nextPageToken·sortKey 처럼 이름표 낱말이 든 이름, 자리표시자, 낱말을 이은 값은 제외). 접속 주소 속 무작위로 보이는 비밀번호(postgres://app:비번@ — localhost·127.0.0.1 주소, postgres:postgres123 처럼 아이디가 든 개발 기본값, ${…}·$변수는 제외), 브라우저로 나가는 공개 접두(NEXT_PUBLIC_·VITE_·REACT_APP_·EXPO_PUBLIC_·NUXT_PUBLIC_·GATSBY_·PUBLIC_)에 붙어 SECRET·PASSWORD·PRIVATE_KEY·SERVICE_ROLE(뒤에 _KEY·_TOKEN 까지)로 끝나는 이름(값이 없어도 — 그 이름을 쓰면 번들에 실려요. REACT_APP_PASSWORD_RESET_URL 처럼 다른 낱말로 끝나는 설정 이름, 문서(.md 등)는 제외), 설정 파일(.yml·.yaml·.properties·.toml·.ini·.conf)에서 이름이 password·passwd·secret·token·api_key·private_key·access_key·secret_key 로 끝나는 키에 따옴표 없이 넣은 값(application.yml 의 password: 값, spring.datasource.password=값, jwt.secret: 값 — 띄어쓰기 없는 8자 이상 ASCII 이고 숫자나 기호가 섞인 것만. ${…}·{{…}}·<…>·%(…)s·$변수·ENV[…]·ENC(…)·changeme·your-…·xxx·*** 같은 자리표시자·참조, 주석 줄, existingSecret 처럼 이름을 가리키는 키, .example·.sample·.template 파일과 시험 폴더는 제외). Write·Edit 로 쓸 때, 그리고 커밋이 더하는 줄과 .env·키 파일. 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요. 허용 주석은 기본으로 받지 않아요(진짜 키에 주석만 달아 넘기기 쉬워서). 옵션 「허용 주석 받기」를 켜면 그 줄 끝이나 바로 위 주석 줄의 `lint:allow secrets <이유>` 로 그 줄만 통과하고, 쓸 때마다 알려요.",
+        "en": "Only the listed forms: GitHub (ghp_, github_pat_), AWS (AKIA), OpenAI (sk-), Slack (xox, xapp-), Google (AIza), Stripe (sk_live_) and Voyage (pa-) keys, a 40-character key in wandb.login(key=…), private key headers (BEGIN … PRIVATE KEY), JWT-shaped strings, and quoted real values of 8+ characters assigned to names like password, secret, api_key or access_token (also with a _suffix such as SECRET_KEY, or inside [\"…\"] as in os.environ[\"WANDB_API_KEY\"]; tests, placeholders, $VAR, path-like values, a single capitalised English word such as Password or Required, and names that point to the value such as api_key_header or SECRET_NAME (_header, _name, _env, _url …) are not checked for assignments), random-looking values assigned to upper-case constants ending in _TOKEN or _KEY (over 16 characters with more than three digits or mixed case and digits — names with public-key or label words such as PUBLIC, PUBLISHABLE, SITE, LOCALSTORAGE, FLAG, SORT, CACHE, PATH or S3, path values made of words joined by / (uploads/2024/report.pdf), public keys starting with pk_ or pk., and joined-word values like myAppAuthStateV2, orders.Created.v2024 or XSRF-TOKEN-2024-v1 are skipped), Go := assignments count too. So do random-looking values of 24+ characters assigned to camelCase names ending in Key or Token (webhookKey := \"…\" — names with a label word such as cacheKey, storageKey, nextPageToken or sortKey, placeholders and joined-word values are skipped). Random-looking passwords inside connection URLs (postgres://app:password@ — localhost/127.0.0.1 hosts, dev defaults that contain the user name such as postgres:postgres123, and ${…}/$VAR are skipped), names with a browser-exposed prefix (NEXT_PUBLIC_, VITE_, REACT_APP_, EXPO_PUBLIC_, NUXT_PUBLIC_, GATSBY_, PUBLIC_) that end in SECRET, PASSWORD, PRIVATE_KEY or SERVICE_ROLE (optionally followed by _KEY/_TOKEN) (even with no value — using the name ships it in the bundle; setting names ending in another word such as REACT_APP_PASSWORD_RESET_URL, and docs such as .md, are skipped), and in config files (.yml, .yaml, .properties, .toml, .ini, .conf) unquoted values for keys ending in password, passwd, secret, token, api_key, private_key, access_key or secret_key (password: value in application.yml, spring.datasource.password=value, jwt.secret: value — only ASCII values of 8+ characters without spaces that contain a digit or symbol; placeholders and references such as ${…}, {{…}}, <…>, %(…)s, $VAR, ENV[…], ENC(…), changeme, your-…, xxx or ***, comment lines, keys that name a secret such as existingSecret, .example/.sample/.template files and test folders are skipped). Checked on Write/Edit, and for the lines a commit adds and for .env/key files. At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked. Allow comments are not accepted by default (it is too easy to wave a real key through with a comment). With the option \"Accept allow comments\" on, `lint:allow secrets <reason>` at the end of the line or in a comment line right above it lets that line through, and you are told every time."
       }
     },
     {
@@ -64,18 +64,18 @@
           "default": [],
           "label": { "ko": "더 지킬 파일·폴더", "en": "Extra files and folders" },
           "help": {
-            "ko": "적은 이름으로 끝나거나 그 폴더 안에 있는 파일도 쓰지 못하게 해요(예: config/prod.json, secrets). 쉼표로 나눠요.",
-            "en": "Files ending with these names or inside these folders are protected too (e.g. config/prod.json, secrets). Separate with commas."
+            "ko": "적은 파일·폴더는 Claude 가 쓰거나 지우지 못하고, Claude 가 만드는 커밋에 넣지도 못해요(git add -f 포함). 사람이 직접 하는 커밋은 막지 않아요. *.tfstate 처럼 * 와 ** 도 돼요.",
+            "en": "Claude cannot write or delete the files and folders listed here, or put them in a commit it makes (git add -f included). Commits people make themselves are not blocked. * and ** work too, as in *.tfstate."
           }
         }
       ],
       "name": {
-        "ko": ".env·키 파일 보호",
-        "en": "Protect .env & key files"
+        "ko": "파일 보호",
+        "en": "Protect files"
       },
       "desc": {
-        "ko": ".env·인증서·SSH 키 파일에 쓰지 않게 해요",
-        "en": "Never writes to .env, certificates or SSH keys"
+        "ko": ".env·인증서·SSH 키 파일(과 지정한 경로)을 쓰거나 셸로 바꾸고 지우지 않게 해요",
+        "en": "Never writes, shell-edits or deletes .env, certificates or SSH keys (and paths you list)"
       },
       "downside": {
         "ko": ".env 를 Claude 가 고칠 수 없어서, 값을 바꿀 때는 직접 열어 고쳐야 해요",
@@ -92,8 +92,39 @@
         }
       },
       "detail": {
-        "ko": ".env·.env.*(.env.example·.sample·.template 은 허용), .pem·.key·.p12·.pfx·.p8·.jks·.keystore·.mobileprovision, id_rsa·id_ed25519·id_rsa_deploy 같은 SSH 개인 키 파일(.pub, .env.d.ts 같은 코드 파일은 제외). Write·Edit 로 쓸 때와 커밋에 이런 파일이 들어갈 때(지우는 커밋은 허용). 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요.",
-        "en": ".env and .env.* files (.env.example/.sample/.template allowed), .pem/.key/.p12/.pfx/.p8/.jks/.keystore/.mobileprovision, and SSH private keys like id_rsa, id_ed25519 or id_rsa_deploy (.pub and code files such as .env.d.ts are skipped). Checked on Write/Edit, and when a commit includes such a file (commits that remove them are fine). At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked."
+        "ko": ".env·.env.*(.env.example·.sample·.template 은 허용), .pem·.key·.p12·.pfx·.p8·.jks·.keystore·.mobileprovision·.provisionprofile, id_rsa·id_ed25519·id_rsa_deploy 같은 SSH 개인 키 파일(.pub, .env.d.ts 같은 코드 파일은 제외). Write·Edit 로 쓸 때, 셸 명령으로 바꾸거나 지울 때(> · >> · tee · sed -i · cp·mv 받는 쪽 · mv·rm·truncate · Set-Content·Out-File·Remove-Item 등, plist 도구 PlistBuddy -c \"Add·Set·Delete·Merge·Import …\"·plutil -replace·-insert·-remove·-convert(-o 가 있으면 그 파일)·defaults write·delete <경로>, python -c·ruby -e 한 줄 속 글자 경로를 쓰기로 여는 open(…, 'w')·Path(…).write_text·File.write, aws s3 cp·sync·gsutil cp·rsync·rclone copy·sync 로 클라우드에서 내려받는 쪽(--delete·rsync -d·rclone sync 는 지우기도, --dryrun·-n·--dry-run 은 허용), 보호 경로를 품은 폴더 지우기, git rm·git mv·git checkout [커밋] -- 경로·git restore 경로·git clean -f 경로 — git rm --cached 와 git restore --staged 는 stage 만 바꿔 허용, git checkout <브랜치·태그> 는 같은 이름의 파일이 있어도 경로가 아님. HEAD·stage 에서 되돌리기(git checkout -- 경로·git restore 경로·--source=HEAD)는 막지 않고 물어요(손으로 고친 값이 사라져서). git rm 의 .·글롭(git rm -r .·git rm \"config/*.yml\")·:/ 는 git 이 실제로 지울 파일로, git checkout·git restore 의 .·글롭·:/·폴더는 내용이 실제로 바뀌는 파일로 봐요(바뀌지 않으면 허용). $변수로 정한 경로는 못 봐요. .env.example 로 아직 없는 .env 를 처음 만들거나 cp -n 처럼 덮어쓰지 않는 복사는 허용), 커밋에 이런 파일이 들어갈 때(지우는 커밋은 허용). 지정한 경로는 경로 낱말 단위로 맞춰요(data 는 metadata.py 를 막지 않아요). 지정한 경로의 * · ** 는 .gitignore 처럼: / 가 없는 패턴(*.tfstate·*.tfstate.*·kubeconfig*·.vault_pass*)은 어느 깊이의 이름에도, / 가 든 패턴(infra/**/*.tfvars·secrets/*.json)과 끝이나 앞이 / 인 경로(.terraform/·/kubeconfig*·/secrets.yml)는 프로젝트 맨 위부터 맞추고, 이름이 맞은 폴더 안 파일도 지켜요(* 는 / 를 넘지 않음, ** 는 폴더 0개 이상). 글롭 경로를 품을 수 있는 폴더를 지우면(rm -rf infra) 안의 파일을 가까운 폴더부터 5,000개까지 훑어 맞는 것이 있을 때 막아요. 도구가 만드는 폴더(.terraform·node_modules·dist·build·target·.next·coverage·__pycache__·.venv 등)는 지워도, 그 아래를 훑을 때도 안을 보지 않아요(terraform init 이 .terraform/terraform.tfstate 를 만들어서) — 패턴에 그 폴더 이름을 적었으면(.terraform/*.tfstate) 봐요. 지정한 경로는 Claude 가 git add·git commit 으로 내용을 더하거나 고친 것을 커밋에 넣을 때도 막고(git add -f·git add .·git add :/·commit -a 포함, 지운 것을 커밋하는 것은 허용 — $(…)·xargs·--pathspec-from-file 처럼 대상을 알 수 없는 add 는 바뀐 보호 경로가 있을 때 막아요), 사람이 직접 하는 커밋은 막지 않아요. 사용자가 미리 stage 해 둔 것은 Claude 의 git add 로 보지 않아요. 그리고 Claude 가 만드는 커밋(Claude Code 안의 git commit — git pre-commit 훅에서는 Claude Code 가 붙이는 CLAUDECODE 환경 변수로 알아봐요)이 저장소에 새로 넣는 파일이 .gitignore 에 걸리면(git add -f 로 올린 Config/Secrets.xcconfig 등 — 사람이 미리 올려 둔 것도) 막아요. 이미 추적 중인 파일을 고친 커밋은 막지 않아요. 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요. 더 지킬 파일·폴더: config/prod.json·data/raw/ 처럼 적고, .hdf5 처럼 점으로 시작하면 확장자예요. *.tfstate·kubeconfig* 처럼 / 가 없으면 어느 폴더에 있든 이름으로, infra/**/*.tfvars·/kubeconfig* 처럼 / 가 있으면 프로젝트 맨 위부터 맞춰요(* 는 / 를 넘지 않고 ** 는 여러 폴더). 폴더를 지울 때 .terraform·node_modules·__pycache__·.next·.nuxt·.gradle·.pytest_cache·.mypy_cache·.tox 안은 보지 않아요. dist·build·target·out·coverage·venv·.venv·.terragrunt-cache·.svelte-kit·.output·.nyc_output·.nox·.ruff_cache·.parcel-cache·.turbo·.serverless·.aws-sam·cdk.out 은 안을 보되, 그 폴더가 .gitignore 에 들어 있고 git 이 추적하지 않는 파일만 넘어가요. 패턴에 그 폴더 이름을 적으면(dist/*.key) 늘 안을 봐요. 글롭·점으로 시작하는 경로는 예시 파일(이름에 .example.·.sample.·.template. 이 들거나 그것으로 끝남)을 빼요 — 이름을 그대로 적은 파일은 막아요. 명령줄에서 CLAUDECODE 를 바꾸거나 지우는 명령(CLAUDECODE=0 git commit·unset CLAUDECODE)도 막아요.",
+        "en": ".env and .env.* files (.env.example/.sample/.template allowed), .pem/.key/.p12/.pfx/.p8/.jks/.keystore/.mobileprovision/.provisionprofile, and SSH private keys like id_rsa, id_ed25519 or id_rsa_deploy (.pub and code files such as .env.d.ts are skipped). Checked on Write/Edit, on shell commands that change or delete them (> · >> · tee · sed -i · the target of cp/mv · mv/rm/truncate · Set-Content/Out-File/Remove-Item and the like, the plist tools PlistBuddy -c \"Add/Set/Delete/Merge/Import …\", plutil -replace/-insert/-remove/-convert (the -o file if given) and defaults write/delete <path>, and literal paths opened for writing in python -c / ruby -e one-liners (open(…, 'w'), Path(…).write_text, File.write), the local side of cloud downloads with aws s3 cp/sync, gsutil cp/rsync and rclone copy/sync (--delete, rsync -d and rclone sync also delete; --dryrun, -n and --dry-run are allowed), deleting a folder that holds a listed path, and git rm, git mv, git checkout [commit] -- path, git restore path and git clean -f path — git rm --cached and git restore --staged only touch the stage and are allowed, and git checkout <branch or tag> is not a path even when a file has the same name. Restoring from HEAD or the stage (git checkout -- path, git restore path, --source=HEAD) asks instead of blocking (hand edits would be lost). For git rm, ., globs (git rm -r ., git rm \"config/*.yml\") and :/ are checked against the files git would actually delete; for git checkout and git restore, ., globs, :/ and folders are checked against the files whose content would actually change (allowed when nothing changes). Paths built from $variables are not seen. Creating a missing .env from .env.example, or a no-clobber copy like cp -n, is allowed), and when a commit includes such a file (commits that remove them are fine). Listed paths match whole path parts (data does not cover metadata.py). * and ** in listed paths work like .gitignore: a pattern without a / (*.tfstate, *.tfstate.*, kubeconfig*, .vault_pass*) matches the name at any depth, a pattern with a / (infra/**/*.tfvars, secrets/*.json) and a path ending or starting with / (.terraform/, /kubeconfig*, /secrets.yml) match from the project root, and files inside a matching folder are covered too (* stays within one folder, ** spans zero or more). Deleting a folder that could hold a glob match (rm -rf infra) looks through up to 5,000 entries inside, nearest folders first, and is blocked when one matches. Folders that tools generate (.terraform, node_modules, dist, build, target, .next, coverage, __pycache__, .venv and the like) are not looked into, whether deleted directly or passed on the way (terraform init writes .terraform/terraform.tfstate) — unless the pattern names that folder (.terraform/*.tfstate). Listed paths also cannot have new or changed content added to a commit by Claude with git add or git commit (git add -f, git add ., git add :/ and commit -a included; committing their deletion is fine — an add whose targets cannot be known, such as $(…), xargs or --pathspec-from-file, is blocked when a listed path has changes); commits people make themselves are not blocked. Anything the user had already staged does not count as Claude's git add. On top of that, a commit Claude makes (git commit inside Claude Code — in the git pre-commit hook, recognised by the CLAUDECODE environment variable Claude Code sets) is blocked when it adds a new file to the repository that .gitignore ignores (force-added with git add -f, such as Config/Secrets.xcconfig — even when a person staged it); commits that change files already tracked are not. At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked. Extra paths: write them like config/prod.json or data/raw/; a leading dot like .hdf5 means an extension. Without a / (*.tfstate, kubeconfig*) the name matches in any folder; with a / (infra/**/*.tfvars, /kubeconfig*) it matches from the project root (* stays within one folder, ** spans any number). When a folder is deleted, .terraform, node_modules, __pycache__, .next, .nuxt, .gradle, .pytest_cache, .mypy_cache and .tox are not looked into. dist, build, target, out, coverage, venv, .venv, .terragrunt-cache, .svelte-kit, .output, .nyc_output, .nox, .ruff_cache, .parcel-cache, .turbo, .serverless, .aws-sam and cdk.out are looked into, but files there are skipped only when the folder is in .gitignore and git does not track the file. Naming the folder in the pattern (dist/*.key) always checks inside. Globs and leading-dot paths skip example files (names containing or ending in .example., .sample. or .template.); a file listed by its exact name is still protected. Commands that change or remove CLAUDECODE on the command line (CLAUDECODE=0 git commit, unset CLAUDECODE) are blocked too."
+      }
+    },
+    {
+      "id": "migration-edit",
+      "group": "danger",
+      "kind": "block",
+      "name": {
+        "ko": "적용된 마이그레이션 고치기 막기",
+        "en": "Block edits to applied migrations"
+      },
+      "desc": {
+        "ko": "이미 커밋한 DB 마이그레이션 파일(Flyway·Django·Alembic·Prisma·Rails·goose·golang-migrate)을 고치거나 이름을 바꾸거나 지우지 않게 하고, 새 마이그레이션을 만들게 해요",
+        "en": "Keeps Claude from editing, renaming or deleting database migration files that are already committed (Flyway, Django, Alembic, Prisma, Rails, goose, golang-migrate) and has it write a new migration instead"
+      },
+      "downside": {
+        "ko": "아직 아무 데도 적용하지 않은 마이그레이션이라도 커밋했으면 막혀서, 그 파일은 직접 고쳐야 해요",
+        "en": "A committed migration that has not been applied anywhere yet is blocked too, so you edit that one yourself"
+      },
+      "example": {
+        "bad": {
+          "ko": "이미 커밋한 V3__add_email.sql 에 열을 하나 더 넣으려 하면",
+          "en": "Claude tries to add a column to the committed V3__add_email.sql"
+        },
+        "fix": {
+          "ko": "막고 V4__ 로 새 마이그레이션을 만들게 해요",
+          "en": "blocked; it writes a new V4__ migration instead"
+        }
+      },
+      "detail": {
+        "ko": "마이그레이션 파일은 경로로 알아봐요: Flyway db/migration 아래(하위 폴더도) V<버전>__<설명>.sql·.java·.kt(R__ 반복 마이그레이션은 바뀌라고 있는 것이라 제외), Django migrations/<숫자>_<이름>.py(__init__.py 제외), Alembic alembic/versions/*.py·migrations/versions/*.py, Prisma prisma/migrations/<폴더>/migration.sql, Rails db/migrate/<숫자>_<이름>.rb, goose·golang-migrate·dbmate migrations/<숫자>_<이름>.sql·.go. 이런 파일이 git HEAD 에 있을 때(커밋했을 때)만 막아요 — 새 마이그레이션 만들기와 아직 커밋하지 않은 마이그레이션 고치기는 허용. 보는 곳: Write·Edit, 셸로 바꾸거나 지우기(> · >> · tee · sed -i · cp 받는 쪽 · mv·rm·truncate · Set-Content·Remove-Item 등, migrations·db/migrate 같은 마이그레이션 폴더 통째로 지우거나 옮기기, 커밋한 마이그레이션 이름에 맞는 글롭 — rm migrations/*.pyc 나 폴더 안으로 새 파일 복사는 허용, 글롭·install 로 폴더 안에 같은 이름을 덮어쓰기와 마이그레이션 폴더를 품은 폴더째 지우기는 막음), git mv·git rm(git rm -r .·git rm \"*\" 처럼 저장소 전체에 맞는 글롭도), 다른 커밋에서 가져오는 git checkout <커밋> -- 경로·git restore --source <커밋> 경로(HEAD 로 되살리기는 허용 — 폴더를 주면 그 커밋과 HEAD 가 다른 커밋한 마이그레이션이 있을 때만 막아요. restore 는 그 커밋에 없는 마이그레이션을 지우는 것도), Claude 의 git add·git commit 이 HEAD 의 마이그레이션 고침·지움을 올릴 때(git add .·-A·commit -a·같은 명령의 git add 포함 — 사용자가 미리 stage 해 둔 것은 막지 않아요). 사람이 직접 하는 커밋은 막지 않아요(git pre-commit 훅에는 넣지 않음 — 마이그레이션 합치기 같은 일은 사람이 해요). 보지 않는 것: Liquibase 체인지로그(changelog 파일을 고치는 일이 흔해 경로만으로 가를 수 없어요), 이 폴더 이름이 아닌 곳에 둔 마이그레이션(설정으로 위치를 바꾼 Flyway locations 등), $변수·명령 치환으로 정한 경로, 스크립트 속 명령.",
+        "en": "Migration files are recognised by path: Flyway V<version>__<description>.sql/.java/.kt under db/migration (subfolders too; repeatable R__ migrations are meant to change and are skipped), Django migrations/<number>_<name>.py (not __init__.py), Alembic alembic/versions/*.py and migrations/versions/*.py, Prisma prisma/migrations/<folder>/migration.sql, Rails db/migrate/<number>_<name>.rb, goose/golang-migrate/dbmate migrations/<number>_<name>.sql/.go. Only blocked when the file is in git HEAD (committed); creating a new migration and editing one that is not committed yet are fine. Checked on Write/Edit, on shell commands that change or delete them (> · >> · tee · sed -i · the target of cp · mv/rm/truncate · Set-Content/Remove-Item and the like, deleting or moving a whole migrations or db/migrate folder, and globs that match a committed migration name — rm migrations/*.pyc and copying a new file into the folder are fine, while overwriting a same-named file through a glob or install and deleting a folder that holds a migrations folder are blocked), on git mv/git rm (including git rm -r . and globs such as git rm \"*\" that cover the whole repository), on git checkout <commit> -- path and git restore --source <commit> path from another commit (restoring from HEAD is fine; for a folder it blocks only when a committed migration in it differs between that commit and HEAD, and for restore also when it would delete a migration missing from that commit), and when Claude's git add or git commit stages a change to or deletion of a migration in HEAD (git add ., -A, commit -a and git add in the same command included — anything the user had already staged is not blocked). Commits people make themselves are not blocked (it is not part of the git pre-commit hook; squashing migrations is left to people). Not covered: Liquibase changelogs (editing changelog files is common, so path alone cannot tell), migrations kept outside these folder names (such as custom Flyway locations), paths built from $variables or command substitution, and commands inside scripts."
       }
     },
     {
@@ -105,8 +136,8 @@
         "en": "Block dangerous commands"
       },
       "desc": {
-        "ko": "드라이브·홈 폴더 통째로 지우기, 받은 스크립트 바로 실행, 커밋 안 한 변경 날리기 같은 명령을 막아요",
-        "en": "Blocks commands that wipe a whole drive or home folder, run a downloaded script straight away or throw away uncommitted changes"
+        "ko": "드라이브·홈 폴더 통째로 지우기, DB 데이터 지우기, 받은 스크립트 바로 실행, 커밋 안 한 변경 날리기 같은 명령을 막아요",
+        "en": "Blocks commands that wipe a whole drive or home folder, wipe database data, run a downloaded script straight away or throw away uncommitted changes"
       },
       "downside": {
         "ko": "커밋 안 한 변경이 있으면 일부러 버리려던 reset --hard 도 막혀요 — 먼저 git stash 로 변경을 치워 두면 돼요",
@@ -123,8 +154,8 @@
         }
       },
       "detail": {
-        "ko": "적어 둔 꼴만 막아요: rm -rf·Remove-Item -Recurse·rd /s 로 / · 드라이브 · ~ · $HOME · . · .. · * 통째로 지우기(Get-ChildItem | Remove-Item -Recurse 포함), curl·wget·iwr·irm 으로 받은 것을 sh·bash·python·node·iex 로 바로 실행(bash <(curl …), iex (irm …) 포함), chmod 777·a+rwx, mkfs, dd of=/dev/디스크, Format-Volume·Clear-Disk, fork bomb. 커밋 안 한 변경이 있을 때만 git reset --hard·clean -f(-x 면 무시된 파일이 있을 때도, -X 면 무시된 파일이 있을 때만)·checkout [커밋] [--] .·restore [--source 커밋] . 도 막아요(같은 명령 앞에서 git stash 했거나 -n·--dry-run 이면 허용). 커밋 메시지·echo·heredoc 본문 속 글은 보지 않아요.",
-        "en": "Only the listed forms: wiping / , a drive, ~, $HOME, . , .. or * with rm -rf, Remove-Item -Recurse or rd /s (including Get-ChildItem | Remove-Item -Recurse), running something fetched with curl/wget/iwr/irm straight into sh/bash/python/node/iex (including bash <(curl …) and iex (irm …)), chmod 777 or a+rwx, mkfs, dd of=/dev/<disk>, Format-Volume/Clear-Disk, and the fork bomb. git reset --hard, clean -f (with -x, also when ignored files exist; with -X, only when they do), checkout [commit] [--] . and restore [--source commit] . only when there are uncommitted changes (fine after git stash earlier in the same command, or with -n/--dry-run). Text in commit messages, echo and heredoc bodies is ignored."
+        "ko": "적어 둔 형식만 막아요: rm -rf·Remove-Item -Recurse·rd /s 로 / · 드라이브 · ~ · $HOME · . · .. · * 통째로 지우기(Get-ChildItem | Remove-Item -Recurse 포함), curl·wget·iwr·irm 으로 받은 것을 sh·bash·python·node·iex 로 바로 실행(bash <(curl …), iex (irm …) 포함), chmod 777·a+rwx, mkfs, dd of=/dev/디스크, Format-Volume·Clear-Disk, fork bomb. DB 데이터 지우기: docker compose down -v·--volumes, docker volume rm·prune, prisma migrate reset, prisma db push --accept-data-loss·--force-reset, alembic downgrade base, manage.py flush·migrate <앱> zero(--plan·--fake 는 허용)·sqlflush 를 dbshell·psql 로 파이프, flyway clean·gradle flywayClean·mvn flyway:clean, celery purge -f·--force(-f 없는 purge 는 확인을 물어서 허용), rails db:drop·reset, supabase db reset, dropdb, redis-cli FLUSHALL, psql·mysql·sqlite3·mongosh 등의 인자로 넘긴 DROP·TRUNCATE·dropDatabase(). npx·uv run·docker compose exec 서비스 같은 앞붙이는 벗겨 봐요. grep·rg 검색어 속 같은 낱말은 막지 않아요. heredoc·파이프·파일(< x.sql)로 넘긴 SQL, npm run db:reset 처럼 스크립트 속 명령은 못 봐요. 커밋 안 한 변경이 있을 때만 git reset --hard·clean -f(-x 면 무시된 파일이 있을 때도, -X 면 무시된 파일이 있을 때만)·checkout [커밋] [--] .·restore [--source 커밋] . 도 막아요(같은 명령 앞에서 git stash 했거나 -n·--dry-run 이면 허용). 커밋 메시지·echo·heredoc 본문 속 글은 보지 않아요. 백틱·$(…)·echo … | bash·find -exec·find -delete·Start-Process 로 숨긴 같은 꼴도 봐요.",
+        "en": "Only the listed forms: wiping / , a drive, ~, $HOME, . , .. or * with rm -rf, Remove-Item -Recurse or rd /s (including Get-ChildItem | Remove-Item -Recurse), running something fetched with curl/wget/iwr/irm straight into sh/bash/python/node/iex (including bash <(curl …) and iex (irm …)), chmod 777 or a+rwx, mkfs, dd of=/dev/<disk>, Format-Volume/Clear-Disk, and the fork bomb. Wiping database data: docker compose down -v/--volumes, docker volume rm/prune, prisma migrate reset, prisma db push --accept-data-loss/--force-reset, alembic downgrade base, manage.py flush / migrate <app> zero (--plan and --fake allowed) / sqlflush piped into dbshell or psql, flyway clean / gradle flywayClean / mvn flyway:clean, celery purge -f/--force (purge without -f asks first, so it is allowed), rails db:drop/reset, supabase db reset, dropdb, redis-cli FLUSHALL, and DROP/TRUNCATE/dropDatabase() passed as arguments to psql, mysql, sqlite3, mongosh and the like. Prefixes such as npx, uv run or docker compose exec <service> are looked through; the same words inside grep/rg search terms are not blocked. SQL sent through a heredoc, a pipe or a file (< x.sql), and commands hidden in scripts like npm run db:reset, are not seen. git reset --hard, clean -f (with -x, also when ignored files exist; with -X, only when they do), checkout [commit] [--] . and restore [--source commit] . only when there are uncommitted changes (fine after git stash earlier in the same command, or with -n/--dry-run). Text in commit messages, echo and heredoc bodies is ignored. The same forms hidden in backticks, $(…), echo … | bash, find -exec, find -delete or Start-Process are caught too."
       }
     },
     {
@@ -154,8 +185,82 @@
         }
       },
       "detail": {
-        "ko": "적어 둔 꼴만 막아요: --password 값, mysql·mariadb -p값, mongosh -p 값, sshpass -p, docker login -p, curl -u·--user 아이디:비번, PGPASSWORD·MYSQL_PWD·*_PASSWORD=값($env: 포함), 주소 속 비밀번호(postgres://아이디:비번@). $변수·$(…)·파일 읽기(Get-Content·cat·[IO.File]::ReadAllText)로 넘기기, 켜고 끄는 값(MYSQL_ALLOW_EMPTY_PASSWORD=yes 처럼 yes·no·true·false·1·0)은 허용.",
+        "ko": "적어 둔 형식만 막아요: --password 값, mysql·mariadb -p값, mongosh -p 값, sshpass -p, docker login -p, curl -u·--user 아이디:비번, PGPASSWORD·MYSQL_PWD·*_PASSWORD=값($env: 포함), 주소 속 비밀번호(postgres://아이디:비번@). $변수·$(…)·파일 읽기(Get-Content·cat·[IO.File]::ReadAllText)로 넘기기, 켜고 끄는 값(MYSQL_ALLOW_EMPTY_PASSWORD=yes 처럼 yes·no·true·false·1·0)은 허용.",
         "en": "Only the listed forms: --password value, mysql/mariadb -pVALUE, mongosh -p value, sshpass -p, docker login -p, curl -u/--user user:pass, PGPASSWORD/MYSQL_PWD/*_PASSWORD=value (including $env:), and passwords inside URLs (postgres://user:pass@). Passing $VAR, $(…) or a file read (Get-Content, cat, [IO.File]::ReadAllText), and on/off values such as MYSQL_ALLOW_EMPTY_PASSWORD=yes (yes, no, true, false, 1, 0) are allowed."
+      }
+    },
+    {
+      "id": "ask-cmd",
+      "group": "danger",
+      "kind": "ask",
+      "options": [
+        {
+          "key": "commands",
+          "type": "list",
+          "item": "command",
+          "default": [],
+          "label": {
+            "ko": "실행 전에 물을 명령",
+            "en": "Commands to confirm first"
+          },
+          "help": {
+            "ko": "적은 명령(예: make deploy)으로 시작하면 실행 전에 물어요. 옵션까지 적으면 그 옵션이 있을 때만 물어요.",
+            "en": "Commands starting with one listed here (e.g. make deploy) ask before they run. If you include options, it asks only when those options are present."
+          }
+        },
+        {
+          "key": "block",
+          "type": "list",
+          "item": "command",
+          "default": [],
+          "label": {
+            "ko": "실행 못 하게 막을 명령",
+            "en": "Commands to block"
+          },
+          "help": {
+            "ko": "적은 명령(예: terraform apply)은 묻지 않고 막아요. 사람이 직접 실행해야 해요.",
+            "en": "Commands listed here (e.g. terraform apply) are blocked instead of asked; a person has to run them."
+          }
+        },
+        {
+          "key": "remote",
+          "type": "toggle",
+          "default": true,
+          "label": {
+            "ko": "원격·운영 명령도 묻기",
+            "en": "Also ask for remote and production commands"
+          },
+          "help": {
+            "ko": "ssh·kubectl apply·terraform apply 처럼 원격·운영 서버를 바꾸는 명령은 실행 전에 물어요. 보기만 하는 명령은 묻지 않아요.",
+            "en": "Commands that change remote or production servers, such as ssh, kubectl apply or terraform apply, ask before they run. Read-only commands do not."
+          }
+        }
+      ],
+      "name": {
+        "ko": "실행 전에 묻기",
+        "en": "Ask before running"
+      },
+      "desc": {
+        "ko": "정해 둔 명령과 원격·운영 서버에 닿는 명령은 실행 전에 확인 창을 띄워요. 막기로 적은 명령은 묻지 않고 막아요",
+        "en": "Shows a confirmation before commands you list and commands that reach remote or production servers. Commands you list to block are blocked instead of asked"
+      },
+      "downside": {
+        "ko": "그 명령을 쓸 때마다 확인을 눌러야 해서, 자주 쓰는 명령을 넣으면 번거로워요. 확인할 사람이 없는 claude -p·CI 에서는 막혀요",
+        "en": "You confirm every time such a command runs, so listing everyday commands gets tedious. With nobody to confirm (claude -p, CI) it is blocked"
+      },
+      "example": {
+        "bad": {
+          "ko": "실제 로봇을 움직이는 런치 파일을 Claude 가 실행하려 하면",
+          "en": "Claude is about to run a launch file that moves the real robot"
+        },
+        "fix": {
+          "ko": "실행 전에 확인 창을 띄워요",
+          "en": "a confirmation appears before it runs"
+        }
+      },
+      "detail": {
+        "ko": "명령 조각(; && | 로 나눈 것)마다 sudo·env·npx·uv run·python·docker compose exec 같은 앞붙이를 벗긴 실제 명령이 적어 둔 명령으로 시작하면 물어요(python scripts/train.py 는 파일 이름으로 맞추고, python -m scripts.train 도 같은 것으로 봐요). 적은 명령은 앞 낱말(처음 - 앞까지)과 옵션으로 나눠 봐요: 앞 낱말이 차례대로 나오고(사이에는 dbt --target prod run 처럼 옵션과 그 값만) 적은 옵션이 모두 어디엔가 있으면 물어요(--target prod·--target=prod). 짧은 별칭(-t prod)은 짐작하지 않으니 쓰는 형태마다 적어요. make 의 변수 대입(make DEPLOY=1 deploy-prod)은 건너뛰고 맞춰요. 적은 꼴이 하위 명령을 대지 않으면(kubectl --context prod) 읽기만 하는 kubectl get·describe·logs·diff·top·explain·version·api-resources, helm list·status·get·history·show·template·lint, vercel alias ls 는 묻지 않아요. 같은 조각에 DRY_RUN=1·true(명령 앞)나 --dry-run·--dry-run=true·client·server·--plan, make 의 -n·--just-print·--dry-run 이 있으면 시험 실행으로 보고 묻지 않아요(앞 조각의 export 는 아님, --dry-run=false·0·no·off·none 은 실제 실행). fastlane match 를 읽기 전용(--readonly·readonly:true·MATCH_READONLY=true)으로 돌리면 인증서를 받기만 해서 묻지 않아요(match nuke 와 --readonly false·0·no·off 는 물어요). 적은 스크립트가 --dry-run·--plan 을 무시하면 그대로 실행돼요. 막을 명령(block)에 적은 것은 같은 법으로 맞춰 묻지 않고 막아요(묻기보다 먼저) — 앞붙이·-chdir·cd … &&·옵션 자리가 달라도 맞아서, 앞부분만 보는 permissions.deny 보다 덜 새요. 막을 명령은 --dry-run·DRY_RUN=1 을 붙여도 막아요(스크립트가 무시할 수 있어서) — 도움말·버전만 한 낱말 붙이면 지나가요. 막을 명령에 git push --tags·--follow-tags 를 적으면 태그를 올리는 push(이름 붙인 태그·refs/tags/…·태그 지우기)를 모두 막아요. push.followTags 가 켜진 git push(-c push.followTags=true·저장소 설정)는 --follow-tags 를 붙인 것으로 봐요. 도움말·버전·시험 실행과 위의 읽기 하위 명령은 막지 않아요. 원격·운영(켜면): ssh·scp·sftp·mosh, 원격 주소(호스트:경로)를 쓰는 rsync, kubectl apply·create·delete·replace·patch·edit·scale·rollout·set·drain·cordon·uncordon·taint·label·annotate·exec·cp, helm install·upgrade·uninstall·delete·rollback, terraform·tofu apply·destroy·import·taint·untaint·force-unlock·state rm·mv·push·replace-provider·workspace delete(-dry-run 은 아님), argocd app sync·rollback·delete·delete-resource·set·unset·patch·patch-resource·edit·create·terminate-op·actions run(get·list·diff·history 는 아님), vault write·delete·kv put·patch·delete·destroy·undelete·rollback·kv metadata put·patch·delete, Kafka 관리 도구(클러스터가 어디든: kafka-topics --delete, kafka-consumer-groups --reset-offsets … --execute·--delete, kafka-configs --alter — --list·--describe·--execute 없는 되돌리기는 아님), ansible-playbook(--check 빼고)·ansible 모듈 실행, aws·gcloud·az 의 바꾸는 명령(만들기·지우기·멈추기·배포 등 — config·login 처럼 이 PC 설정만 바꾸는 것과 s3 sync·cp 로 내려받기는 아님), 원격 호스트의 psql·mysql·mongosh·redis-cli(-h·주소, 이름이 운영을 뜻하는 환경 변수 $PROD_DATABASE_URL·$DB_PROD_URL·$PRODUCTION_… — $DATABASE_URL·$DEV_…·$TEST_… 는 아님), 운영 변수나 호스트 이름에 prod·production 마디가 든 주소(postgres://…@db.prod.internal)로 스키마를 바꾸는 goose·migrate·dbmate·atlas·flyway·liquibase·sqlx(up·down·apply·migrate 등 — status·version·create 는 아님), 원격 docker(-H·--context·DOCKER_HOST, ps·logs 같은 보기는 아님), 이 Mac 의 ~/Library/MobileDevice/Provisioning Profiles 지우기(rm·Remove-Item), 버전 태그 올리기(git push --tags·--mirror, v1.3.0·1.3.0·refs/tags/…·로컬 태그 이름(release-1.3.0)을 올리거나 지우기 — 브랜치 push 와 --follow-tags 는 아님). 비밀값을 그대로 찍어 대화 기록에 남기는 명령(켜면): aws secretsmanager get-secret-value·batch-get-secret-value, aws ssm get-parameter·get-parameters·get-parameters-by-path·get-parameter-history 의 --with-decryption, kubectl get secret(s) 의 -o yaml·json·jsonpath·go-template·custom-columns, kubectl view-secret, 이름 없는 terraform·tofu output -json(모든 값을 그대로 찍음)과 이름을 준 output(-raw 든 아니든 그 값을 그대로 찍음 — 그 폴더의 .tf 에 sensitive = true 로 적은 이름일 때만, .tf 에서 그 output 을 못 찾으면 물어요. 그냥 output 은 sensitive 값을 가려서 아님), gcloud secrets versions access, az keyvault secret show·download, vault kv get·vault read — 목록·설명만 보이는 list-secrets·describe-secret, kubectl get secrets(표)·-o name·kubectl describe secret(키 이름과 크기만), kv list·kv metadata get, vault read sys/…(health·mounts 같은 서버 상태), 이름표만 꺼내는 jsonpath·go-template·custom-columns(꺼내는 칸이 모두 metadata 의 name·namespace·labels·creationTimestamp·uid·resourceVersion 이나 type·kind·apiVersion 인 틀 — {@}·{{.}}·data, 그리고 last-applied-configuration 에 값이 통째로 드는 metadata.annotations·{.metadata} 는 물어요), get 바로 뒤 종류가 secret 이 아닌 것(kubectl get configmap secrets)은 묻지 않아요(secret.v1·secrets.v1.·secrets.v1/이름, 경로에 /secrets 가 든 kubectl get --raw 는 비밀값 명령으로 봐요). 비밀값 명령이라도 값이 화면(그러니 대화 기록)에 분명히 닿을 때만 물어요 — 괜히 묻는 것이 놓치는 것보다 나빠서예요. 묻는 때: 출력이 그대로 화면으로 갈 때(2>&1·2>·&> 는 넘겨쓰기로 읽어요 — 2>&1 만 붙이면 묻고, &> 파일은 아니에요. /dev/stdout·/dev/tty·/dev/stderr·CON 은 화면), 파이프가 화면에 다시 찍는 명령(cat·jq·yq·base64·grep·head·tail·less·tee·xxd·sed·awk·python -c·node -e·sh, PowerShell 의 ConvertFrom-Json·Select-String·Format-List 등·Out-String·Out-Host·Write-Host·Write-Output)으로 끝날 때(jq·yq 가 이름표 칸·키 이름·개수만 꺼내면 아니고, kubectl apply -f - 에 -o yaml·json, Set-Content 에 -PassThru 를 주면 물어요), $( )·백틱을 찍는 명령(echo·printf·Write-Host·Write-Output)이 받을 때, 변수에 받은 뒤 같은 명령줄에서 그 변수를 찍을 때(echo $X·printenv X·맨 env·set, PowerShell 의 $x·\"…$x…\"·Write-Output $x), 파일로 넘긴 뒤 같은 명령줄에서 그 파일을 화면에 다시 찍는 명령(cat·less·head·grep·Get-Content 등)으로 읽을 때, 클립보드에 넣고 다시 꺼낼 때(pbpaste·Get-Clipboard). 그 밖은 묻지 않아요: 값을 받아 쓰기만 하는 도구로의 파이프(kubeseal, -o 없는 kubectl apply -f -, gpg -e, docker login --password-stdin, Out-File·Set-Content, Out-Null, clip·Set-Clipboard·pbcopy, wc·Measure-Object, > /dev/null·$null — 목록에 없는 도구도 찍지 않는다고 봐요), 찍지 않는 명령 속 $( )(mysql -p\"$(…)\"·docker run -e P=\"$(…)\"·gh secret set --body \"$(…)\"), 다시 찍지 않는 변수·파일(편집기로 열기·rm). ( ) 묶음은 묶음 뒤의 넘겨쓰기·파이프를 따라요. if·for·{ } 안의 명령은 아직 보지 않아요. 읽기만 하는 kubectl get·terraform plan·aws describe 와 --dry-run 은 묻지 않아요. 커밋 메시지·echo 속 글, 스크립트 안에서 부르는 명령(npm run deploy 등)은 보지 않아요.",
+        "en": "For each command piece (split on ; && |), after stripping prefixes such as sudo, env, npx, uv run, python or docker compose exec, it asks when the command starts with one you listed (python scripts/train.py matches by file name, and python -m scripts.train counts as the same). A listed command is split into its leading words (up to the first word starting with -) and its options: the leading words must appear in order (only options and their values in between, as in dbt --target prod run) and every listed option must appear somewhere (--target prod or --target=prod). Short aliases (-t prod) are not guessed, so list each spelling you use. make variable assignments (make DEPLOY=1 deploy-prod) are skipped when matching. When a listed command does not name a subcommand (kubectl --context prod), read-only kubectl get/describe/logs/diff/top/explain/version/api-resources, helm list/status/get/history/show/template/lint and vercel alias ls do not ask. DRY_RUN=1/true before the command, --dry-run, --dry-run=true/client/server or --plan, or make's -n/--just-print/--dry-run, in the same piece counts as a dry run and does not ask (an export in an earlier piece does not, and --dry-run=false/0/no/off/none is a real run). fastlane match run read-only (--readonly, readonly:true, MATCH_READONLY=true) only downloads certificates, so it does not ask (match nuke and --readonly false/0/no/off do). A listed script that ignores --dry-run or --plan still runs. Commands listed under block are matched the same way and blocked instead of asked (block wins over ask) — prefixes, -chdir, cd … && and option order do not matter, so fewer forms slip through than with permissions.deny, which only matches the start. Blocked commands stay blocked with --dry-run or DRY_RUN=1 (a script may ignore them); only a single help or version flag goes through. Listing git push --tags or --follow-tags under block blocks every push that sends tags (named tags, refs/tags/…, deleting tags). A git push with push.followTags on (-c push.followTags=true or the repository config) counts as --follow-tags. Help, version, dry runs and the read-only subcommands above are not blocked. Remote/production (when on): ssh, scp, sftp, mosh, rsync to a host:path, kubectl apply/create/delete/replace/patch/edit/scale/rollout/set/drain/cordon/uncordon/taint/label/annotate/exec/cp, helm install/upgrade/uninstall/delete/rollback, terraform or tofu apply/destroy/import/taint/untaint/force-unlock/state rm/mv/push/replace-provider/workspace delete (not -dry-run), argocd app sync/rollback/delete/delete-resource/set/unset/patch/patch-resource/edit/create/terminate-op/actions run (not get, list, diff or history), vault write/delete, kv put/patch/delete/destroy/undelete/rollback and kv metadata put/patch/delete, Kafka admin tools against any cluster (kafka-topics --delete, kafka-consumer-groups --reset-offsets … --execute or --delete, kafka-configs --alter — not --list, --describe or a reset without --execute), ansible-playbook (not --check) and ad-hoc ansible modules, aws/gcloud/az commands that change things (create, delete, stop, deploy… — not config or login, which only change this PC, nor s3 sync/cp downloads), psql/mysql/mongosh/redis-cli against a remote host (-h, a URL, or an environment variable whose name says production: $PROD_DATABASE_URL, $DB_PROD_URL, $PRODUCTION_… — not $DATABASE_URL, $DEV_… or $TEST_…), goose/migrate/dbmate/atlas/flyway/liquibase/sqlx changing the schema through such a variable or a URL whose host name has a prod or production label (postgres://…@db.prod.internal) (up, down, apply, migrate… — not status, version or create), remote docker (-H, --context, DOCKER_HOST — not read-only ps or logs), deleting this Mac's ~/Library/MobileDevice/Provisioning Profiles (rm, Remove-Item), and pushing version tags (git push --tags or --mirror, pushing or deleting v1.3.0, 1.3.0, refs/tags/… or a local tag name (release-1.3.0) — not branch pushes or --follow-tags). Commands that print a secret value into the conversation log (when on): aws secretsmanager get-secret-value/batch-get-secret-value, aws ssm get-parameter/get-parameters/get-parameters-by-path/get-parameter-history with --with-decryption, kubectl get secret(s) with -o yaml/json/jsonpath/go-template/custom-columns, kubectl view-secret, terraform or tofu output -json without a name (prints every value as is) and output with a name (prints that value as is, with or without -raw — only when that name is declared sensitive = true in the folder's .tf files, or when its output block cannot be found there; plain output hides sensitive values, so it does not ask), gcloud secrets versions access, az keyvault secret show/download, and vault kv get/vault read — list-secrets, describe-secret, kubectl get secrets (table) or -o name, kubectl describe secret (key names and sizes only), kv list and kv metadata get, which show only names or descriptions, do not ask; neither do vault read sys/… (server state such as health or mounts), jsonpath, go-template or custom-columns that only take labels (every field is metadata name, namespace, labels, creationTimestamp, uid or resourceVersion, or type, kind or apiVersion — {@}, {{.}}, data, and metadata.annotations or {.metadata}, whose last-applied-configuration holds the whole data, do ask), or a kind right after get that is not secret (kubectl get configmap secrets); secret.v1, secrets.v1., secrets.v1/name and kubectl get --raw with /secrets in the path count as secret reads. Even then it asks only when the value clearly reaches the screen (and so the conversation log) — a needless question is worse than a miss. It asks when: the output goes straight to the screen (2>&1, 2> and &> are read as redirections — a bare 2>&1 asks, &> file does not; /dev/stdout, /dev/tty, /dev/stderr and CON are the screen); a pipe ends in a command that prints it again (cat, jq, yq, base64, grep, head, tail, less, tee, xxd, sed, awk, python -c, node -e, sh, and in PowerShell ConvertFrom-Json, Select-String, Format-List and the like, Out-String, Out-Host, Write-Host, Write-Output — not jq/yq that take only label fields, key names or counts; kubectl apply -f - with -o yaml/json and Set-Content -PassThru do ask); a printing command (echo, printf, Write-Host, Write-Output) takes $( ) or backticks; a variable it was captured in is printed later on the same command line (echo $X, printenv X, bare env or set, and in PowerShell $x, \"…$x…\" or Write-Output $x); a file it was written to is read later on the same command line by a command that prints it (cat, less, head, grep, Get-Content …); or it goes to the clipboard and is pasted back (pbpaste, Get-Clipboard). Nothing else asks: a pipe into a tool that only consumes the value (kubeseal, kubectl apply -f - without -o, gpg -e, docker login --password-stdin, Out-File, Set-Content, Out-Null, clip, Set-Clipboard, pbcopy, wc, Measure-Object, > /dev/null or $null — tools not on the list are assumed not to print), $( ) inside a command that does not print it (mysql -p\"$(…)\", docker run -e P=\"$(…)\", gh secret set --body \"$(…)\"), or a variable or file that is not printed again (opened in an editor, rm). A ( ) group follows the redirection or pipe after the group. Commands inside if, for or { } are not looked at yet. Read-only kubectl get, terraform plan, aws describe and --dry-run do not ask. Text in commit messages or echo, and commands run inside scripts (npm run deploy …), are not seen."
       }
     },
     {
@@ -201,8 +306,8 @@
           "default": ["main", "master"],
           "label": { "ko": "지킬 브랜치", "en": "Protected branches" },
           "help": {
-            "ko": "이 브랜치들에 바로 커밋·강제 푸시·원격 삭제를 막아요. 쉼표로 나눠요(예: main, develop).",
-            "en": "Direct commits, force pushes and remote deletion are blocked on these. Separate with commas (e.g. main, develop)."
+            "ko": "이 브랜치들에 바로 커밋·강제 푸시·원격 삭제를 막아요(예: main, develop).",
+            "en": "Direct commits, force pushes and remote deletion are blocked on these (e.g. main, develop)."
           }
         },
         {
@@ -263,10 +368,10 @@
           "type": "select",
           "default": "conventional",
           "choices": [
-            { "value": "conventional", "label": { "ko": "type: 요약 꼴(feat: …)", "en": "type: summary (feat: …)" } },
-            { "value": "free", "label": { "ko": "꼴은 보지 않음", "en": "Any format" } }
+            { "value": "conventional", "label": { "ko": "type: 요약", "en": "type: summary" }, "desc": { "ko": "feat: 로그인 추가 처럼 종류를 앞에 붙여요", "en": "Prefix the kind, as in feat: add login" } },
+            { "value": "free", "label": { "ko": "보지 않음", "en": "Any format" }, "desc": { "ko": "메시지 형식은 따지지 않아요", "en": "The message format is not checked" } }
           ],
-          "label": { "ko": "메시지 꼴", "en": "Message format" },
+          "label": { "ko": "메시지 형식", "en": "Message format" },
           "help": {
             "ko": "feat:·fix: 처럼 종류를 앞에 붙이게 해요. 기록에서 바뀐 종류를 찾기 쉬워지지만 매번 붙여야 해요.",
             "en": "Requires a type prefix such as feat: or fix:. History is easier to scan, at the cost of always adding it."
@@ -277,14 +382,14 @@
           "type": "select",
           "default": "any",
           "choices": [
-            { "value": "any", "label": { "ko": "언어는 보지 않음", "en": "Any language" } },
-            { "value": "ko", "label": { "ko": "한국어로", "en": "Korean" } },
-            { "value": "en", "label": { "ko": "영어로", "en": "English" } }
+            { "value": "any", "label": { "ko": "보지 않음", "en": "Any language" }, "desc": { "ko": "어느 언어로 써도 돼요", "en": "Any language is fine" } },
+            { "value": "ko", "label": { "ko": "한국어", "en": "Korean" }, "desc": { "ko": "한글이 없는 메시지를 막아요", "en": "Blocks messages without Korean" } },
+            { "value": "en", "label": { "ko": "영어", "en": "English" }, "desc": { "ko": "한글이 든 메시지를 막아요", "en": "Blocks messages containing Korean" } }
           ],
           "label": { "ko": "메시지 언어", "en": "Message language" },
           "help": {
-            "ko": "한국어로를 고르면 한글이 없는 메시지를, 영어로를 고르면 한글이 든 메시지를 막아요.",
-            "en": "Korean blocks messages without Hangul; English blocks messages that contain Hangul."
+            "ko": "커밋 메시지를 쓸 언어예요. 저장소 커밋 기록에 맞춰 처음 값을 정해요.",
+            "en": "The language commit messages are written in. The starting value follows the repo's commit history."
           }
         },
         {
@@ -292,14 +397,28 @@
           "type": "select",
           "default": 72,
           "choices": [
-            { "value": 50, "label": { "ko": "50자", "en": "50 characters" } },
-            { "value": 72, "label": { "ko": "72자", "en": "72 characters" } },
-            { "value": 100, "label": { "ko": "100자", "en": "100 characters" } }
+            { "value": 50, "label": { "ko": "50자", "en": "50 characters" }, "desc": { "ko": "짧게 — 목록에서 잘리지 않아요", "en": "Short — never cut off in lists" } },
+            { "value": 72, "label": { "ko": "72자", "en": "72 characters" }, "desc": { "ko": "git 이 권하는 길이", "en": "The length git recommends" } },
+            { "value": 100, "label": { "ko": "100자", "en": "100 characters" }, "desc": { "ko": "느슨하게", "en": "Loose" } }
           ],
           "label": { "ko": "첫 줄 최대 길이", "en": "Subject line limit" },
           "help": {
             "ko": "첫 줄이 이보다 길면 막아요. 짧을수록 목록에서 잘리지 않지만 설명을 줄여야 해요.",
             "en": "Blocks a first line longer than this. Shorter fits lists better but leaves less room."
+          }
+        },
+        {
+          "key": "types",
+          "type": "list",
+          "item": "word",
+          "default": [],
+          "label": {
+            "ko": "더 받을 타입",
+            "en": "Extra types"
+          },
+          "help": {
+            "ko": "feat·fix·docs 같은 기본 타입 말고도 받을 타입이에요(예: bench, deps). 저장소 커밋 기록에 이미 있는 타입은 처음부터 들어가요.",
+            "en": "Types accepted besides the standard ones such as feat, fix and docs (e.g. bench, deps). Types already in the repo's commit history are filled in."
           }
         }
       ],
@@ -308,7 +427,7 @@
         "en": "Commit message format"
       },
       "desc": {
-        "ko": "커밋 메시지를 feat:·fix: 처럼 종류를 앞에 붙인 꼴로, 첫 줄은 72자 이하로 쓰게 해요",
+        "ko": "커밋 메시지를 feat:·fix: 처럼 종류를 앞에 붙인 형식으로, 첫 줄은 72자 이하로 쓰게 해요",
         "en": "Commit messages start with a type such as feat: or fix:, with a first line of 72 characters or less"
       },
       "downside": {
@@ -340,8 +459,8 @@
           "type": "select",
           "default": "^(feature|feat|fix|hotfix|chore|docs|refactor|test)/[A-Za-z0-9][A-Za-z0-9._/-]*$",
           "choices": [
-            { "value": "^(feature|feat|fix|hotfix|chore|docs|refactor|test)/[A-Za-z0-9][A-Za-z0-9._/-]*$", "label": { "ko": "feature/·feat/·fix/·hotfix/·chore/·docs/·refactor/·test/", "en": "feature/ feat/ fix/ hotfix/ chore/ docs/ refactor/ test/" } },
-            { "value": "^(feature|release|hotfix|bugfix|support)/[A-Za-z0-9][A-Za-z0-9._/-]*$", "label": { "ko": "feature/·release/·hotfix/·bugfix/·support/ (Git Flow)", "en": "feature/ release/ hotfix/ bugfix/ support/ (Git Flow)" } }
+            { "value": "^(feature|feat|fix|hotfix|chore|docs|refactor|test)/[A-Za-z0-9][A-Za-z0-9._/-]*$", "label": { "ko": "GitHub Flow", "en": "GitHub Flow" }, "desc": { "ko": "feature/ feat/ fix/ hotfix/ chore/ docs/ refactor/ test/", "en": "feature/ feat/ fix/ hotfix/ chore/ docs/ refactor/ test/" } },
+            { "value": "^(feature|release|hotfix|bugfix|support)/[A-Za-z0-9][A-Za-z0-9._/-]*$", "label": { "ko": "Git Flow", "en": "Git Flow" }, "desc": { "ko": "feature/ release/ hotfix/ bugfix/ support/", "en": "feature/ release/ hotfix/ bugfix/ support/" } }
           ],
           "label": { "ko": "허용할 시작 이름", "en": "Allowed prefixes" },
           "help": {
@@ -359,7 +478,7 @@
         "en": "Starts with feature/, fix/, ..."
       },
       "downside": {
-        "ko": "팀이 쓰던 다른 이름 꼴이 있으면 다 막혀서, 옵션 「허용할 시작 이름」을 바꿔야 해요",
+        "ko": "팀이 쓰던 다른 이름 형식이 있으면 다 막혀서, 옵션 「허용할 시작 이름」을 바꿔야 해요",
         "en": "Any other naming your team uses is blocked until you change the \"Allowed prefixes\" option"
       },
       "example": {
@@ -418,10 +537,10 @@
           "type": "select",
           "default": 400,
           "choices": [
-            { "value": 300, "label": { "ko": "300줄", "en": "300 lines" } },
-            { "value": 400, "label": { "ko": "400줄", "en": "400 lines" } },
-            { "value": 600, "label": { "ko": "600줄", "en": "600 lines" } },
-            { "value": 800, "label": { "ko": "800줄", "en": "800 lines" } }
+            { "value": 300, "label": { "ko": "300줄", "en": "300 lines" }, "desc": { "ko": "잘게 나눠요", "en": "Small files" } },
+            { "value": 400, "label": { "ko": "400줄", "en": "400 lines" }, "desc": { "ko": "권장", "en": "Recommended" } },
+            { "value": 600, "label": { "ko": "600줄", "en": "600 lines" }, "desc": { "ko": "넉넉하게", "en": "Roomy" } },
+            { "value": 800, "label": { "ko": "800줄", "en": "800 lines" }, "desc": { "ko": "느슨하게", "en": "Loose" } }
           ],
           "label": { "ko": "최대 줄 수", "en": "Line limit" },
           "help": {
@@ -462,16 +581,16 @@
       "group": "code",
       "kind": "block",
       "name": {
-        "ko": "위험한 HTML 차단",
-        "en": "Block unsafe HTML"
+        "ko": "위험한 HTML·코드 실행 차단",
+        "en": "Block unsafe HTML and eval"
       },
       "desc": {
-        "ko": "받은 글이 HTML·코드로 실행되게 넣는 줄(innerHTML·eval 등)을 막아요",
-        "en": "Blocks lines that let text run as HTML or code (innerHTML, eval and the like)"
+        "ko": "받은 글이 HTML·코드로 실행되게 넣는 줄(innerHTML·eval·템플릿의 |safe 등)을 막아요",
+        "en": "Blocks lines that let text run as HTML or code (innerHTML, eval, |safe in templates and the like)"
       },
       "downside": {
-        "ko": "내가 쓴 고정 HTML 을 넣는 줄도 막혀서, textContent 로 바꾸거나 `lint:allow unsafe-html <이유>` 를 달아야 해요",
-        "en": "Lines that insert your own fixed HTML are blocked too; switch to textContent or add `lint:allow unsafe-html <reason>`"
+        "ko": "같은 줄에서 sanitize()·DOMPurify 를 거치면 통과해요. 내가 쓴 고정 HTML 을 넣는 줄도 막혀서, textContent 로 바꾸거나 `lint:allow unsafe-html <이유>` 를 달아야 해요",
+        "en": "Lines that go through sanitize() or DOMPurify on the same line pass. Lines that insert your own fixed HTML are blocked too; switch to textContent or add `lint:allow unsafe-html <reason>`"
       },
       "example": {
         "bad": {
@@ -484,8 +603,8 @@
         }
       },
       "detail": {
-        "ko": "JS·TS·JSX·Vue·Svelte·Astro·HTML 파일에 새로 넣는 innerHTML·outerHTML 대입(el['innerHTML'] 포함), insertAdjacentHTML, document.write, dangerouslySetInnerHTML, v-html, {@html}, set:html, [innerHTML], bypassSecurityTrustHtml, createContextualFragment, eval(·window.eval(·(0, eval)(, new Function(·Function(. Write·Edit 로 쓸 때와 커밋이 더하는 줄. 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요. 빈 글자·고정 글자(여러 줄 고정 템플릿 포함) 대입, 넣는 값이 모두 DOMPurify·sanitize·escapeHtml 을 거친 대입, 주석, JS·TS 의 따옴표 속 글, 테스트 파일은 제외. 잘못 막힌 줄은 그 줄 끝이나 바로 위 주석 줄에 `lint:allow unsafe-html <이유>` 를 달면 그 줄만 통과하고, 쓸 때마다 알려요.",
-        "en": "New innerHTML/outerHTML assignments (including el['innerHTML']), insertAdjacentHTML, document.write, dangerouslySetInnerHTML, v-html, {@html}, set:html, [innerHTML], bypassSecurityTrustHtml, createContextualFragment, eval( / window.eval( / (0, eval)(, and new Function( / Function( in JS/TS/JSX/Vue/Svelte/Astro/HTML files. Checked on Write/Edit and for the lines a commit adds. At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked. Empty or fixed-string assignments (including fixed multi-line templates), assignments whose every inserted value goes through DOMPurify/sanitize/escapeHtml, comments, text inside quotes in JS/TS, and tests are skipped. A line blocked by mistake passes with `lint:allow unsafe-html <reason>` at the end of the line or in a comment line right above it; you are told every time."
+        "ko": "정화 함수를 거치면 새로 넣는 줄도 어느 파일에서나 통과해요: innerHTML·outerHTML 은 넣는 값이 모두 DOMPurify.sanitize(·sanitize…(·escapeHtml( 로 감쌀 때, dangerouslySetInnerHTML·v-html 같은 나머지는 같은 줄에 sanitize…(·DOMPurify·escapeHtml( 가 있을 때(미리 정화해 둔 변수만 넣는 줄 — __html: clean — 은 그 줄에 함수가 없어 막혀요). 막는 것: JS·TS·JSX·Vue·Svelte·Astro·HTML 파일에 새로 넣는 innerHTML·outerHTML 대입(el['innerHTML'] 포함), insertAdjacentHTML, document.write, dangerouslySetInnerHTML, v-html, {@html}, set:html, [innerHTML], bypassSecurityTrustHtml, createContextualFragment, eval(·window.eval(·(0, eval)(, new Function(·Function(. 서버 템플릿(.html·.htm·.jinja·.jinja2·.j2·.njk — Django·Jinja·Nunjucks)의 {{ … }}·{% … %} 안에 새로 넣는 |safe·|safeseq 필터({{ x|safe }}·{{ x | safe }})와 {% autoescape off %}·{% autoescape false %}(HTML 주석 <!-- --> 속도 봐요 — 서버가 그 안도 그려요. {# … #}·{% comment %} 속, |safeguard 처럼 이름만 비슷한 필터, |escape, JS 의 || 는 제외). Write·Edit 로 쓸 때와 커밋이 더하는 줄. 커밋할 때는 적용하면서 넣는 git pre-commit 훅이 실제로 커밋되는 내용을 봐요(셸·다른 도구로 쓴 파일도). 그 훅을 넣지 못한 저장소(이미 다른 pre-commit 훅·core.hooksPath 가 있음, 팀원이 새로 받은 저장소)와 -n·--no-verify 커밋은 Claude Code 안에서 git commit 명령을 읽어 보고, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요(테스트·코드 검사(lint)·mkdir 은 앞에 둬도 돼요). 한 파일이 32MB 를 넘거나 git 이 바이너리로 보는 파일(NUL 글자가 든 파일)은 보지 않아요. 빈 글자·고정 글자(여러 줄 고정 템플릿 포함) 대입, 주석, JS·TS 의 따옴표 속 글, 테스트 파일은 제외. 잘못 막힌 줄은 그 줄 끝이나 바로 위 주석 줄에 `lint:allow unsafe-html <이유>` 를 달면 그 줄만 통과하고, 쓸 때마다 알려요.",
+        "en": "New lines pass in any file when they go through a sanitizer: for innerHTML/outerHTML when every inserted value is wrapped in DOMPurify.sanitize( / sanitize…( / escapeHtml(, for the rest (dangerouslySetInnerHTML, v-html …) when the same line has sanitize…( / DOMPurify / escapeHtml( (a line that only inserts a variable sanitized earlier — __html: clean — is blocked, since that line has no such call). Blocked: new innerHTML/outerHTML assignments (including el['innerHTML']), insertAdjacentHTML, document.write, dangerouslySetInnerHTML, v-html, {@html}, set:html, [innerHTML], bypassSecurityTrustHtml, createContextualFragment, eval( / window.eval( / (0, eval)(, and new Function( / Function( in JS/TS/JSX/Vue/Svelte/Astro/HTML files. In server templates (.html, .htm, .jinja, .jinja2, .j2, .njk — Django, Jinja, Nunjucks), new |safe and |safeseq filters inside {{ … }} or {% … %} ({{ x|safe }}, {{ x | safe }}) and {% autoescape off %} / {% autoescape false %} (inside HTML comments <!-- --> too, since the server renders those; {# … #} and {% comment %} blocks, look-alike filters such as |safeguard, |escape and the JS || operator are skipped). Checked on Write/Edit and for the lines a commit adds. At commit time the git pre-commit hook added on apply checks what is actually being committed (files written from the shell or other tools too). In repositories where it cannot be added (another pre-commit hook or core.hooksPath already exists, a teammate's fresh clone) and for -n/--no-verify commits, the git commit command is checked inside Claude Code instead, and a command that writes files and then commits is asked to run separately (tests, lint and mkdir may come first). Files over 32 MB and files git treats as binary (containing NUL bytes) are not checked. Empty or fixed-string assignments (including fixed multi-line templates), comments, text inside quotes in JS/TS, and tests are skipped. A line blocked by mistake passes with `lint:allow unsafe-html <reason>` at the end of the line or in a comment line right above it; you are told every time."
       }
     },
     {
@@ -732,8 +851,8 @@
         }
       },
       "detail": {
-        "ko": ".swift 파일에 새로 들어가는 줄의 `try!` 와 `print(`·`debugPrint(` 호출(`Swift.print(`, `print (` 도). Write·Edit 때, 그리고 커밋할 때(적용하면서 넣는 git pre-commit 훅이 실제 커밋 내용을 봐서 셸로 쓴 파일도) 막아요. 주석과 글자(\"…\"·\"\"\"…\"\"\"·#\"…\"#) 속은 빼고, 글자 속 `\\( … )` 안은 코드라 봐요. 빼는 것: 이미 있던 줄, 테스트 코드(Tests/·tests/ 폴더, …Tests.swift), 받아 온 코드(Pods·Carthage·.build·vendor), `x.print(` 처럼 다른 것의 메서드, `func print(` 처럼 같은 이름을 새로 만드는 줄. 못 보는 것: 이름만 넘기기(`map(print)`), 다른 이름으로 바꿔 부르기. 명령줄 도구처럼 print 가 진짜 출력이면 그 줄이나 바로 위 주석 줄에 `lint:allow swift-unsafe <이유>` 를 달면 통과하고, 쓸 때마다 알려요.",
-        "en": "`try!` and calls to `print(` / `debugPrint(` (also `Swift.print(` and `print (`) on new lines in .swift files. Blocked on Write and Edit, and at commit time (the git pre-commit hook added on apply checks what is actually committed, including files written from the shell). Comments and string contents (\"…\", \"\"\"…\"\"\", #\"…\"#) are ignored; code inside `\\( … )` in a string is checked. Skipped: existing lines, test code (Tests/ or tests/ folders, …Tests.swift), vendored code (Pods, Carthage, .build, vendor), methods of other objects (`x.print(`), lines defining a function with the same name (`func print(`). Not detected: passing the name only (`map(print)`), calling it under another name. If print is real output (a command-line tool), add `lint:allow swift-unsafe <reason>` on that line or a comment line right above; you are told every time."
+        "ko": ".swift 파일에 새로 들어가는 줄의 `try!` 와 `print(`·`debugPrint(` 호출(`Swift.print(`, `print (` 도), `NSLog(` 호출. Write·Edit 때, 그리고 커밋할 때(적용하면서 넣는 git pre-commit 훅이 실제 커밋 내용을 봐서 셸로 쓴 파일도) 막아요. 주석과 글자(\"…\"·\"\"\"…\"\"\"·#\"…\"#) 속은 빼고, 글자 속 `\\( … )` 안은 코드라 봐요. 빼는 것: 이미 있던 줄, 테스트 코드(Tests/·tests/ 폴더, …Tests.swift), 받아 온 코드(Pods·Carthage·.build·vendor), `x.print(` 처럼 다른 것의 메서드, `func print(` 처럼 같은 이름을 새로 만드는 줄. 못 보는 것: 이름만 넘기기(`map(print)`), 다른 이름으로 바꿔 부르기. 명령줄 도구처럼 print 가 진짜 출력이면 그 줄이나 바로 위 주석 줄에 `lint:allow swift-unsafe <이유>` 를 달면 통과하고, 쓸 때마다 알려요.",
+        "en": "`try!` and calls to `print(` / `debugPrint(` (also `Swift.print(` and `print (`) and `NSLog(` on new lines in .swift files. Blocked on Write and Edit, and at commit time (the git pre-commit hook added on apply checks what is actually committed, including files written from the shell). Comments and string contents (\"…\", \"\"\"…\"\"\", #\"…\"#) are ignored; code inside `\\( … )` in a string is checked. Skipped: existing lines, test code (Tests/ or tests/ folders, …Tests.swift), vendored code (Pods, Carthage, .build, vendor), methods of other objects (`x.print(`), lines defining a function with the same name (`func print(`). Not detected: passing the name only (`map(print)`), calling it under another name. If print is real output (a command-line tool), add `lint:allow swift-unsafe <reason>` on that line or a comment line right above; you are told every time."
       }
     },
     {
@@ -745,8 +864,8 @@
         "en": "Block Python shell=True and eval"
       },
       "desc": {
-        "ko": "새로 쓰는 Python 코드에서 글을 명령·코드로 실행하는 shell=True·eval(·exec( 를 막아요",
-        "en": "Blocks shell=True, eval( and exec(, which run text as commands or code, in new Python code"
+        "ko": "새로 쓰는 Python 코드에서 글을 명령·코드로 실행하는 shell=True·eval(·exec( 와 Django 의 mark_safe(값)·csrf_exempt 를 막아요",
+        "en": "Blocks shell=True, eval( and exec(, which run text as commands or code, and Django's mark_safe(value) and csrf_exempt in new Python code"
       },
       "downside": {
         "ko": "shell=True 가 꼭 필요한 짧은 스크립트도 막혀서, `lint:allow python-unsafe <이유>` 를 달아야 해요",
@@ -763,8 +882,8 @@
         }
       },
       "detail": {
-        "ko": ".py·.pyw 파일에 새로 들어가는 줄의 `shell=True`(함수 인자·대입 모두, 띄어쓰기·줄 잇기 상관없이)와 내장 `eval(`·`exec(` 호출(`builtins.eval(` 도). Write·Edit 때, 그리고 커밋할 때(git pre-commit 훅, 셸로 쓴 파일도) 막아요. 주석과 글자(따옴표·세 따옴표, r·b 앞붙이) 속은 빼고, f-글자의 `{ … }` 안은 코드라 봐요. 빼는 것: 이미 있던 줄, 테스트 코드(tests/·test/ 폴더, test_*.py, *_test.py, conftest.py), 받아 온 코드(.venv·venv·site-packages·vendor), 다른 것의 eval(`ast.literal_eval(`·`df.eval(`), `def eval(` 처럼 같은 이름을 새로 만드는 줄, `shell == True` 비교. 못 보는 것: 변수로 넘긴 값(`shell=use_shell`, `**opts`), 다른 이름으로 바꿔 부르기(`e = eval`), 노트북(.ipynb). 꼭 필요하면 그 줄이나 바로 위 주석 줄에 `lint:allow python-unsafe <이유>`(쓸 때마다 알려요).",
-        "en": "`shell=True` (as an argument or an assignment, any spacing or line continuation) and calls to the built-in `eval(` / `exec(` (also `builtins.eval(`) on new lines in .py and .pyw files. Blocked on Write and Edit, and at commit time (the git pre-commit hook, including files written from the shell). Comments and strings (quotes, triple quotes, r/b prefixes) are ignored; code inside `{ … }` of an f-string is checked. Skipped: existing lines, test code (tests/ or test/ folders, test_*.py, *_test.py, conftest.py), vendored code (.venv, venv, site-packages, vendor), other objects' eval (`ast.literal_eval(`, `df.eval(`), lines defining a function with the same name (`def eval(`), `shell == True` comparisons. Not detected: values passed through variables (`shell=use_shell`, `**opts`), calling it under another name (`e = eval`), notebooks (.ipynb). If it is really needed, add `lint:allow python-unsafe <reason>` on that line or a comment line right above (you are told every time)."
+        "ko": ".py·.pyw 파일에 새로 들어가는 줄의 `shell=True`(함수 인자·대입 모두, 띄어쓰기·줄 잇기 상관없이)와 내장 `eval(`·`exec(` 호출(`builtins.eval(` 도), Django 의 `mark_safe(` 에 고정 글자가 아닌 값을 넘기는 호출(`mark_safe(\"<br>\")`·`mark_safe(_(\"…\"))` 처럼 고정 글자만이면 허용, `format_html(` 은 막지 않아요)과 `csrf_exempt`(`@csrf_exempt`·`csrf_exempt(view)`·`method_decorator(csrf_exempt, …)` — 가져오는 줄은 제외). Write·Edit 때, 그리고 커밋할 때(git pre-commit 훅, 셸로 쓴 파일도) 막아요. 주석과 글자(따옴표·세 따옴표, r·b 앞붙이) 속은 빼고, f-글자의 `{ … }` 안은 코드라 봐요. 빼는 것: 이미 있던 줄, 테스트 코드(tests/·test/ 폴더, test_*.py, *_test.py, conftest.py), 받아 온 코드(.venv·venv·site-packages·vendor), 다른 것의 eval(`ast.literal_eval(`·`df.eval(`), `def eval(` 처럼 같은 이름을 새로 만드는 줄, `shell == True` 비교. 못 보는 것: 변수로 넘긴 값(`shell=use_shell`, `**opts`), 다른 이름으로 바꿔 부르기(`e = eval`), 노트북(.ipynb). 꼭 필요하면 그 줄이나 바로 위 주석 줄에 `lint:allow python-unsafe <이유>`(쓸 때마다 알려요).",
+        "en": "`shell=True` (as an argument or an assignment, any spacing or line continuation) and calls to the built-in `eval(` / `exec(` (also `builtins.eval(`), Django's `mark_safe(` called with anything but a fixed string (`mark_safe(\"<br>\")` and `mark_safe(_(\"…\"))` are allowed; `format_html(` is not blocked) and `csrf_exempt` (`@csrf_exempt`, `csrf_exempt(view)`, `method_decorator(csrf_exempt, …)` — import lines are skipped) on new lines in .py and .pyw files. Blocked on Write and Edit, and at commit time (the git pre-commit hook, including files written from the shell). Comments and strings (quotes, triple quotes, r/b prefixes) are ignored; code inside `{ … }` of an f-string is checked. Skipped: existing lines, test code (tests/ or test/ folders, test_*.py, *_test.py, conftest.py), vendored code (.venv, venv, site-packages, vendor), other objects' eval (`ast.literal_eval(`, `df.eval(`), lines defining a function with the same name (`def eval(`), `shell == True` comparisons. Not detected: values passed through variables (`shell=use_shell`, `**opts`), calling it under another name (`e = eval`), notebooks (.ipynb). If it is really needed, add `lint:allow python-unsafe <reason>` on that line or a comment line right above (you are told every time)."
       }
     },
     {
@@ -796,6 +915,37 @@
       "detail": {
         "ko": "세션을 시작할 때(SessionStart, 대화 압축·이어 하기 때도) 이 프로젝트·세션의 체크리스트 파일 경로(~/.claude/harness-fit/checklists/<프로젝트>/<세션>.md)를 Claude 에게 알려 주고, 단계가 셋 이상인 일은 「- [ ] 할 일」로 적게 해요. 사람이 메시지를 보낼 때마다(UserPromptSubmit) 그 파일에 남은 「- [ ]」 항목을 5개까지 보여 줘요(남은 게 없으면 아무것도 넣지 않아요). 보여 주기만 하고 막지는 않아요 — Claude 가 파일에 적지 않으면 보여 줄 것도 없어요. 사용자 전역 ~/.claude/checklists/ 와는 다른 자리에 둬요.",
         "en": "At session start (SessionStart, also after compaction or resume) tells Claude the checklist file for this project and session (~/.claude/harness-fit/checklists/<project>/<session>.md) and asks it to write work with three or more steps as \"- [ ] task\" lines. Every time a human message is sent (UserPromptSubmit) it shows up to 5 remaining \"- [ ]\" items (nothing is added when none are left). It only shows; it never blocks — if Claude writes nothing to the file there is nothing to show. It is kept apart from a personal ~/.claude/checklists/."
+      }
+    },
+    {
+      "id": "stale-scratch",
+      "group": "work",
+      "kind": "notice",
+      "name": {
+        "ko": "임시 폴더 쌓임 알림",
+        "en": "Leftover temp folders"
+      },
+      "desc": {
+        "ko": "지난 세션이 Temp 에 남긴 작업 폴더가 쌓이면 하루 한 번 알려요(지우지 않음)",
+        "en": "Tells you once a day when old sessions' work folders pile up in Temp (never deletes)"
+      },
+      "downside": {
+        "ko": "세션을 시작할 때 하루 한 번 Temp 를 훑느라 시작이 최대 0.4초쯤 늦어져요. 크기는 재지 않아서 큰 파일 하나만 남은 폴더는 놓쳐요",
+        "en": "Once a day, session start can take up to about 0.4 s longer while Temp is scanned. Sizes are not measured, so a folder holding a single big file is missed"
+      },
+      "example": {
+        "bad": {
+          "ko": "세션마다 만든 venv·캡처가 Temp 에 수십만 개 쌓이면(윈도는 로그인이 몇 분씩 늦어져요)",
+          "en": "venvs and captures from every session pile up in Temp (on Windows sign-in slows by minutes)"
+        },
+        "fix": {
+          "ko": "어디에 무엇이 쌓였는지 알려 주고 지울지 물어보게 해요",
+          "en": "says what piled up where and has Claude ask before deleting"
+        }
+      },
+      "detail": {
+        "ko": "세션을 시작할 때(SessionStart) 하루에 한 번만 Claude Code 의 작업 폴더 자리(<Temp>/claude)를 봐요. 프로젝트 지문 폴더 아래 세션 폴더와 그 밖의 바로 아래 폴더 중, 그 폴더와 바로 아래 폴더가 3일 넘게 바뀌지 않은 것을 지난 것으로 쳐요. 지난 폴더가 20개 넘거나, 그 안 깊이 2까지에 파이썬 venv(pyvenv.cfg)·node_modules·브라우저 프로필(Local State)·한 폴더에 그림 500장 이상이 있으면 그 폴더(5개까지)를 Claude 에게 알려, 사용자에게 지울지 묻게 해요. 지금 세션 폴더는 빼요. 직접 지우지는 않아요. 크기는 재지 않아요(파일 100만 개를 세면 몇 분이 걸려요). 한 번에 0.4초까지만 보고, 넘으면 본 데까지만 알려요. 본 날은 ~/.claude/harness-fit/stale-scratch/ 에 적어요.",
+        "en": "Once a day at session start (SessionStart) it looks at Claude Code's work-folder location (<Temp>/claude). Session folders under each project-fingerprint folder, and other folders right below it, count as old when neither the folder nor its direct subfolders changed for more than 3 days. If more than 20 are old, or any holds a Python venv (pyvenv.cfg), node_modules, a browser profile (Local State) or 500+ images in one folder within two levels, those folders (up to 5) are shown to Claude so it asks the user whether to delete them. This session's folder is skipped. It never deletes anything itself. Sizes are not measured (counting a million files takes minutes). Each check stops after 0.4 s and reports what it saw. The day of the last check is kept in ~/.claude/harness-fit/stale-scratch/."
       }
     },
     {
@@ -975,6 +1125,105 @@
       "desc": {
         "ko": "큰 파일은 찾아서 그 부분만 읽고, 답은 짧게",
         "en": "Search big files before reading; answer briefly"
+      }
+    },
+    {
+      "id": "llm",
+      "name": {
+        "ko": "LLM 앱",
+        "en": "LLM apps"
+      },
+      "desc": {
+        "ko": "모델에 보내기 전 개인정보 가리기, 루프 한도, 시험은 가짜 클라이언트, 바꾸면 평가 셋",
+        "en": "Mask personal data before sending, cap loops, test with a fake client, run evals after changes"
+      }
+    },
+    {
+      "id": "django",
+      "name": {
+        "ko": "Django",
+        "en": "Django"
+      },
+      "desc": {
+        "ko": "makemigrations, 커밋한 마이그레이션 안 고치기, 운영 설정은 묻기, 템플릿 |safe·csrf, Celery 인자는 id",
+        "en": "makemigrations, never edit committed migrations, ask before prod settings, template |safe and csrf, Celery args are ids"
+      }
+    },
+    {
+      "id": "spring",
+      "name": {
+        "ko": "Spring Boot",
+        "en": "Spring Boot"
+      },
+      "desc": {
+        "ko": "비밀값은 ${…}, 주인 확인, 트랜잭션·N+1, 이벤트·응답 형식은 더하기만, 오류 응답에 내부 정보 없음",
+        "en": "Secrets via ${…}, owner checks, transactions and N+1, events and responses only gain fields, no internals in error responses"
+      }
+    },
+    {
+      "id": "ml",
+      "name": {
+        "ko": "머신러닝 실험",
+        "en": "ML experiments"
+      },
+      "desc": {
+        "ko": "시드 고정, 실행마다 설정·커밋 해시 기록, 기준과 견주기, 체크포인트 덮어쓰지 않기",
+        "en": "Fixed seeds, config and commit hash per run, compare with the baseline, never overwrite checkpoints"
+      }
+    },
+    {
+      "id": "dbt",
+      "name": {
+        "ko": "dbt",
+        "en": "dbt"
+      },
+      "desc": {
+        "ko": "바꾼 모델은 아래까지 dbt build·test, 운영 대상은 묻기, 테스트 약하게 하지 않기, seeds·snapshots 지키기",
+        "en": "dbt build/test changed models and downstream, ask before prod targets, never weaken tests, keep seeds and snapshots"
+      }
+    },
+    {
+      "id": "iac",
+      "name": {
+        "ko": "인프라 코드",
+        "en": "Infrastructure as code"
+      },
+      "desc": {
+        "ko": "반영 전 plan 요약, prevent_destroy 유지, 0.0.0.0/0·공개 버킷 막기, state 커밋 안 함, 버전 고정",
+        "en": "Summarise plan before apply, keep prevent_destroy, no 0.0.0.0/0 or public buckets, never commit state, pin versions"
+      }
+    },
+    {
+      "id": "ios",
+      "name": {
+        "ko": "iOS 앱",
+        "en": "iOS apps"
+      },
+      "desc": {
+        "ko": "권한 문구, Core Data 는 새 모델 버전, 서명 설정은 묻기, 강제 언래핑 대신 guard let",
+        "en": "Permission texts, new Core Data model versions, ask before signing changes, guard let instead of force unwrap"
+      }
+    },
+    {
+      "id": "rust",
+      "name": {
+        "ko": "Rust",
+        "en": "Rust"
+      },
+      "desc": {
+        "ko": "unsafe 는 묻고 SAFETY 주석, clippy·test 를 --workspace 로, 라이브러리엔 unwrap 대신 ?",
+        "en": "Ask before unsafe and add SAFETY comments, clippy and test with --workspace, ? instead of unwrap in libraries"
+      }
+    },
+    {
+      "id": "payments",
+      "name": {
+        "ko": "결제·돈 계산",
+        "en": "Payments and money"
+      },
+      "desc": {
+        "ko": "금액은 최소 단위 정수, 반올림 규칙은 묻고 바꾸기, 멱등성 키·웹훅 중복 거르기, 원장은 반대 기록, 카드 번호 로그 안 남기기",
+        "en": "Amounts as minor-unit integers, ask before changing rounding, idempotency keys and webhook dedupe, reversing ledger entries, no card numbers in logs"
       }
     }
   ],

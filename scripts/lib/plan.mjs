@@ -10,10 +10,13 @@ import { currentListing, planBudget } from './skill-budget.mjs';
 import { COMMIT_HOOK_IDS, gitHookState, launcherText, chainCommand, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
 import { localDate } from '../../hooks/lib/dates.mjs';
 import { readJson } from './paths.mjs';
+import { detect } from '../detect.mjs';
 
 // git 이 이 경로를 무시하는지(.gitignore 에 .claude/ 가 있으면 팀원에게 설정이 가지 않는다)
 const gitIgnores = (root, rel) => spawnSync('git', ['-C', root, 'check-ignore', '-q', rel], { stdio: 'ignore' }).status === 0;
-const parses = (text) => { try { JSON.parse(text); return true; } catch { return false; } };
+// 메모장이 붙이는 BOM 은 떼고 읽는다(깨진 파일로 보던 일)
+const noBom = (text) => String(text).replace(/^\uFEFF/, '');
+const parses = (text) => { try { JSON.parse(noBom(text)); return true; } catch { return false; } };
 const read = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
 
 // 지침 글에 쓸 선택: 플러그인이 없으면 훅이 돌지 않으므로 「훅 꺼짐」 글로 쓴다(글도 검사도 없는 상태를 막으려고).
@@ -64,7 +67,7 @@ export const buildSettings = (current, src) => {
   let cfg = {};
   if (current) {
     try {
-      cfg = JSON.parse(current);
+      cfg = JSON.parse(noBom(current));
     } catch {
       return null;
     }
@@ -139,7 +142,7 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   });
   // 목록 예산: 새로 생기는 스킬 폴더만 더한다(있던 폴더를 고치는 것은 이미 지금 크기에 들어 있다)
   const fresh = changes.filter((c) => c.kind === 'skill' && c.action === 'create').map((c) => c.skill);
-  const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}));
+  const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}), () => (Array.isArray(sel.stack) ? sel.stack : detect(root).stack));
   if (skillBudget.level !== 'ok') warnings.push('skill-budget');
   return { changes, manual, warnings, skipped, skillBudget, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
 };

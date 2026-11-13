@@ -42,7 +42,7 @@ test('옵션 꼴: 이름·설명이 두 언어로, 기본값·선택지·브랜�
       for (const k of ['label', 'help']) assert.ok(o[k]?.ko && o[k]?.en, `${where}.${k}`);
       assert.ok(validValue(o, o.default), `${where} 기본값`);
       if (o.type === 'select') for (const c of o.choices) assert.ok(c.label?.ko && c.label?.en, `${where} 선택지 이름`);
-      if (o.type === 'list') assert.ok(['branch', 'path'].includes(o.item), `${where} 목록 칸 꼴`);
+      if (o.type === 'list') assert.ok(['branch', 'path', 'command', 'word'].includes(o.item), `${where} 목록 칸 꼴`);
     }
     for (const f of all.packs.flows) {
       for (const [k, v] of Object.entries(f.hooks?.[h.id] || {})) {
@@ -73,10 +73,19 @@ test('받은 옵션 값은 꼴로 거른다: 모르는 훅·키, 선택지 밖 �
     secrets: { paths: ['x'] },
     nope: { a: 1 },
   };
-  assert.deepEqual(cleanHookOpts(all.packs.hooks, raw), { 'file-size': { maxLines: 600 }, 'commit-msg': { style: 'free' }, 'protect-branch': { branches: ['main', 'release/v1'] } });
+  // 목록은 항목마다 거른다(../etc/passwd 만 빠지고 config/prod.json 은 남는다), 경로의 \ 는 / 로, 한글 경로도 받는다
+  assert.deepEqual(cleanHookOpts(all.packs.hooks, raw), { 'file-size': { maxLines: 600 }, 'commit-msg': { style: 'free' }, 'protect-branch': { branches: ['main', 'release/v1'] }, 'protected-files': { paths: ['config/prod.json'] } });
+  // 글롭 * · ** 는 받고(2026-11-12), * 와 / 만으로 된 꼴(모든 파일)은 버린다
+  assert.deepEqual(cleanHookOpts(all.packs.hooks, { 'protected-files': { paths: ['config\\관절한계.yaml', '*.hdf5', 'data/', 'infra/**/*.tfvars', '**', '*', '*/'] } }), { 'protected-files': { paths: ['config/관절한계.yaml', '*.hdf5', 'data/', 'infra/**/*.tfvars'] } });
+  // 거의 모든 파일에 맞는 글롭(글자 하나뿐)은 버리고, 앞이 / 인 맨 위 기준 경로는 받는다(검토 2026-11-12)
+  const kept = ['.hdf5', 'config/prod.json', 'data/raw/', 'kubeconfig*', '*.tfstate.*', '*.tfstate', '/kubeconfig*', '/secrets.yml', '/data/', '설정/값.yaml', 'x'];
+  assert.deepEqual(cleanHookOpts(all.packs.hooks, { 'protected-files': { paths: [...kept, '*-*', '*_*', '**/*e*', '*.*', '//x', '/', '/*'] } }), { 'protected-files': { paths: kept } });
   const sel = cleanSelection({ all, cfg }, { flow: 'github-flow', hooks: ['file-size'], hookOpts: raw }, 'ko');
   assert.deepEqual(sel.hookOpts['file-size'], { maxLines: 600 });
-  assert.deepEqual(parseList(opt('protect-branch', 'branches'), 'main, develop  bad name;x'), { values: ['main', 'develop', 'bad', 'name;x'].filter((x) => x !== 'name;x'), bad: ['name;x'] });
+  // 브랜치는 쉼표·줄바꿈으로만 나눈다 — 빈칸이 든 글은 통째로 빨간 값(2026-11-12)
+  assert.deepEqual(parseList(opt('protect-branch', 'branches'), 'main, develop\nbad name;x'), { values: ['main', 'develop'], bad: ['bad name;x'] });
+  // 명령·경로 목록은 쉼표·줄바꿈으로만 나눈다(띄어쓰기가 든 항목 — 검토 2026-11-11)
+  assert.deepEqual(parseList(opt('ask-cmd', 'commands'), 'ros2 launch, ros2 topic pub\npython scripts/train.py').values, ['ros2 launch', 'ros2 topic pub', 'python scripts/train.py']);
 });
 
 test('harness.json: 고른 값이 들어가고, 브랜치 방식 값보다 사용자가 고른 값이 앞선다', () => {
@@ -107,4 +116,46 @@ test('화면에 보일 값: 고친 값 > 방식이 정하는 칸은 그 방식 �
   assert.equal(v('noDirectPush', gh, { 'protect-branch': { noDirectPush: false } }), true, '방식이 정하는 칸은 지난번 값보다 방식 값');
   assert.equal(v('maxLines', gh, { 'file-size': { maxLines: 600 } }), 600, '방식이 정하지 않는 칸은 지난번 값');
   assert.equal(v('maxLines', gh, { 'file-size': { maxLines: 12345 } }), 400, '지난번 값이 꼴에 안 맞으면 기본값');
+});
+
+test('받지 않는 까닭을 항목마다 구분한다(화면 역할 평가 2026-11-12: 다 「셸 기호」로 안내했다)', async () => {
+  const { badWhy } = await import('../../picker/hook-options.js');
+  const opt = { type: 'list', item: 'path' };
+  assert.equal(badWhy(opt, '*.tfstate.*'), null);
+  assert.equal(badWhy(opt, '*-*'), 'broad');
+  assert.equal(badWhy(opt, '*'), 'broad');
+  assert.equal(badWhy(opt, 'a'.repeat(201)), 'long');
+  assert.equal(badWhy(opt, '../x'), 'path');
+  assert.equal(badWhy(opt, 'x;rm'), 'path');
+  for (const l of ['ko', 'en']) {
+    const s = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'picker', 'i18n', l, 'main.json'), 'utf8'));
+    for (const k of ['broad', 'long', 'full', 'path', 'command', 'branch', 'word']) assert.ok(s[`optBadWhy_${k}`], `${l} optBadWhy_${k}`);
+  }
+});
+
+test('목록 칸 나누기: 경로·명령의 역슬래시는 / 로, 브랜치는 빈칸에서 나누지 않는다(화면 역할 평가 2026-11-12)', async () => {
+  const { parseList } = await import('../../picker/hook-options.js');
+  const bs = String.fromCharCode(92);
+  assert.deepEqual(parseList({ item: 'path' }, `config${bs}prod.json`), { values: ['config/prod.json'], bad: [] });
+  assert.deepEqual(parseList({ item: 'branch' }, 'main, release/2026 11'), { values: ['main'], bad: ['release/2026 11'] });
+  assert.deepEqual(parseList({ item: 'word' }, 'bench deps'), { values: ['bench', 'deps'], bad: [] });
+});
+
+test('목록 칸 나누기는 한도로 자르지 않는다 — 넘는 값은 화면이 빨간 칩으로 보인다(다시 검토 2026-11-12)', async () => {
+  const { parseList, LIST_MAX } = await import('../../picker/hook-options.js');
+  const text = Array.from({ length: LIST_MAX + 5 }, (_, i) => `c${i}`).join('\n');
+  assert.equal(parseList({ item: 'command' }, text).values.length, LIST_MAX + 5);
+});
+
+test('「+ 넣기」 제안: 가득 찬 칸에는 내지 않고, 든 값(끝 / 만 다른 것)·빨간 칩 값은 빼고, 값 하나를 쉼표로 나누지 않고 넣는다(독립 검토 2026-11-13)', async () => {
+  const { offerChoices, placeOne, LIST_MAX } = await import('../../picker/hook-options.js');
+  const opt = { type: 'list', item: 'path' };
+  assert.deepEqual(offerChoices(['bench-results', 'paper/', 'figs/', 'figs/'], ['bench-results/'], ['paper']), ['figs/']);
+  assert.deepEqual(offerChoices(['figs/'], []), ['figs/'], '빈 칸이면 그대로');
+  const full = Array.from({ length: LIST_MAX }, (_, i) => `d${i}/`);
+  assert.deepEqual(offerChoices(['figs/'], full), [], '가득 차면 단추를 감춘다');
+  assert.deepEqual(placeOne(opt, 'figs/', ['a/'], ['figs/']), { values: ['a/', 'figs/'], bad: [] }, '넣으면 빨간 목록에서도 뺀다');
+  assert.deepEqual(placeOne(opt, 'my,dir', ['a/'], []), { values: ['a/'], bad: ['my,dir'] }, '쉼표가 든 값은 둘로 갈리지 않고 하나로(꼴은 badWhy 로)');
+  assert.deepEqual(placeOne(opt, 'bench-results', ['bench-results/'], []), { values: ['bench-results/'], bad: [] }, '끝 / 만 다르면 이미 든 값');
+  assert.deepEqual(placeOne(opt, 'x/', full, []).values, full, '가득 찬 칸에는 넣지 않는다');
 });

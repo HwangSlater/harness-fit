@@ -1,4 +1,4 @@
-// 언어별 위험한 꼴 찾기: Swift 의 try!·print(, Python 의 shell=True·eval(·exec(. 적어 둔 꼴만 본다(packs.json detail 과 같은 목록).
+// 언어별 위험한 꼴 찾기: Swift 의 try!·print(, Python 의 shell=True·eval(·exec(·Django mark_safe(값)·csrf_exempt. 적어 둔 꼴만 본다(packs.json detail 과 같은 목록).
 // 주석·글자 속은 가린 뒤(code-mask.mjs) 찾고, 이번에 새로 들어가는 줄에 걸친 것만 낸다(이미 있던 코드는 막지 않는다).
 // 패턴은 이 파일 자신과 맞지 않게 적는다(낱말 가운데를 [] 로 감싸 둔다).
 import { maskSwift, maskPython } from './code-mask.mjs';
@@ -13,14 +13,30 @@ const LANG_OUTSIDE = /(^|\/)(Pods|Carthage|\.build|\.venv|venv|site-packages)\//
 
 // x.eval( 처럼 다른 것의 것, def eval( 처럼 새로 만드는 줄
 const pyNotBuiltin = (s, at) => s[at - 1] === '.' || /\bdef\s+$/.test(s.slice(Math.max(0, at - 40), at));
+// 가린 글(글자 속은 띄어쓰기)에서 괄호 안이 고정 글자뿐인지: "…" · r'…' · """…""" · 이어 쓴 글자들, _("…")·gettext("…") 로 감싼 것.
+// f-글자는 { } 안이 코드라 아니다. 정해진 꼴만 앞에서 한 번 맞춰 본다(되돌아 훑지 않게 글자 사이엔 띄어쓰기만).
+const PY_LITERAL = String.raw`(?:[rRuUbB]{1,2})?(?:"""\s*"""|'''\s*'''|"[ \t]*"|'[ \t]*')`;
+const LITERAL_ARG = new RegExp(String.raw`\s*(?:(?:_|gettext|gettext_lazy|ugettext)\s*\(\s*(?:${PY_LITERAL}\s*)+\)|(?:${PY_LITERAL}\s*)+)(?:,\s*)?\)`, 'y');
+const literalArg = (s, from) => {
+  LITERAL_ARG.lastIndex = from;
+  return LITERAL_ARG.test(s);
+};
+// 그 자리가 가져오기(from x import csrf_exempt · from x import (\n    csrf_exempt,\n))인지
+const importLine = (s, at) => {
+  if (/^\s*(?:from\s+\S+\s+)?import\b/.test(s.slice(s.lastIndexOf('\n', at) + 1, at))) return true;
+  const k = s.lastIndexOf('import', at);
+  return k !== -1 && at - k < 4000 && /^import\s*\([^)]*$/.test(s.slice(k, at));
+};
 
 export const LANGS = {
   'swift-unsafe': {
     exts: ['swift'],
     mask: maskSwift,
-    may: /tr[y]!|prin[t]|debugPrin[t]/,
+    may: /tr[y]!|prin[t]|debugPrin[t]|NSLo[g]/,
     patterns: [
       { label: 'try!', re: /\btr[y]!/g },
+      // NSLog( 도 print 처럼 배포판 기기 로그에 남는다(역할극 16 회차 — 저장소 .swiftlint.yml no_print 에도 있었다, 2026-11-13). func NSLog( · x.NSLog( 는 아니다
+      { label: 'NSLog(', re: /\bNSLo[g]\s*\(/g, skip: (s, at) => /[.$]/.test(s[at - 1] || '') || /\bfunc\s+$/.test(s.slice(Math.max(0, at - 40), at)) },
       // print( · debugPrint( · Swift.print( — x.print( 처럼 다른 것의 메서드, func print( 처럼 새로 만드는 줄은 아니다
       // (앞 글자 보기는 정규식 뒤보기 대신 skip 으로 — 긴 띄어쓰기에서 자리마다 뒤로 훑지 않게)
       { label: 'print(', re: /(?:\bSwift\s*\.\s*)?\b(?:debugPrin[t]|prin[t])\s*\(/g, skip: (s, at, m) => !m.startsWith('Swift') && (/[.$]/.test(s[at - 1] || '') || /\bfunc\s+$/.test(s.slice(Math.max(0, at - 40), at))) },
@@ -29,8 +45,12 @@ export const LANGS = {
   'python-unsafe': {
     exts: ['py', 'pyw'],
     mask: maskPython,
-    may: /shel[l]|eva[l]|exe[c]/,
+    may: /shel[l]|eva[l]|exe[c]|mark_saf[e]|csrf_exemp[t]/,
     patterns: [
+      // Django: mark_safe(값) 은 이스케이프 없이 HTML 로 낸다(역할극 9 회차). 고정 글자만 넘기면(mark_safe("<br>"), _("…") 포함) 둔다.
+      { label: 'mark_safe(', kind: 'django', re: /\bmark_saf[e]\s*\(/g, skip: (s, at, m) => /\bdef\s+$/.test(s.slice(Math.max(0, at - 40), at)) || literalArg(s, at + m.length) },
+      // Django: CSRF 검사 끄기 — @csrf_exempt · csrf_exempt(view) · method_decorator(csrf_exempt, …). 가져오기 줄·def 는 아니다.
+      { label: 'csrf_exempt', kind: 'django', re: /\bcsrf_exemp[t]\b/g, skip: (s, at) => importLine(s, at) || /\bdef\s+$/.test(s.slice(Math.max(0, at - 40), at)) },
       // shell=True · shell = True (비교 == 는 아니다)
       { label: 'shell=True', re: /\bshel[l]\s*=(?!=)\s*True\b/g },
       // 내장 eval( · exec( · builtins.eval( — ast.literal_eval( · df.eval( 같은 다른 것은 아니다, def eval( 도 아니다

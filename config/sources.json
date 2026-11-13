@@ -2,12 +2,16 @@
   "_설명": "외부 주소와 검색 기준. 코드에는 주소를 직접 쓰지 않는다.",
   "githubApi": "https://api.github.com",
   "rawBase": "https://raw.githubusercontent.com",
+  "webBase": "https://github.com",
+  "downloadConcurrency": 6,
+  "downloadTimeoutMs": 20000,
+  "_download": "스킬 받기: 동시에 받는 파일 수(여러 스킬이 나눠 씀)와 파일 하나의 시간 한도",
   "minStars": 1000,
   "freshCacheHours": 24,
   "freshLimitPerQuery": 30,
   "pluginRepo": "HwangSlater/harness-fit",
   "marketplace": "harness-fit",
   "pluginId": "harness-fit@harness-fit",
-  "pluginRef": "v0.3.2",
+  "pluginRef": "v0.4.0",
   "_pluginRef": "팀원이 받는 플러그인 버전(태그). 배포할 때 이 태그를 만들어야 한다. 마켓 소스는 커밋 sha 고정을 지원하지 않아 태그로 고정한다."
 }

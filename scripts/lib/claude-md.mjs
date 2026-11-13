@@ -6,7 +6,9 @@
 //   `… {{judge}}`             판단이 필요해 검사로 막을 수 없는 줄(늘 넣는다)
 // 모든 줄은 이 넷 중 하나를 단다(scripts/test/rules.test.mjs). 검사로 막을 수 있는 것을 글로만 두지 않으려고 — 글은 놓친다(2026-11-05 사용자 지적).
 // 훅이 켜졌을 때 「훅이 막는다」고 알리는 줄은 두지 않는다. 훅이 막을 때 이유를 알려 주므로 매 대화 읽히는 글로 또 적으면 겹친다.
-import { TAG, ruleFiles, ruleFileLines } from './rule-files.mjs';
+import { TAG, kindFits, ruleFiles, ruleFileLines } from './rule-files.mjs';
+import { askPatterns, matches, variants, dryMarked, blockHit, cmdList } from '../../hooks/lib/ask-match.mjs';
+import { runWords } from '../../hooks/lib/run-prefix.mjs';
 
 export const START = '<!-- harness-fit:start -->';
 export const END = '<!-- harness-fit:end -->';
@@ -30,7 +32,8 @@ export const fillCmd = (text, cmds = {}) => {
 // cmds: { test: ['npm test'], … }(이 저장소 명령). 모든 줄이 빠지면 그 규칙은 통째로 넣지 않는다.
 // → { text, dropped } — dropped 는 훅·스킬이 맡거나 이미 CLAUDE.md 에 있어 뺀 줄: { at: 글 몇째 줄 앞에 있었는지, text, by: hook|skill|existing, who: [id] }
 //   (화면 「뺀 줄 보기」. 꺼진 훅 전용 줄처럼 그 조건에 해당하지 않아 안 넣는 줄은 「뺀 줄」이 아니다.)
-export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds = {}) => {
+// kinds: 저장소 종류(detect.mjs). {{kind:…}} 줄은 맞는 종류일 때만 넣는다(모르면 넣는다).
+export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds = {}, kinds = null) => {
   const lines = ruleFileLines(id, lang);
   if (!lines) return { text: '', dropped: [] };
   const on = new Set([...hooks.map((x) => `hook:${x}`), ...skills.map((x) => `skill:${x}`)]);
@@ -44,6 +47,7 @@ export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds =
     const bullet = /^- /.test(line);
     if (bullet) n++;
     const m = line.match(TAG);
+    if (!kindFits(m, kinds)) continue;
     const who = m?.[2] ? m[3].split('|').filter((x) => on.has(`${m[2]}:${x}`)) : [];
     const text = !m ? line : !m[2] || (m[1] === '!') !== who.length > 0 ? line.replace(TAG, '') : null;
     if (text == null) {
@@ -70,10 +74,50 @@ const ruleOrder = (sel) => {
   const rules = sel.rules || [];
   return [rules.includes('commands') ? 'commands' : null, sel.flow !== 'none' ? sel.flow : null, ...rules.filter((id) => id !== 'commands')].filter(Boolean);
 };
+// 「실행 전에 묻기」(ask-cmd)에 든 명령은 「이 저장소 명령」에 평소 명령으로 적지 않는다 — 같은 글이 「쓸 명령」과 「사람이 정할 명령」을
+// 함께 말하던 일(make backfill·make apply-dev — 역할극 10·15 회차, 2026-11-13). 맞추기는 훅과 같은 꼴(hooks/lib/ask-match.mjs)이라
+// make backfill 을 물어도 make backfill-dry 는 남는다. 화면에서 묻는 명령을 고치면 이 줄도 따라 바뀐다.
+// 훅이 묻지 않는 시험 실행·읽기 전용 꼴(make -n …·fastlane match --readonly)도 남긴다(dryMarked — 훅과 같은 판정)
+const split = (s) => String(s).trim().split(/\s+/).filter(Boolean);
+// 막는 명령(block)에 든 것도 뺀다 — 훅이 막는 명령이 「그 밖의 명령」 에 남던 일(검토 2026-11-13). 막기는 시험 실행 표시도 보지 않으므로 그 꼴도 뺀다
+const listOf = (v) => {
+  try {
+    return cmdList(v);
+  } catch {
+    return [];
+  }
+};
+export const withoutAsked = (cmds, ask, block = []) => {
+  const list = listOf(ask);
+  const blocked = listOf(block);
+  if (!list.length && !blocked.length) return cmds;
+  const pats = askPatterns(list, {}, split);
+  const bpats = askPatterns(blocked, {}, split);
+  const asked = (c) => {
+    const w = split(c);
+    const line = runWords(w);
+    return (!dryMarked(w, line) && variants(line, {}, w).some((l) => pats.some((p) => matches(l, p)))) || blockHit(w, line, bpats, {});
+  };
+  const out = {};
+  for (const [kind, v] of Object.entries(cmds || {})) {
+    const keep = Array.isArray(v) ? v.filter((c) => !asked(c)) : v;
+    if (!Array.isArray(keep) || keep.length) out[kind] = keep;
+  }
+  return out;
+};
+// 「사람이 실행하는 명령」 줄({{cmd:asked}} — rules/commands.*.md)에 보일 묻는 명령 수. 저장소에서 찾은 것(make apply-prod·scripts/*.sh)이 목록 앞이다
+// (평소 명령에서 뺀 것을 어디에도 적지 않아, 사람이 쓰는 명령이라는 표시가 없었다 — 역할극 15 회차 M8, 2026-11-13)
+const ASKED_SHOWN = 5;
+// 막는 명령(block)도 사람이 실행하는 명령이다 — 막는 명령을 먼저 둔다(같은 것은 한 번). 묻는 명령 뒤에 이으면
+// 묻는 명령이 많을 때 막는 make release·release.sh 가 앞 5개에 들지 못해 보이지 않았다(역할극 16 회차 다시, 2026-11-13)
+export const askedCmds = (ask, block = []) => [...new Set([...listOf(block), ...listOf(ask)])].slice(0, ASKED_SHOWN);
 const renderAll = (sel) => {
   // 이미 있는 훅이 막아 주는 것(covered)도 「켜짐」으로 친다 — 꺼짐 전용 줄이 그 훅과 겹치지 않게
   const hooks = [...(sel.hooks || []), ...(sel.covered || [])];
-  return ruleOrder(sel).map((id) => [id, renderRuleDetail(id, sel.lang, hooks, sel.skipLines?.[id] || [], sel.skills || [], sel.commands || {})]);
+  const ask = sel.hookOpts?.['ask-cmd']?.commands;
+  const block = sel.hookOpts?.['ask-cmd']?.block;
+  const cmds = hooks.includes('ask-cmd') ? { ...withoutAsked(sel.commands || {}, ask, block), asked: askedCmds(ask, block) } : sel.commands || {};
+  return ruleOrder(sel).map((id) => [id, renderRuleDetail(id, sel.lang, hooks, sel.skipLines?.[id] || [], sel.skills || [], cmds, sel.kinds || null)]);
 };
 
 // { 규칙 id: [훅 id] } — 켜면 그 규칙의 줄 하나를 대신 맡는 훅({{!hook:id}}, 파일에 적힌 순서). 화면 「줄을 대신 맡는 훅」 칩.

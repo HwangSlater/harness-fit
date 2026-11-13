@@ -7,11 +7,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { BASH, POWERSHELL, gitSegments, stripQuoted, heredocs, commandSegments } from '../lib/cmdline.mjs';
+import { substNote } from '../lib/hidden-runs.mjs';
 import { COMMIT_VALUE_FLAGS, COMMIT_NEXT_VALUE, COMMIT_LONG_VALUE, GIT_WORD, commandWords } from '../lib/commit-args.mjs';
 
 const MESSAGE_LONG = '--message';
 const FILE_LONG = '--file';
 const UNSEEN = Symbol('unseen');
+const EXPANDS = Symbol('expands'); // 못 읽은 까닭이 백틱·$( ) 치환일 때
+const unread = (list) => (list.includes(EXPANDS) ? EXPANDS : list.includes(UNSEEN) ? UNSEEN : null);
 
 // 낱말 목록 → { parts: -m 값들, file: -F 값 }. 다른 옵션의 값(--author 이름)은 건너뛴다.
 // git 은 겹치지 않는 앞부분만 적은 긴 옵션도 받는다: --m·--mess = --message, --fil = --file(--fi 는 --fixup 과 겹쳐 거절).
@@ -85,10 +88,14 @@ const SUBST_CAT = /^\$\(\s*(?:cat|Get-Content|gc|type)\s+(?:-Raw\s+)?(['"]?)([^'
 // `$(printf 'feat: x\n\n본문')` — 형식 글자(%)가 없는 printf 만
 const SUBST_PRINTF = /^\$\(\s*printf\s+(['"])([^%]*?)\1\s*\)$/s;
 const VAR_ONLY = { [BASH]: /^\$\{?([A-Za-z_]\w*)\}?$/, [POWERSHELL]: /^\$([A-Za-z_]\w*)$/ };
+// PowerShell 작은따옴표 here-string(@'…'@)은 글자 그대로다 — @"…"@ 는 $( ) 를 실행한다(검토 2026-11-13: @'…$(pwd)…'@ 메시지를 못 읽는다고 막았다)
+const PS_HERE_LITERAL = /@'[ \t]*\r?\n([\s\S]*?)\r?\n'@/g;
+const psHereLiteral = (raw, part) => [...raw.matchAll(PS_HERE_LITERAL)].some((m) => m[1] === part);
 const resolvePart = (part, ctx) => {
   const { cmd, shell, cwd, at, raw } = ctx;
   // 작은따옴표 속은 셸이 아무것도 실행하지 않는다(`--json`·$(pwd)·$msg 도 글자 그대로)
   if (raw.includes(`'${part}'`) && !raw.includes(`$'${part}'`)) return part;
+  if (shell === POWERSHELL && raw.includes("@'") && psHereLiteral(raw, part)) return part;
   if (shell === BASH && part.startsWith('$') && raw.includes(`$'${part.slice(1, 12)}`)) return ansiUnescape(part.slice(1));
   const cat = part.match(SUBST_CAT);
   if (cat) return readFile(cwd, cat[2]) ?? UNSEEN;
@@ -99,9 +106,10 @@ const resolvePart = (part, ctx) => {
     const value = assigned(cmd, shell, v[1], at);
     return value === null ? UNSEEN : resolvePart(value, ctx);
   }
-  if (shell === POWERSHELL) return /(?<!`)\$\(/.test(part) ? UNSEEN : psUnescape(part);
+  // 실행되는 치환이 든 메시지는 EXPANDS — 막는 글에 「셸이 실제로 실행한다」 를 덧붙인다
+  if (shell === POWERSHELL) return /(?<!`)\$\(/.test(part) ? EXPANDS : psUnescape(part);
   // bash 큰따옴표: 역슬래시로 막지 않은 ` 와 $( 만 실행된다
-  if (/(?<!\\)`|(?<!\\)\$\(/.test(part)) return UNSEEN;
+  if (/(?<!\\)`|(?<!\\)\$\(/.test(part)) return EXPANDS;
   return part.replace(/\\([`$"\\])/g, '$1');
 };
 
@@ -139,7 +147,7 @@ const segmentMessage = (cmd, shell, cwd, seg) => {
   const { parts, file } = messageArgs(seg.words);
   if (doc && (file === '-' || parts.some((p) => /\$\(\s*cat\s*<</.test(p)))) {
     const rest = parts.filter((p) => !/\$\(\s*cat\s*<</.test(p)).map((p) => resolvePart(p, { cmd, shell, cwd, at: seg.start, raw: seg.raw }));
-    return rest.includes(UNSEEN) ? UNSEEN : [doc.body, ...rest].join('\n\n').trim();
+    return unread(rest) ?? [doc.body, ...rest].join('\n\n').trim();
   }
   if (file !== undefined) {
     if (file === '-') return piped(cmd, shell, seg);
@@ -148,7 +156,7 @@ const segmentMessage = (cmd, shell, cwd, seg) => {
   }
   if (!parts.length) return null;
   const resolved = parts.map((p) => resolvePart(p, { cmd, shell, cwd, at: seg.start, raw: seg.raw }));
-  return resolved.includes(UNSEEN) ? UNSEEN : resolved.join('\n\n').trim();
+  return unread(resolved) ?? resolved.join('\n\n').trim();
 };
 
 // git 이 제목을 만드는 커밋(fixup!·squash!). 나머지(--no-edit·-C 등)는 -m·-F 를 같이 주면 그 메시지를 본다.
@@ -160,7 +168,7 @@ export const commitMessages = (cmd, shell = BASH, cwd = process.cwd()) =>
     .filter((seg) => !REUSES.test(seg.bare))
     .map((seg) => segmentMessage(cmd, shell, cwd, seg))
     .filter((m) => m !== null)
-    .map((m) => (m === UNSEEN ? { unseen: true } : { msg: m }));
+    .map((m) => (m === UNSEEN ? { unseen: true } : m === EXPANDS ? { unseen: true, subst: true } : { msg: m }));
 
 // 첫 commit 의 메시지(시험·다른 규칙용). 꺼낼 수 없으면 null.
 export const commitMessage = (cmd, shell = BASH, cwd = process.cwd()) => {
@@ -170,6 +178,13 @@ export const commitMessage = (cmd, shell = BASH, cwd = process.cwd()) => {
 
 // 고르기 화면 기본값도 이 꼴로 저장소 커밋 기록을 견준다(scripts/detect.mjs history)
 export const CONVENTIONAL = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([\w\-./ ]+\))?!?: \S/;
+// 저장소가 이미 쓰는 그 밖의 타입(bench:·deps: 같은 것 — 역할극 11 회차, 2026-11-11). 옵션 types 로 더한다
+export const TYPE_WORD = /^[a-z][a-z0-9-]{0,15}$/;
+export const ANY_CONVENTIONAL = /^([a-z][a-z0-9-]{0,15})(\([\w\-./ ]+\))?!?: \S/;
+const conventionalWith = (types) => {
+  const extra = (Array.isArray(types) ? types : []).filter((x) => typeof x === 'string' && TYPE_WORD.test(x));
+  return (s) => CONVENTIONAL.test(s) || (!!extra.length && extra.includes(ANY_CONVENTIONAL.exec(s)?.[1]));
+};
 const HANGUL = /[가-힣]/;
 export const DEFAULT_MAX_SUBJECT = 72;
 
@@ -179,10 +194,10 @@ export const commitMsg = {
   check({ cmd, shell, cwd, opts, t }) {
     if (!/\bcommit\b/.test(stripQuoted(cmd, shell))) return null;
     for (const m of commitMessages(cmd, shell, cwd)) {
-      if (m.unseen) return t('git.msgUnseen');
+      if (m.unseen) return t('git.msgUnseen') + (m.subst ? substNote(t, shell) : '');
       const subject = m.msg.split(/\r?\n/)[0];
       const style = opts.style || 'conventional';
-      if (style === 'conventional' && !CONVENTIONAL.test(subject)) return t('git.msgConventional', { subject });
+      if (style === 'conventional' && !conventionalWith(opts.types)(subject)) return t('git.msgConventional', { subject });
       if (opts.lang === 'ko' && !HANGUL.test(m.msg)) return t('git.msgKorean');
       if (opts.lang === 'en' && HANGUL.test(m.msg)) return t('git.msgEnglish');
       const max = opts.maxSubject || DEFAULT_MAX_SUBJECT;

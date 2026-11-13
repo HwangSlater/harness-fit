@@ -48,7 +48,8 @@ export function changeGroups({ S, sel, t }, p, failed = []) {
   return [
     copied.length ? group('i-folder', t('cSkills', { n: copied.length }), '.claude/skills/', t('cSkillsWhat'), copied) : null,
     p.manual.length ? group('i-down', t('cManual', { n: p.manual.length }), t('cManualWhere'), t('cManualWhat'), p.manual.map((m) => title(S, m.skill))) : null,
-    group('i-file', t('cHooks', { n: sel.hooks.size }), '.claude/harness.json', t('cHooksWhat'), hookNames),
+    // 플러그인이 안 깔렸으면 「이미 깔린 플러그인이 막아요」 대신 깔아야 돈다고(확인 단계 경고와 같은 말 — 화면 역할 평가)
+    group('i-file', t('cHooks', { n: sel.hooks.size }), '.claude/harness.json', t(p.warnings?.includes('plugin-missing') ? 'cHooksWhatNoPlugin' : 'cHooksWhat'), hookNames),
     n('git-hook') ? group('i-file', t('cGitHook'), '.git/hooks/pre-commit', t('cGitHookWhat'), null) : null,
     n('claude-md') ? group('i-file', t('cRules', { n: ruleNames.length }), 'CLAUDE.md', t('cRulesWhat'), ruleNames) : null,
     n('share') ? group('i-file', t('cShare'), '.claude/settings.json', t('cShareWhat', { repo: S.pluginRepo, ref: S.pluginRef }), null) : null,

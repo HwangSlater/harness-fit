@@ -326,7 +326,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 431,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 13099
+    }
+   ]
   },
   {
    "id": "brainstorming",
@@ -355,7 +361,41 @@
     "scripts/stop-server.sh"
    ],
    "descChars": 213,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 13602
+    },
+    {
+     "path": "builder-check-prompt.md",
+     "size": 881
+    },
+    {
+     "path": "scripts/frame-template.html",
+     "size": 8094
+    },
+    {
+     "path": "scripts/helper.js",
+     "size": 5615
+    },
+    {
+     "path": "scripts/server.cjs",
+     "size": 25699
+    },
+    {
+     "path": "scripts/start-server.sh",
+     "size": 6908
+    },
+    {
+     "path": "scripts/stop-server.sh",
+     "size": 3263
+    },
+    {
+     "path": "visual-companion.md",
+     "size": 13413
+    }
+   ]
   },
   {
    "id": "grilling",
@@ -378,7 +418,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 152,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 2077
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 113
+    }
+   ]
   },
   {
    "id": "create-prd",
@@ -401,7 +451,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 399,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 7301
+    }
+   ]
   },
   {
    "id": "to-tickets",
@@ -427,7 +483,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 247,
-   "saysWhen": false
+   "saysWhen": false,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 5812
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 146
+    }
+   ]
   },
   {
    "id": "writing-plans",
@@ -451,7 +517,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 84,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 10335
+    }
+   ]
   },
   {
    "id": "planning-with-files",
@@ -525,7 +597,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 251,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 14938
+    }
+   ]
   },
   {
    "id": "domain-modeling",
@@ -549,7 +627,25 @@
    "files": 4,
    "scripts": [],
    "descChars": 151,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "ADR-FORMAT.md",
+     "size": 2733
+    },
+    {
+     "path": "GLOSSARY-FORMAT.md",
+     "size": 2300
+    },
+    {
+     "path": "SKILL.md",
+     "size": 3346
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 101
+    }
+   ]
   },
   {
    "id": "improve-codebase-architecture",
@@ -573,7 +669,21 @@
    "files": 3,
    "scripts": [],
    "descChars": 125,
-   "saysWhen": false
+   "saysWhen": false,
+   "fileList": [
+    {
+     "path": "HTML-REPORT.md",
+     "size": 6641
+    },
+    {
+     "path": "SKILL.md",
+     "size": 6028
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 166
+    }
+   ]
   },
   {
    "id": "frontend-design",
@@ -592,11 +702,22 @@
    },
    "always": 56,
    "onUse": 2352,
-   "install": "plugin",
+   "install": "copy",
    "files": 2,
    "scripts": [],
    "descChars": 204,
-   "saysWhen": true
+   "saysWhen": true,
+   "license": "Apache-2.0",
+   "fileList": [
+    {
+     "path": "LICENSE.txt",
+     "size": 10174
+    },
+    {
+     "path": "SKILL.md",
+     "size": 9390
+    }
+   ]
   },
   {
    "id": "impeccable",
@@ -629,7 +750,241 @@
     "scripts/modern-screenshot.umd.js"
    ],
    "descChars": 589,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 12042
+    },
+    {
+     "path": "reference/adapt.md",
+     "size": 11313
+    },
+    {
+     "path": "reference/adapt.native.md",
+     "size": 3910
+    },
+    {
+     "path": "reference/android.md",
+     "size": 4203
+    },
+    {
+     "path": "reference/animate.md",
+     "size": 5236
+    },
+    {
+     "path": "reference/audit.md",
+     "size": 9577
+    },
+    {
+     "path": "reference/audit.native.md",
+     "size": 8326
+    },
+    {
+     "path": "reference/bolder.md",
+     "size": 3497
+    },
+    {
+     "path": "reference/clarify.md",
+     "size": 4590
+    },
+    {
+     "path": "reference/colorize.md",
+     "size": 4537
+    },
+    {
+     "path": "reference/component-review.md",
+     "size": 7954
+    },
+    {
+     "path": "reference/craft-floor.md",
+     "size": 4516
+    },
+    {
+     "path": "reference/craft.md",
+     "size": 555
+    },
+    {
+     "path": "reference/critique.md",
+     "size": 45587
+    },
+    {
+     "path": "reference/degraded/asset-producer.md",
+     "size": 8450
+    },
+    {
+     "path": "reference/degraded/documenter.md",
+     "size": 3733
+    },
+    {
+     "path": "reference/degraded/finish-reviewer.md",
+     "size": 15852
+    },
+    {
+     "path": "reference/degraded/manual-edit-applier.md",
+     "size": 7685
+    },
+    {
+     "path": "reference/delight.md",
+     "size": 3716
+    },
+    {
+     "path": "reference/distill.md",
+     "size": 5529
+    },
+    {
+     "path": "reference/doctor.md",
+     "size": 5603
+    },
+    {
+     "path": "reference/document.md",
+     "size": 27457
+    },
+    {
+     "path": "reference/extract.md",
+     "size": 3337
+    },
+    {
+     "path": "reference/generate.md",
+     "size": 13110
+    },
+    {
+     "path": "reference/harden.md",
+     "size": 10748
+    },
+    {
+     "path": "reference/hooks.md",
+     "size": 15086
+    },
+    {
+     "path": "reference/init.md",
+     "size": 11697
+    },
+    {
+     "path": "reference/ios.md",
+     "size": 3812
+    },
+    {
+     "path": "reference/layout.md",
+     "size": 5154
+    },
+    {
+     "path": "reference/live-setup.md",
+     "size": 8179
+    },
+    {
+     "path": "reference/live.md",
+     "size": 37146
+    },
+    {
+     "path": "reference/mode-operate.md",
+     "size": 4716
+    },
+    {
+     "path": "reference/mode-persuade.md",
+     "size": 3638
+    },
+    {
+     "path": "reference/mode-read.md",
+     "size": 4396
+    },
+    {
+     "path": "reference/new-work.md",
+     "size": 63478
+    },
+    {
+     "path": "reference/onboard.md",
+     "size": 7688
+    },
+    {
+     "path": "reference/operate.md",
+     "size": 4145
+    },
+    {
+     "path": "reference/optimize.md",
+     "size": 7577
+    },
+    {
+     "path": "reference/overdrive.md",
+     "size": 9010
+    },
+    {
+     "path": "reference/polish.md",
+     "size": 6632
+    },
+    {
+     "path": "reference/quieter.md",
+     "size": 4951
+    },
+    {
+     "path": "reference/region-map.md",
+     "size": 3340
+    },
+    {
+     "path": "reference/routing.md",
+     "size": 3322
+    },
+    {
+     "path": "reference/shape.md",
+     "size": 3547
+    },
+    {
+     "path": "reference/typeset.md",
+     "size": 6256
+    },
+    {
+     "path": "reference/visualize.md",
+     "size": 13949
+    },
+    {
+     "path": "scripts/VERSION",
+     "size": 7
+    },
+    {
+     "path": "scripts/command-metadata.json",
+     "size": 8318
+    },
+    {
+     "path": "scripts/data/font-index-failures.json",
+     "size": 2437
+    },
+    {
+     "path": "scripts/data/font-index.json",
+     "size": 1100013
+    },
+    {
+     "path": "scripts/engine-checksums.txt",
+     "size": 787
+    },
+    {
+     "path": "scripts/impeccable",
+     "size": 11320
+    },
+    {
+     "path": "scripts/impeccable.cmd",
+     "size": 12197
+    },
+    {
+     "path": "scripts/live-browser-dom.js",
+     "size": 12283
+    },
+    {
+     "path": "scripts/live-browser-ignores.js",
+     "size": 10423
+    },
+    {
+     "path": "scripts/live-browser-session.js",
+     "size": 5838
+    },
+    {
+     "path": "scripts/live-browser.js",
+     "size": 563193
+    },
+    {
+     "path": "scripts/modern-screenshot.umd.js",
+     "size": 29290
+    }
+   ]
   },
   {
    "id": "taste-skill",
@@ -715,7 +1070,301 @@
     "scripts/validate_data.py"
    ],
    "descChars": 495,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 15969
+    },
+    {
+     "path": "data/app-interface.csv",
+     "size": 11046
+    },
+    {
+     "path": "data/catalog-summary.json",
+     "size": 2392
+    },
+    {
+     "path": "data/charts.csv",
+     "size": 23365
+    },
+    {
+     "path": "data/colors.csv",
+     "size": 37940
+    },
+    {
+     "path": "data/data-provenance.json",
+     "size": 36686
+    },
+    {
+     "path": "data/google-font-licenses.json",
+     "size": 433127
+    },
+    {
+     "path": "data/google-fonts.csv",
+     "size": 747241
+    },
+    {
+     "path": "data/icons.csv",
+     "size": 57945
+    },
+    {
+     "path": "data/landing.csv",
+     "size": 25449
+    },
+    {
+     "path": "data/motion.csv",
+     "size": 14679
+    },
+    {
+     "path": "data/phosphor-icons-upstream.json",
+     "size": 823933
+    },
+    {
+     "path": "data/products.csv",
+     "size": 75623
+    },
+    {
+     "path": "data/react-performance.csv",
+     "size": 15080
+    },
+    {
+     "path": "data/stacks/angular.csv",
+     "size": 19863
+    },
+    {
+     "path": "data/stacks/astro.csv",
+     "size": 14591
+    },
+    {
+     "path": "data/stacks/avalonia.csv",
+     "size": 27327
+    },
+    {
+     "path": "data/stacks/flutter.csv",
+     "size": 14192
+    },
+    {
+     "path": "data/stacks/html-tailwind.csv",
+     "size": 16551
+    },
+    {
+     "path": "data/stacks/javafx.csv",
+     "size": 33577
+    },
+    {
+     "path": "data/stacks/jetpack-compose.csv",
+     "size": 12295
+    },
+    {
+     "path": "data/stacks/laravel.csv",
+     "size": 20163
+    },
+    {
+     "path": "data/stacks/nextjs.csv",
+     "size": 18687
+    },
+    {
+     "path": "data/stacks/nuxt-ui.csv",
+     "size": 32292
+    },
+    {
+     "path": "data/stacks/nuxtjs.csv",
+     "size": 23014
+    },
+    {
+     "path": "data/stacks/react-native.csv",
+     "size": 14049
+    },
+    {
+     "path": "data/stacks/react.csv",
+     "size": 21166
+    },
+    {
+     "path": "data/stacks/shadcn.csv",
+     "size": 23184
+    },
+    {
+     "path": "data/stacks/svelte.csv",
+     "size": 15078
+    },
+    {
+     "path": "data/stacks/swiftui.csv",
+     "size": 15323
+    },
+    {
+     "path": "data/stacks/threejs.csv",
+     "size": 46769
+    },
+    {
+     "path": "data/stacks/uno.csv",
+     "size": 30091
+    },
+    {
+     "path": "data/stacks/uwp.csv",
+     "size": 24692
+    },
+    {
+     "path": "data/stacks/vue.csv",
+     "size": 12813
+    },
+    {
+     "path": "data/stacks/winui.csv",
+     "size": 27890
+    },
+    {
+     "path": "data/stacks/wpf.csv",
+     "size": 24158
+    },
+    {
+     "path": "data/styles.csv",
+     "size": 149478
+    },
+    {
+     "path": "data/typography.csv",
+     "size": 49997
+    },
+    {
+     "path": "data/ui-reasoning.csv",
+     "size": 77360
+    },
+    {
+     "path": "data/ux-guidelines.csv",
+     "size": 27516
+    },
+    {
+     "path": "references/pro-rules.md",
+     "size": 10909
+    },
+    {
+     "path": "references/quick-reference.md",
+     "size": 24526
+    },
+    {
+     "path": "scripts/core.py",
+     "size": 41242
+    },
+    {
+     "path": "scripts/design_system.py",
+     "size": 71537
+    },
+    {
+     "path": "scripts/reasoning_contract.py",
+     "size": 5824
+    },
+    {
+     "path": "scripts/search.py",
+     "size": 9685
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/google-api.json",
+     "size": 1079
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/google-catalog.json",
+     "size": 1772
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/google-existing.csv",
+     "size": 480
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/google-metadata.json",
+     "size": 328
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/google-overrides.json",
+     "size": 97
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/icons-curated.csv",
+     "size": 495
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/phosphor-core.json",
+     "size": 571
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/phosphor-package.json",
+     "size": 370
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/phosphor-react-exports.json",
+     "size": 87
+    },
+    {
+     "path": "scripts/tests/fixtures/catalogs/phosphor-react-package.json",
+     "size": 81
+    },
+    {
+     "path": "scripts/tests/fixtures/relevance-baseline.json",
+     "size": 89426
+    },
+    {
+     "path": "scripts/tests/fixtures/relevance-cases.json",
+     "size": 36734
+    },
+    {
+     "path": "scripts/tests/fixtures/relevance-thresholds.json",
+     "size": 5079
+    },
+    {
+     "path": "scripts/tests/test_catalog_refresh.py",
+     "size": 19466
+    },
+    {
+     "path": "scripts/tests/test_catalog_summary_line_endings.py",
+     "size": 2947
+    },
+    {
+     "path": "scripts/tests/test_core.py",
+     "size": 16680
+    },
+    {
+     "path": "scripts/tests/test_core_data_quality.py",
+     "size": 8954
+    },
+    {
+     "path": "scripts/tests/test_data_contracts.py",
+     "size": 19513
+    },
+    {
+     "path": "scripts/tests/test_design_system_mode.py",
+     "size": 9815
+    },
+    {
+     "path": "scripts/tests/test_design_system_stack.py",
+     "size": 2261
+    },
+    {
+     "path": "scripts/tests/test_native_desktop_stack_freshness.py",
+     "size": 8375
+    },
+    {
+     "path": "scripts/tests/test_relevance_evaluator.py",
+     "size": 8430
+    },
+    {
+     "path": "scripts/tests/test_skill_script_paths.py",
+     "size": 4305
+    },
+    {
+     "path": "scripts/tests/test_style_taxonomy.py",
+     "size": 7425
+    },
+    {
+     "path": "scripts/tests/test_text_layout_resilience.py",
+     "size": 5874
+    },
+    {
+     "path": "scripts/tests/test_web_stack_freshness.py",
+     "size": 8288
+    },
+    {
+     "path": "scripts/validate_data.py",
+     "size": 52230
+    }
+   ]
   },
   {
    "id": "web-design-guidelines",
@@ -765,7 +1414,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 306,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 11950
+    }
+   ]
   },
   {
    "id": "incremental-implementation",
@@ -788,7 +1443,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 343,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 9629
+    }
+   ]
   },
   {
    "id": "subagent-driven-development",
@@ -812,7 +1473,65 @@
    "files": 14,
    "scripts": [],
    "descChars": 85,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 19506
+    },
+    {
+     "path": "implementer-prompt.md",
+     "size": 6335
+    },
+    {
+     "path": "re-review-prompt.md",
+     "size": 4761
+    },
+    {
+     "path": "references/batching.md",
+     "size": 583
+    },
+    {
+     "path": "references/cannot-verify.md",
+     "size": 513
+    },
+    {
+     "path": "references/final-review.md",
+     "size": 2447
+    },
+    {
+     "path": "references/fix-loop.md",
+     "size": 4249
+    },
+    {
+     "path": "references/handling-reports.md",
+     "size": 1062
+    },
+    {
+     "path": "references/preflight.md",
+     "size": 1353
+    },
+    {
+     "path": "references/resuming.md",
+     "size": 614
+    },
+    {
+     "path": "scripts/review-package",
+     "size": 2029
+    },
+    {
+     "path": "scripts/sdd-workspace",
+     "size": 3684
+    },
+    {
+     "path": "scripts/task-brief",
+     "size": 1322
+    },
+    {
+     "path": "task-reviewer-prompt.md",
+     "size": 9031
+    }
+   ]
   },
   {
    "id": "ponytail",
@@ -837,7 +1556,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 366,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 3496
+    }
+   ]
   },
   {
    "id": "react-best-practices",
@@ -888,7 +1613,73 @@
    "files": 16,
    "scripts": [],
    "descChars": 163,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 6019
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 330
+    },
+    {
+     "path": "assets/swiftui-pro-icon.png",
+     "size": 3117
+    },
+    {
+     "path": "assets/swiftui-pro-icon.svg",
+     "size": 1533
+    },
+    {
+     "path": "references/accessibility.md",
+     "size": 2698
+    },
+    {
+     "path": "references/api.md",
+     "size": 10801
+    },
+    {
+     "path": "references/data.md",
+     "size": 6769
+    },
+    {
+     "path": "references/design.md",
+     "size": 3562
+    },
+    {
+     "path": "references/hygiene.md",
+     "size": 1393
+    },
+    {
+     "path": "references/localization.md",
+     "size": 2320
+    },
+    {
+     "path": "references/navigation.md",
+     "size": 2172
+    },
+    {
+     "path": "references/performance-plus.md",
+     "size": 3101
+    },
+    {
+     "path": "references/performance.md",
+     "size": 6664
+    },
+    {
+     "path": "references/resizability.md",
+     "size": 11077
+    },
+    {
+     "path": "references/swift.md",
+     "size": 4822
+    },
+    {
+     "path": "references/views.md",
+     "size": 6827
+    }
+   ]
   },
   {
    "id": "ios-simulator",
@@ -961,7 +1752,193 @@
     "scripts/xcode/xcresult.py"
    ],
    "descChars": 423,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 28784
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 190
+    },
+    {
+     "path": "scripts/accessibility_audit.py",
+     "size": 10561
+    },
+    {
+     "path": "scripts/app_launcher.py",
+     "size": 12562
+    },
+    {
+     "path": "scripts/app_state_capture.py",
+     "size": 13485
+    },
+    {
+     "path": "scripts/appearance.py",
+     "size": 13533
+    },
+    {
+     "path": "scripts/build_and_test.py",
+     "size": 12235
+    },
+    {
+     "path": "scripts/clipboard.py",
+     "size": 2669
+    },
+    {
+     "path": "scripts/common/__init__.py",
+     "size": 2084
+    },
+    {
+     "path": "scripts/common/cache_utils.py",
+     "size": 9517
+    },
+    {
+     "path": "scripts/common/device_utils.py",
+     "size": 15433
+    },
+    {
+     "path": "scripts/common/env_config.py",
+     "size": 1132
+    },
+    {
+     "path": "scripts/common/hang_pipeline.py",
+     "size": 30351
+    },
+    {
+     "path": "scripts/common/hang_sessions.py",
+     "size": 18360
+    },
+    {
+     "path": "scripts/common/idb_utils.py",
+     "size": 9019
+    },
+    {
+     "path": "scripts/common/screenshot_utils.py",
+     "size": 10229
+    },
+    {
+     "path": "scripts/container.py",
+     "size": 23230
+    },
+    {
+     "path": "scripts/gesture.py",
+     "size": 18046
+    },
+    {
+     "path": "scripts/hang_watcher.py",
+     "size": 57890
+    },
+    {
+     "path": "scripts/keyboard.py",
+     "size": 12015
+    },
+    {
+     "path": "scripts/localization_audit.py",
+     "size": 16618
+    },
+    {
+     "path": "scripts/location.py",
+     "size": 15783
+    },
+    {
+     "path": "scripts/log_monitor.py",
+     "size": 15157
+    },
+    {
+     "path": "scripts/media.py",
+     "size": 5785
+    },
+    {
+     "path": "scripts/model_inspector.py",
+     "size": 22215
+    },
+    {
+     "path": "scripts/navigator.py",
+     "size": 24583
+    },
+    {
+     "path": "scripts/privacy_manager.py",
+     "size": 7818
+    },
+    {
+     "path": "scripts/push_notification.py",
+     "size": 10390
+    },
+    {
+     "path": "scripts/screen_mapper.py",
+     "size": 14167
+    },
+    {
+     "path": "scripts/sim_health_check.sh",
+     "size": 18690
+    },
+    {
+     "path": "scripts/sim_list.py",
+     "size": 9100
+    },
+    {
+     "path": "scripts/simctl_boot.py",
+     "size": 9361
+    },
+    {
+     "path": "scripts/simctl_create.py",
+     "size": 9120
+    },
+    {
+     "path": "scripts/simctl_delete.py",
+     "size": 9284
+    },
+    {
+     "path": "scripts/simctl_erase.py",
+     "size": 11367
+    },
+    {
+     "path": "scripts/simctl_shutdown.py",
+     "size": 8621
+    },
+    {
+     "path": "scripts/simulator_selector.py",
+     "size": 10965
+    },
+    {
+     "path": "scripts/status_bar.py",
+     "size": 6789
+    },
+    {
+     "path": "scripts/test_recorder.py",
+     "size": 10852
+    },
+    {
+     "path": "scripts/visual_diff.py",
+     "size": 7787
+    },
+    {
+     "path": "scripts/xcode/__init__.py",
+     "size": 378
+    },
+    {
+     "path": "scripts/xcode/builder.py",
+     "size": 14328
+    },
+    {
+     "path": "scripts/xcode/cache.py",
+     "size": 5609
+    },
+    {
+     "path": "scripts/xcode/config.py",
+     "size": 5534
+    },
+    {
+     "path": "scripts/xcode/reporter.py",
+     "size": 10941
+    },
+    {
+     "path": "scripts/xcode/xcresult.py",
+     "size": 16927
+    }
+   ]
   },
   {
    "id": "expo-router",
@@ -985,7 +1962,41 @@
    "files": 8,
    "scripts": [],
    "descChars": 260,
-   "saysWhen": false
+   "saysWhen": false,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 7050
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 422
+    },
+    {
+     "path": "references/form-sheet.md",
+     "size": 6320
+    },
+    {
+     "path": "references/route-structure.md",
+     "size": 5106
+    },
+    {
+     "path": "references/search.md",
+     "size": 5173
+    },
+    {
+     "path": "references/tabs.md",
+     "size": 13323
+    },
+    {
+     "path": "references/toolbar-and-headers.md",
+     "size": 8061
+    },
+    {
+     "path": "references/zoom-transitions.md",
+     "size": 4848
+    }
+   ]
   },
   {
    "id": "react-native-best-practices",
@@ -1009,7 +2020,185 @@
    "files": 44,
    "scripts": [],
    "descChars": 273,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "POWER.md",
+     "size": 8312
+    },
+    {
+     "path": "SKILL.md",
+     "size": 12348
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 227
+    },
+    {
+     "path": "references/bundle-analyze-app.md",
+     "size": 5461
+    },
+    {
+     "path": "references/bundle-analyze-js.md",
+     "size": 7029
+    },
+    {
+     "path": "references/bundle-barrel-exports.md",
+     "size": 5406
+    },
+    {
+     "path": "references/bundle-code-splitting.md",
+     "size": 7545
+    },
+    {
+     "path": "references/bundle-hermes-mmap.md",
+     "size": 4133
+    },
+    {
+     "path": "references/bundle-library-size.md",
+     "size": 4150
+    },
+    {
+     "path": "references/bundle-native-assets.md",
+     "size": 5041
+    },
+    {
+     "path": "references/bundle-r8-android.md",
+     "size": 5356
+    },
+    {
+     "path": "references/bundle-tree-shaking.md",
+     "size": 5690
+    },
+    {
+     "path": "references/images/bundle-treemap-source-map-explorer.png",
+     "size": 667493
+    },
+    {
+     "path": "references/images/controlled-textinput-pingpong.png",
+     "size": 127223
+    },
+    {
+     "path": "references/images/devtools-flamegraph.png",
+     "size": 520655
+    },
+    {
+     "path": "references/images/emerge-xray-ios.png",
+     "size": 439669
+    },
+    {
+     "path": "references/images/expo-atlas-treemap.png",
+     "size": 618904
+    },
+    {
+     "path": "references/images/flashlight-flatlist-vs-flashlist.png",
+     "size": 313215
+    },
+    {
+     "path": "references/images/fps-drop-graph.png",
+     "size": 152493
+    },
+    {
+     "path": "references/images/memory-heap-snapshot.png",
+     "size": 308032
+    },
+    {
+     "path": "references/images/tti-warm-start-diagram.png",
+     "size": 127254
+    },
+    {
+     "path": "references/images/view-hierarchy-flattening.png",
+     "size": 2587021
+    },
+    {
+     "path": "references/images/xcode-instruments-templates.png",
+     "size": 408360
+    },
+    {
+     "path": "references/images/xcode-thread-view.png",
+     "size": 178440
+    },
+    {
+     "path": "references/js-animations-reanimated.md",
+     "size": 8015
+    },
+    {
+     "path": "references/js-atomic-state.md",
+     "size": 5267
+    },
+    {
+     "path": "references/js-bottomsheet.md",
+     "size": 12199
+    },
+    {
+     "path": "references/js-concurrent-react.md",
+     "size": 6652
+    },
+    {
+     "path": "references/js-lists-flatlist-flashlist.md",
+     "size": 5998
+    },
+    {
+     "path": "references/js-measure-fps.md",
+     "size": 5306
+    },
+    {
+     "path": "references/js-memory-leaks.md",
+     "size": 5301
+    },
+    {
+     "path": "references/js-profile-react.md",
+     "size": 5871
+    },
+    {
+     "path": "references/js-react-compiler.md",
+     "size": 7372
+    },
+    {
+     "path": "references/js-uncontrolled-components.md",
+     "size": 5492
+    },
+    {
+     "path": "references/native-android-16kb-alignment.md",
+     "size": 3761
+    },
+    {
+     "path": "references/native-measure-tti.md",
+     "size": 6527
+    },
+    {
+     "path": "references/native-memory-leaks.md",
+     "size": 5627
+    },
+    {
+     "path": "references/native-memory-patterns.md",
+     "size": 5986
+    },
+    {
+     "path": "references/native-platform-setup.md",
+     "size": 3786
+    },
+    {
+     "path": "references/native-profiling.md",
+     "size": 4358
+    },
+    {
+     "path": "references/native-sdks-over-polyfills.md",
+     "size": 6279
+    },
+    {
+     "path": "references/native-threading-model.md",
+     "size": 6882
+    },
+    {
+     "path": "references/native-turbo-modules.md",
+     "size": 5650
+    },
+    {
+     "path": "references/native-view-flattening.md",
+     "size": 5236
+    }
+   ]
   },
   {
    "id": "supabase-postgres",
@@ -1035,7 +2224,153 @@
    "files": 36,
    "scripts": [],
    "descChars": 834,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "CHANGELOG.md",
+     "size": 5684
+    },
+    {
+     "path": "SKILL.md",
+     "size": 3231
+    },
+    {
+     "path": "references/_contributing.md",
+     "size": 4113
+    },
+    {
+     "path": "references/_sections.md",
+     "size": 1682
+    },
+    {
+     "path": "references/_template.md",
+     "size": 1040
+    },
+    {
+     "path": "references/advanced-full-text-search.md",
+     "size": 1468
+    },
+    {
+     "path": "references/advanced-jsonb-indexing.md",
+     "size": 1444
+    },
+    {
+     "path": "references/conn-idle-timeout.md",
+     "size": 1282
+    },
+    {
+     "path": "references/conn-limits.md",
+     "size": 1325
+    },
+    {
+     "path": "references/conn-pooling.md",
+     "size": 1382
+    },
+    {
+     "path": "references/conn-prepared-statements.md",
+     "size": 1529
+    },
+    {
+     "path": "references/data-batch-inserts.md",
+     "size": 1287
+    },
+    {
+     "path": "references/data-n-plus-one.md",
+     "size": 1361
+    },
+    {
+     "path": "references/data-pagination.md",
+     "size": 1358
+    },
+    {
+     "path": "references/data-upsert.md",
+     "size": 1390
+    },
+    {
+     "path": "references/lock-advisory.md",
+     "size": 1531
+    },
+    {
+     "path": "references/lock-deadlock-prevention.md",
+     "size": 1855
+    },
+    {
+     "path": "references/lock-short-transactions.md",
+     "size": 1350
+    },
+    {
+     "path": "references/lock-skip-locked.md",
+     "size": 1353
+    },
+    {
+     "path": "references/monitor-explain-analyze.md",
+     "size": 1441
+    },
+    {
+     "path": "references/monitor-pg-stat-statements.md",
+     "size": 1418
+    },
+    {
+     "path": "references/monitor-vacuum-analyze.md",
+     "size": 1506
+    },
+    {
+     "path": "references/query-composite-indexes.md",
+     "size": 1454
+    },
+    {
+     "path": "references/query-covering-indexes.md",
+     "size": 1287
+    },
+    {
+     "path": "references/query-index-types.md",
+     "size": 1521
+    },
+    {
+     "path": "references/query-missing-indexes.md",
+     "size": 1218
+    },
+    {
+     "path": "references/query-partial-indexes.md",
+     "size": 1347
+    },
+    {
+     "path": "references/schema-constraints.md",
+     "size": 1880
+    },
+    {
+     "path": "references/schema-data-types.md",
+     "size": 1453
+    },
+    {
+     "path": "references/schema-foreign-key-indexes.md",
+     "size": 1679
+    },
+    {
+     "path": "references/schema-lowercase-identifiers.md",
+     "size": 1728
+    },
+    {
+     "path": "references/schema-partitioning.md",
+     "size": 1548
+    },
+    {
+     "path": "references/schema-primary-keys.md",
+     "size": 1821
+    },
+    {
+     "path": "references/security-privileges.md",
+     "size": 1566
+    },
+    {
+     "path": "references/security-rls-basics.md",
+     "size": 1372
+    },
+    {
+     "path": "references/security-rls-performance.md",
+     "size": 2103
+    }
+   ]
   },
   {
    "id": "modern-python",
@@ -1061,7 +2396,65 @@
    "files": 14,
    "scripts": [],
    "descChars": 159,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 10015
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 226
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "references/dependabot.md",
+     "size": 1800
+    },
+    {
+     "path": "references/migration-checklist.md",
+     "size": 3071
+    },
+    {
+     "path": "references/pep723-scripts.md",
+     "size": 5134
+    },
+    {
+     "path": "references/prek.md",
+     "size": 5951
+    },
+    {
+     "path": "references/pyproject.md",
+     "size": 5694
+    },
+    {
+     "path": "references/ruff-config.md",
+     "size": 5476
+    },
+    {
+     "path": "references/security-setup.md",
+     "size": 6504
+    },
+    {
+     "path": "references/testing.md",
+     "size": 5214
+    },
+    {
+     "path": "references/uv-commands.md",
+     "size": 4653
+    },
+    {
+     "path": "templates/dependabot.yml",
+     "size": 958
+    },
+    {
+     "path": "templates/pre-commit-config.yaml",
+     "size": 2259
+    }
+   ]
   },
   {
    "id": "mcp-builder",
@@ -1082,14 +2475,61 @@
    },
    "always": 73,
    "onUse": 2792,
-   "install": "plugin",
+   "install": "copy",
    "files": 11,
    "scripts": [
     "scripts/connections.py",
     "scripts/evaluation.py"
    ],
    "descChars": 277,
-   "saysWhen": true
+   "saysWhen": true,
+   "license": "Apache-2.0",
+   "fileList": [
+    {
+     "path": "LICENSE.txt",
+     "size": 11345
+    },
+    {
+     "path": "SKILL.md",
+     "size": 11129
+    },
+    {
+     "path": "reference/evaluation.md",
+     "size": 21663
+    },
+    {
+     "path": "reference/mcp_best_practices.md",
+     "size": 7330
+    },
+    {
+     "path": "reference/node_mcp_server.md",
+     "size": 28745
+    },
+    {
+     "path": "reference/node_mcp_server_v2.md",
+     "size": 35171
+    },
+    {
+     "path": "reference/python_mcp_server.md",
+     "size": 25099
+    },
+    {
+     "path": "scripts/connections.py",
+     "size": 4875
+    },
+    {
+     "path": "scripts/evaluation.py",
+     "size": 12579
+    },
+    {
+     "path": "scripts/example_evaluation.xml",
+     "size": 1194
+    },
+    {
+     "path": "scripts/requirements.txt",
+     "size": 29
+    }
+   ]
   },
   {
    "id": "test-driven-development",
@@ -1112,7 +2552,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 79,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 9578
+    },
+    {
+     "path": "writing-good-tests.md",
+     "size": 8268
+    }
+   ]
   },
   {
    "id": "tdd-lite",
@@ -1135,7 +2585,25 @@
    "files": 4,
    "scripts": [],
    "descChars": 149,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 3629
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 87
+    },
+    {
+     "path": "mocking.md",
+     "size": 1481
+    },
+    {
+     "path": "tests.md",
+     "size": 2214
+    }
+   ]
   },
   {
    "id": "webapp-testing",
@@ -1158,7 +2626,7 @@
    },
    "always": 55,
    "onUse": 985,
-   "install": "plugin",
+   "install": "copy",
    "files": 6,
    "scripts": [
     "examples/console_logging.py",
@@ -1167,7 +2635,34 @@
     "scripts/with_server.py"
    ],
    "descChars": 204,
-   "saysWhen": false
+   "saysWhen": false,
+   "license": "Apache-2.0",
+   "fileList": [
+    {
+     "path": "LICENSE.txt",
+     "size": 11345
+    },
+    {
+     "path": "SKILL.md",
+     "size": 3913
+    },
+    {
+     "path": "examples/console_logging.py",
+     "size": 1027
+    },
+    {
+     "path": "examples/element_discovery.py",
+     "size": 1463
+    },
+    {
+     "path": "examples/static_html_automation.py",
+     "size": 953
+    },
+    {
+     "path": "scripts/with_server.py",
+     "size": 3693
+    }
+   ]
   },
   {
    "id": "browser-testing-devtools",
@@ -1194,7 +2689,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 326,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 14640
+    }
+   ]
   },
   {
    "id": "property-based-testing",
@@ -1220,7 +2721,45 @@
    "files": 9,
    "scripts": [],
    "descChars": 845,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "README.md",
+     "size": 15332
+    },
+    {
+     "path": "SKILL.md",
+     "size": 4306
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 254
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "references/generating.md",
+     "size": 2634
+    },
+    {
+     "path": "references/interpreting-failures.md",
+     "size": 3426
+    },
+    {
+     "path": "references/libraries.md",
+     "size": 2952
+    },
+    {
+     "path": "references/refactoring.md",
+     "size": 4854
+    },
+    {
+     "path": "references/reviewing.md",
+     "size": 2859
+    }
+   ]
   },
   {
    "id": "systematic-debugging",
@@ -1246,7 +2785,53 @@
     "find-polluter.sh"
    ],
    "descChars": 91,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "CREATION-LOG.md",
+     "size": 4257
+    },
+    {
+     "path": "SKILL.md",
+     "size": 9530
+    },
+    {
+     "path": "condition-based-waiting-example.ts",
+     "size": 5054
+    },
+    {
+     "path": "condition-based-waiting.md",
+     "size": 3516
+    },
+    {
+     "path": "defense-in-depth.md",
+     "size": 3650
+    },
+    {
+     "path": "find-polluter.sh",
+     "size": 1986
+    },
+    {
+     "path": "root-cause-tracing.md",
+     "size": 5321
+    },
+    {
+     "path": "test-academic.md",
+     "size": 653
+    },
+    {
+     "path": "test-pressure-1.md",
+     "size": 1900
+    },
+    {
+     "path": "test-pressure-2.md",
+     "size": 2283
+    },
+    {
+     "path": "test-pressure-3.md",
+     "size": 2692
+    }
+   ]
   },
   {
    "id": "diagnosing-bugs",
@@ -1272,7 +2857,21 @@
     "scripts/hitl-loop.template.sh"
    ],
    "descChars": 156,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 8664
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 103
+    },
+    {
+     "path": "scripts/hitl-loop.template.sh",
+     "size": 1316
+    }
+   ]
   },
   {
    "id": "verification-before-completion",
@@ -1296,7 +2895,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 225,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 3646
+    }
+   ]
   },
   {
    "id": "code-review-and-quality",
@@ -1319,7 +2924,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 325,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 21263
+    }
+   ]
   },
   {
    "id": "receiving-code-review",
@@ -1342,7 +2953,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 234,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 6203
+    }
+   ]
   },
   {
    "id": "find-bugs",
@@ -1368,7 +2985,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 184,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 2830
+    }
+   ]
   },
   {
    "id": "second-opinion",
@@ -1393,7 +3016,41 @@
    "files": 8,
    "scripts": [],
    "descChars": 256,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 5046
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 226
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "references/antigravity-invocation.md",
+     "size": 2229
+    },
+    {
+     "path": "references/codex-invocation.md",
+     "size": 2925
+    },
+    {
+     "path": "references/codex-review-schema.json",
+     "size": 2243
+    },
+    {
+     "path": "references/gemini-invocation.md",
+     "size": 2374
+    },
+    {
+     "path": "references/review-input.md",
+     "size": 4344
+    }
+   ]
   },
   {
    "id": "code-simplification",
@@ -1416,7 +3073,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 418,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 13719
+    }
+   ]
   },
   {
    "id": "security-and-hardening",
@@ -1440,7 +3103,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 600,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 17578
+    },
+    {
+     "path": "references/hardening-patterns.md",
+     "size": 13352
+    }
+   ]
   },
   {
    "id": "security-audit",
@@ -1492,7 +3165,101 @@
    "files": 23,
    "scripts": [],
    "descChars": 312,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "LICENSE",
+     "size": 884
+    },
+    {
+     "path": "SKILL.md",
+     "size": 11808
+    },
+    {
+     "path": "SPEC.md",
+     "size": 8974
+    },
+    {
+     "path": "infrastructure/docker.md",
+     "size": 9400
+    },
+    {
+     "path": "languages/javascript.md",
+     "size": 10028
+    },
+    {
+     "path": "languages/python.md",
+     "size": 9492
+    },
+    {
+     "path": "references/api-security.md",
+     "size": 12741
+    },
+    {
+     "path": "references/authentication.md",
+     "size": 9071
+    },
+    {
+     "path": "references/authorization.md",
+     "size": 10007
+    },
+    {
+     "path": "references/business-logic.md",
+     "size": 12660
+    },
+    {
+     "path": "references/cryptography.md",
+     "size": 8703
+    },
+    {
+     "path": "references/csrf.md",
+     "size": 9943
+    },
+    {
+     "path": "references/data-protection.md",
+     "size": 9565
+    },
+    {
+     "path": "references/deserialization.md",
+     "size": 10234
+    },
+    {
+     "path": "references/error-handling.md",
+     "size": 11632
+    },
+    {
+     "path": "references/file-security.md",
+     "size": 12344
+    },
+    {
+     "path": "references/injection.md",
+     "size": 6813
+    },
+    {
+     "path": "references/logging.md",
+     "size": 12012
+    },
+    {
+     "path": "references/misconfiguration.md",
+     "size": 10305
+    },
+    {
+     "path": "references/modern-threats.md",
+     "size": 13269
+    },
+    {
+     "path": "references/ssrf.md",
+     "size": 10734
+    },
+    {
+     "path": "references/supply-chain.md",
+     "size": 9149
+    },
+    {
+     "path": "references/xss.md",
+     "size": 7599
+    }
+   ]
   },
   {
    "id": "differential-review",
@@ -1518,7 +3285,37 @@
    "files": 7,
    "scripts": [],
    "descChars": 477,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 7439
+    },
+    {
+     "path": "adversarial.md",
+     "size": 5062
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 245
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "methodology.md",
+     "size": 6738
+    },
+    {
+     "path": "patterns.md",
+     "size": 6999
+    },
+    {
+     "path": "reporting.md",
+     "size": 7006
+    }
+   ]
   },
   {
    "id": "semgrep-scan",
@@ -1548,7 +3345,45 @@
     "scripts/test_merge_sarif.py"
    ],
    "descChars": 707,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 15678
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 229
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "references/rulesets.md",
+     "size": 7695
+    },
+    {
+     "path": "references/scan-modes.md",
+     "size": 8713
+    },
+    {
+     "path": "scripts/merge_sarif.py",
+     "size": 14034
+    },
+    {
+     "path": "scripts/run-scans.sh",
+     "size": 34393
+    },
+    {
+     "path": "scripts/test_merge_sarif.py",
+     "size": 22943
+    },
+    {
+     "path": "workflows/scan-workflow.md",
+     "size": 24630
+    }
+   ]
   },
   {
    "id": "supply-chain-risk-auditor",
@@ -1582,7 +3417,61 @@
     "scripts/test_sources.py"
    ],
    "descChars": 367,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 6991
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 252
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "scripts/collect.py",
+     "size": 65756
+    },
+    {
+     "path": "scripts/model.py",
+     "size": 17595
+    },
+    {
+     "path": "scripts/pyproject.toml",
+     "size": 683
+    },
+    {
+     "path": "scripts/render.py",
+     "size": 35181
+    },
+    {
+     "path": "scripts/sources.py",
+     "size": 29204
+    },
+    {
+     "path": "scripts/test_collect.py",
+     "size": 38131
+    },
+    {
+     "path": "scripts/test_model.py",
+     "size": 7842
+    },
+    {
+     "path": "scripts/test_render.py",
+     "size": 14313
+    },
+    {
+     "path": "scripts/test_sources.py",
+     "size": 10542
+    },
+    {
+     "path": "scripts/uv.lock",
+     "size": 337
+    }
+   ]
   },
   {
    "id": "gha-security-review",
@@ -1606,7 +3495,49 @@
    "files": 10,
    "scripts": [],
    "descChars": 363,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 8966
+    },
+    {
+     "path": "references/ai-prompt-injection-via-ci.md",
+     "size": 5452
+    },
+    {
+     "path": "references/comment-triggered-commands.md",
+     "size": 5608
+    },
+    {
+     "path": "references/credential-escalation.md",
+     "size": 6659
+    },
+    {
+     "path": "references/expression-injection.md",
+     "size": 8644
+    },
+    {
+     "path": "references/permissions-and-secrets.md",
+     "size": 7917
+    },
+    {
+     "path": "references/pwn-request.md",
+     "size": 5902
+    },
+    {
+     "path": "references/real-world-attacks.md",
+     "size": 9468
+    },
+    {
+     "path": "references/runner-infrastructure.md",
+     "size": 8040
+    },
+    {
+     "path": "references/supply-chain.md",
+     "size": 9616
+    }
+   ]
   },
   {
    "id": "agentic-actions-auditor",
@@ -1630,7 +3561,69 @@
    "files": 15,
    "scripts": [],
    "descChars": 571,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 21743
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 239
+    },
+    {
+     "path": "assets/trail-of-bits-mark.svg",
+     "size": 3084
+    },
+    {
+     "path": "references/action-profiles.md",
+     "size": 8966
+    },
+    {
+     "path": "references/cross-file-resolution.md",
+     "size": 12597
+    },
+    {
+     "path": "references/foundations.md",
+     "size": 6659
+    },
+    {
+     "path": "references/vector-a-env-var-intermediary.md",
+     "size": 4482
+    },
+    {
+     "path": "references/vector-b-direct-expression-injection.md",
+     "size": 4645
+    },
+    {
+     "path": "references/vector-c-cli-data-fetch.md",
+     "size": 5042
+    },
+    {
+     "path": "references/vector-d-pr-target-checkout.md",
+     "size": 5235
+    },
+    {
+     "path": "references/vector-e-error-log-injection.md",
+     "size": 5380
+    },
+    {
+     "path": "references/vector-f-subshell-expansion.md",
+     "size": 5917
+    },
+    {
+     "path": "references/vector-g-eval-of-ai-output.md",
+     "size": 5602
+    },
+    {
+     "path": "references/vector-h-dangerous-sandbox-configs.md",
+     "size": 5758
+    },
+    {
+     "path": "references/vector-i-wildcard-allowlists.md",
+     "size": 4372
+    }
+   ]
   },
   {
    "id": "documentation-and-adrs",
@@ -1654,7 +3647,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 290,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 10999
+    }
+   ]
   },
   {
    "id": "doc-coauthoring",
@@ -1697,10 +3696,16 @@
    "always": 88,
    "onUse": 8099,
    "install": "copy",
-   "files": 0,
+   "files": 1,
    "scripts": [],
    "descChars": 341,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 32348
+    }
+   ]
   },
   {
    "id": "git-workflow-and-versioning",
@@ -1724,7 +3729,13 @@
    "scripts": [],
    "overlapsHook": "commit-msg",
    "descChars": 616,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 14403
+    }
+   ]
   },
   {
    "id": "using-git-worktrees",
@@ -1750,7 +3761,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 196,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 6813
+    }
+   ]
   },
   {
    "id": "finishing-a-development-branch",
@@ -1775,7 +3792,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 101,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 7781
+    }
+   ]
   },
   {
    "id": "pr-writer",
@@ -1800,7 +3823,29 @@
    "files": 5,
    "scripts": [],
    "descChars": 152,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "EVAL.md",
+     "size": 1589
+    },
+    {
+     "path": "SKILL.md",
+     "size": 5302
+    },
+    {
+     "path": "SPEC.md",
+     "size": 12584
+    },
+    {
+     "path": "evals/axis.config.json",
+     "size": 318
+    },
+    {
+     "path": "evals/scenarios/concise-docs-pr.json",
+     "size": 1753
+    }
+   ]
   },
   {
    "id": "iterate-pr",
@@ -1832,7 +3877,37 @@
     "scripts/reply_to_thread.py"
    ],
    "descChars": 213,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 5036
+    },
+    {
+     "path": "SPEC.md",
+     "size": 5355
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 292
+    },
+    {
+     "path": "scripts/fetch_pr_checks.py",
+     "size": 9901
+    },
+    {
+     "path": "scripts/fetch_pr_feedback.py",
+     "size": 14742
+    },
+    {
+     "path": "scripts/monitor_pr_checks.py",
+     "size": 6699
+    },
+    {
+     "path": "scripts/reply_to_thread.py",
+     "size": 4610
+    }
+   ]
   },
   {
    "id": "handoff",
@@ -1856,7 +3931,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 86,
-   "saysWhen": false
+   "saysWhen": false,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 940
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 141
+    }
+   ]
   },
   {
    "id": "ci-cd-and-automation",
@@ -1879,7 +3964,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 207,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 11512
+    }
+   ]
   },
   {
    "id": "shipping-and-launch",
@@ -1903,7 +3994,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 271,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 11540
+    }
+   ]
   },
   {
    "id": "setup-pre-commit",
@@ -1930,7 +4027,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 238,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 2258
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 99
+    }
+   ]
   },
   {
    "id": "deploy-to-vercel",
@@ -1985,7 +4092,41 @@
    "files": 8,
    "scripts": [],
    "descChars": 412,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 7461
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 343
+    },
+    {
+     "path": "references/app-store-metadata.md",
+     "size": 13898
+    },
+    {
+     "path": "references/ios-app-store.md",
+     "size": 11545
+    },
+    {
+     "path": "references/native-ios.md",
+     "size": 10180
+    },
+    {
+     "path": "references/play-store.md",
+     "size": 5790
+    },
+    {
+     "path": "references/testflight.md",
+     "size": 5973
+    },
+    {
+     "path": "references/workflows.md",
+     "size": 2175
+    }
+   ]
   },
   {
    "id": "performance-optimization",
@@ -2009,7 +4150,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 295,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 16783
+    },
+    {
+     "path": "references/optimization-patterns.md",
+     "size": 9692
+    }
+   ]
   },
   {
    "id": "observability-and-instrumentation",
@@ -2034,7 +4185,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 307,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 13948
+    }
+   ]
   },
   {
    "id": "docx",
@@ -2213,7 +4370,7 @@
    },
    "always": 84,
    "onUse": 8315,
-   "install": "plugin",
+   "install": "copy",
    "files": 18,
    "scripts": [
     "eval-viewer/generate_review.py",
@@ -2228,7 +4385,82 @@
     "scripts/utils.py"
    ],
    "descChars": 319,
-   "saysWhen": true
+   "saysWhen": true,
+   "license": "Apache-2.0",
+   "fileList": [
+    {
+     "path": "LICENSE.txt",
+     "size": 11345
+    },
+    {
+     "path": "SKILL.md",
+     "size": 33168
+    },
+    {
+     "path": "agents/analyzer.md",
+     "size": 10376
+    },
+    {
+     "path": "agents/comparator.md",
+     "size": 7287
+    },
+    {
+     "path": "agents/grader.md",
+     "size": 9049
+    },
+    {
+     "path": "assets/eval_review.html",
+     "size": 7058
+    },
+    {
+     "path": "eval-viewer/generate_review.py",
+     "size": 16365
+    },
+    {
+     "path": "eval-viewer/viewer.html",
+     "size": 44998
+    },
+    {
+     "path": "references/schemas.md",
+     "size": 12061
+    },
+    {
+     "path": "scripts/__init__.py",
+     "size": 0
+    },
+    {
+     "path": "scripts/aggregate_benchmark.py",
+     "size": 14386
+    },
+    {
+     "path": "scripts/generate_report.py",
+     "size": 12847
+    },
+    {
+     "path": "scripts/improve_description.py",
+     "size": 11116
+    },
+    {
+     "path": "scripts/package_skill.py",
+     "size": 4234
+    },
+    {
+     "path": "scripts/quick_validate.py",
+     "size": 3972
+    },
+    {
+     "path": "scripts/run_eval.py",
+     "size": 11464
+    },
+    {
+     "path": "scripts/run_loop.py",
+     "size": 13605
+    },
+    {
+     "path": "scripts/utils.py",
+     "size": 1661
+    }
+   ]
   },
   {
    "id": "writing-for-agents",
@@ -2252,7 +4484,21 @@
    "files": 3,
    "scripts": [],
    "descChars": 103,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL-MECHANICS.md",
+     "size": 2629
+    },
+    {
+     "path": "SKILL.md",
+     "size": 10886
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 102
+    }
+   ]
   },
   {
    "id": "claude-md-improver",
@@ -2322,7 +4568,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 258,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 12006
+    }
+   ]
   },
   {
    "id": "skill-scanner",
@@ -2350,7 +4602,29 @@
     "scripts/scan_skill.py"
    ],
    "descChars": 329,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 9927
+    },
+    {
+     "path": "references/dangerous-code-patterns.md",
+     "size": 6487
+    },
+    {
+     "path": "references/permission-analysis.md",
+     "size": 4281
+    },
+    {
+     "path": "references/prompt-injection-patterns.md",
+     "size": 6525
+    },
+    {
+     "path": "scripts/scan_skill.py",
+     "size": 29624
+    }
+   ]
   },
   {
    "id": "hookify-writing-rules",
@@ -2399,7 +4673,13 @@
    "files": 1,
    "scripts": [],
    "descChars": 106,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 6078
+    }
+   ]
   },
   {
    "id": "context-optimization",
@@ -2424,7 +4704,21 @@
     "scripts/compaction.py"
    ],
    "descChars": 257,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 16052
+    },
+    {
+     "path": "references/optimization_techniques.md",
+     "size": 9347
+    },
+    {
+     "path": "scripts/compaction.py",
+     "size": 19723
+    }
+   ]
   },
   {
    "id": "caveman",
@@ -2447,7 +4741,17 @@
    "files": 2,
    "scripts": [],
    "descChars": 203,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "README.md",
+     "size": 3030
+    },
+    {
+     "path": "SKILL.md",
+     "size": 4678
+    }
+   ]
   },
   {
    "id": "session-report",
@@ -2506,7 +4810,29 @@
    ],
    "overlapsHook": "danger-cmd",
    "descChars": 52,
-   "saysWhen": false
+   "saysWhen": false,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 4739
+    },
+    {
+     "path": "SKILL.md.tmpl",
+     "size": 4965
+    },
+    {
+     "path": "bin/check-careful.sh",
+     "size": 20796
+    },
+    {
+     "path": "bin/hook-extract.sh",
+     "size": 10774
+    },
+    {
+     "path": "bin/mask-commit-message.awk",
+     "size": 4996
+    }
+   ]
   },
   {
    "id": "git-guardrails",
@@ -2536,7 +4862,21 @@
    ],
    "overlapsHook": "danger-cmd",
    "descChars": 243,
-   "saysWhen": true
+   "saysWhen": true,
+   "fileList": [
+    {
+     "path": "SKILL.md",
+     "size": 2313
+    },
+    {
+     "path": "agents/openai.yaml",
+     "size": 112
+    },
+    {
+     "path": "scripts/block-dangerous-git.sh",
+     "size": 507
+    }
+   ]
   }
  ]
 }

@@ -2,7 +2,8 @@
 // 항목은 서버가 GitHub 에서 읽은 지금 값과 packs.json flows 의 github 칸(추천 값)으로 만든 것(GET /api/github).
 // 고른 것 → 바뀔 칸 계산은 서버와 같은 picker/github-plan.js. GitHub 이 돌려준 글도 textContent 로만 넣는다(dom.js 의 h).
 import { h } from './dom.js';
-import { lrow, toggleSwitch, checkRow } from './parts.js';
+import { lrow, toggleSwitch, checkRow, btn, field } from './parts.js';
+import { menuSelect } from './menu-select.js';
 import { defaultChoice, changesFor } from './github-plan.js';
 
 const itemsOf = (ui, sel) => ui.github?.flows?.[sel.flow] || [];
@@ -34,11 +35,15 @@ function itemRow({ S, sel, t, act }, i, choice, changes, open) {
   const after = many ? null : mine.map((c) => h('span.ch', {}, changeLine(t, c, false)));
   if (i.type === 'select') {
     const usable = i.prNow || choice[`pr:${i.branch}`] === true;
+    // 고르기는 공통 메뉴(menu-select.js) — 훅 옵션과 같은 모양·키보드(2026-11-12 사용자: 공통 부품은 다 맞춘다)
+    const nameId = `ghn-${i.id}`.replace(/[^\w-]/g, '_');
+    // 설명·권장값(또는 잠긴 까닭)을 화면 읽기에 이어 준다 — 훅 옵션 칸과 같게(전체 검토 2026-11-13)
+    const helpId = `ghh-${i.id}`.replace(/[^\w-]/g, '_');
     return h(`div.lrow.gh${open ? '' : '.dim'}`, {},
-      h('div.main', {}, h('label.optl', {}, h('span', {}, name),
-        h('select.field', { 'data-key': `gh:${i.id}`, disabled: !usable || !open, on: { change: (e) => act.setGithubItem(i.id, i.choices[e.target.selectedIndex]) } },
-          i.choices.map((n) => h('option', { selected: n === choice[i.id] }, t('ghN', { n }))))),
-        help, h('span.d', {}, usable ? t('ghRecN', { n: i.default }) : t('ghNeedsPr')), lines),
+      h('div.main', {}, field({ name, nameId,
+        control: menuSelect({ key: `gh:${i.id}`, labelId: nameId, describedBy: `${helpId} ${helpId}-r`, disabled: !usable || !open, value: choice[i.id],
+          choices: i.choices.map((n) => ({ value: n, label: t('ghN', { n }) })), onChange: (ch) => act.setGithubItem(i.id, ch.value) }) }),
+        Object.assign(help, { id: helpId }), h('span.d', { id: `${helpId}-r` }, usable ? t('ghRecN', { n: i.default }) : t('ghNeedsPr')), lines),
       after);
   }
   const on = choice[i.id] === true;
@@ -57,7 +62,7 @@ export function githubBox(c) {
   if (!g.offered) {
     const retry = ['offline', 'not-logged-in', 'no-gh', 'error'].includes(g.reason);
     return box(lrow({ cls: '.note', title: t('ghTitle'), desc: t('ghNotOffered', { reason: t(`ghReason_${g.reason}`) }),
-      tail: retry ? [h('button.btn', { type: 'button', 'data-key': 'ghRetry', on: { click: act.retryGithub } }, t('ghRecheck'))] : [] }));
+      tail: retry ? [btn('ghRetry', t('ghRecheck'), act.retryGithub)] : [] }));
   }
   const items = itemsOf(ui, sel);
   const choosable = items.filter((i) => !i.blocked && !i.already);

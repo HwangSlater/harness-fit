@@ -1,7 +1,7 @@
 // PreToolUse 판정. 프로젝트 .claude/harness.json 의 rules 에서 켜진 규칙만 돌린다.
 // rules 값: true(기본 옵션으로 켬) · false(끔) · { ...옵션 }(켬).
 // 규칙 모듈은 도구 종류(셸·쓰기·웹)에 켠 id 가 있는 것만 불러온다(모두 부르면 호출마다 70ms 쯤 — 2026-11-09 측정).
-import { commandCwd, repoRoot, shellOf } from './core.mjs';
+import { commandCwd, repoRoot, repoState, shellOf } from './core.mjs';
 import { innerCommands } from './cmdline.mjs';
 import { allowReport, allowNotice } from './allow.mjs';
 import { runRules } from './dispatch.mjs';
@@ -9,10 +9,12 @@ import { runRules } from './dispatch.mjs';
 // 규칙 모듈 표. 차례가 곧 막는 글의 차례다. ids 는 그 모듈이 그 종류로 내는 규칙 id(hooks/test/pretool.test.mjs 가 실제 모듈과 같은지 본다).
 export const RULE_MODULES = [
   { on: 'write', ids: ['secrets', 'protected-files', 'file-size'], load: () => import('../rules/files.mjs') },
+  { on: 'write', ids: ['migration-edit'], load: () => import('../rules/migration.mjs') },
   { on: 'write', ids: ['unsafe-html', 'pin-deps', 'gha-inject'], load: () => import('../rules/code.mjs') },
   { on: 'write', ids: ['swift-unsafe', 'python-unsafe'], load: () => import('../rules/lang.mjs') },
   { on: 'write', ids: ['docs-check'], load: async () => [(await import('../rules/docs.mjs')).docsWrite] },
-  { on: 'shell', ids: ['danger-cmd', 'password-cli'], load: () => import('../rules/shell.mjs') },
+  { on: 'shell', ids: ['danger-cmd', 'password-cli', 'protected-files', 'ask-cmd'], load: () => import('../rules/shell.mjs') },
+  { on: 'shell', ids: ['migration-edit'], load: () => import('../rules/migration.mjs') },
   { on: 'shell', ids: ['git-add-all', 'protect-branch', 'commit-msg', 'branch-name', 'no-verify'], load: () => import('../rules/git.mjs') },
   { on: 'shell', ids: ['squash-push'], load: () => import('../rules/push.mjs') },
   { on: 'shell', ids: ['no-rewrite-pushed', 'pr-merge'], load: () => import('../rules/history.mjs') },
@@ -35,8 +37,9 @@ export const loadRules = async (on, cfg = null) => {
 // errors: 터진 규칙 id 를 모은다(부른 쪽이 「검사가 오류로 멈췄어요」를 알리려고). 막지는 않는다.
 // notes: 막지 않고 알릴 글(허용 주석으로 통과시킨 줄 목록). 막는 글이 있으면 부른 쪽이 알리지 않는다.
 // hints: 막지 않고 Claude 에게 건넬 글(notice 규칙 — prefer-gh). 부른 쪽이 additionalContext 로 낸다.
+// asks: 실행 전에 사용자에게 물을 까닭(ask 규칙 — ask-cmd). 막는 글이 없을 때 부른 쪽이 permissionDecision ask 로 낸다.
 // rules: loadRules(on, cfg) 결과. t: 문구.
-export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints = []) => {
+export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints = [], asks = []) => {
   if (!rules.some((r) => cfg.rules[r.id])) return [];
   const cwd = input.cwd || process.cwd();
   const command = input.tool_input?.command;
@@ -48,16 +51,25 @@ export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints =
 
   const out = new Set();
   const allows = allowReport(); // 규칙들이 허용 주석으로 넘긴 줄을 여기에 적는다
+  // 저장소 맨 위·HEAD 는 이 도구 호출 하나에 한 번만 — 바깥 명령과 `bash -c` 속 명령이 같은 저장소를 나눠 쓴다.
+  // 맨 위는 .git 을 파일로 찾고(git 0번), 브랜치·HEAD 는 그것이 필요한 조각(commit·push…)이 있는 규칙이 처음 물을 때 구한다.
+  const roots = new Map();
+  const repos = new Map();
   for (const { cmd, shell: sh } of commands) {
     const cmdCwd = on === 'shell' ? commandCwd(cmd, cwd) : cwd;
-    const root = on === 'shell' && /\bgit\b/.test(cmd) ? repoRoot(cmdCwd) : null;
+    const mentionsGit = on === 'shell' && /\bgit\b/.test(cmd);
+    if (mentionsGit && !roots.has(cmdCwd)) roots.set(cmdCwd, repoRoot(cmdCwd));
+    const root = mentionsGit ? roots.get(cmdCwd) : null;
+    const repo = root ? repoState(root, repos) : null;
     const shared = {}; // 이 명령 하나를 보는 동안 규칙끼리 나눠 쓰는 계산(커밋 계획 등)
-    const ctx = { input, cmd, shell: sh, cwd: cmdCwd, root, project: cfg.root, t, shared, allows };
-    // notice 규칙의 글은 막는 글이 아니라 hints 로 보낸다
+    // rules: 켠 규칙과 그 옵션 전체 — 다른 규칙의 옵션을 봐야 할 때(claudeTamper 가 ask-cmd 의 make 목표를 본다)
+    const ctx = { input, cmd, shell: sh, cwd: cmdCwd, root, repo, project: cfg.root, rules: cfg.rules, t, shared, allows };
+    // notice 규칙의 글은 막는 글이 아니라 hints 로, ask 규칙의 글은 사용자에게 물을 까닭(asks)으로 보낸다
     const call = (rule, opts) => {
       const msg = rule.check({ ...ctx, opts });
-      if (!msg || !rule.notice) return msg;
-      if (!hints.includes(msg)) hints.push(msg);
+      if (!msg || !(rule.notice || rule.ask)) return msg;
+      const to = rule.ask ? asks : hints;
+      if (!to.includes(msg)) to.push(msg);
       return null;
     };
     for (const msg of runRules(rules, cfg, call, { errors, allows, t })) out.add(msg);

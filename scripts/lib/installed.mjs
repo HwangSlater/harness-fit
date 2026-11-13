@@ -3,6 +3,7 @@
 // home: 시험이 임시 홈을 넘긴다. 안 주면 CLAUDE_CONFIG_DIR → ~/.claude(hooks/lib/claude-home.mjs).
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { claudeHome, readInstalledPlugins } from '../../hooks/lib/claude-home.mjs';
 import { subdirs } from './paths.mjs';
 import { parseFrontmatter } from './skill-meta.mjs';
@@ -27,9 +28,15 @@ export const listPlugins = (root, home) => {
 };
 
 // harness-fit 플러그인이 이 프로젝트에서 켜져 있는지 — 훅은 플러그인으로만 돈다. npx 로 적용하면 harness.json 은 써져도 아무것도 막지 않는다(2026-11-05 검토).
-// 플러그인 안에서 돌고 있으면(CLAUDE_PLUGIN_ROOT) 켜진 것, 아니면 installed_plugins.json 에 이 프로젝트(또는 사용자 범위)로 깔렸는지 본다.
-export const pluginActive = (root, home) => {
-  if (process.env.CLAUDE_PLUGIN_ROOT && /harness-fit/i.test(process.env.CLAUDE_PLUGIN_ROOT)) return true;
+// 1) setup 스킬이 부른 것(--in-plugin): 스킬은 플러그인이 켜져 있어야만 있으니 켜진 것이다.
+//    Bash 도구 환경에는 CLAUDE_PLUGIN_ROOT 가 없고, --plugin-dir 로 단 플러그인은 installed_plugins.json 에 안 남는다(역할극 2~6 회차, 2026-11-11).
+// 2) 플러그인 안에서 돌고 있으면(CLAUDE_PLUGIN_ROOT 가 이 플러그인 자리) 켜진 것 — 폴더 이름으로 보지 않는다(받아 둔 폴더 이름이 다를 수 있다).
+// 3) 아니면 installed_plugins.json 에 이 프로젝트(또는 사용자 범위)로 깔렸는지 본다.
+const OWN_ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
+export const IN_PLUGIN_FLAG = '--in-plugin';
+export const pluginActive = (root, home, argv = process.argv) => {
+  if (argv.includes(IN_PLUGIN_FLAG)) return true;
+  if (process.env.CLAUDE_PLUGIN_ROOT && samePath(process.env.CLAUDE_PLUGIN_ROOT, OWN_ROOT)) return true;
   return installsOf(readInstalledPlugins(home), SELF).some((p) => p.scope === 'user' || (p.projectPath && samePath(p.projectPath, root)));
 };
 

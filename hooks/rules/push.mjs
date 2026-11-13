@@ -1,7 +1,7 @@
 // push 전에 커밋 묶기(squash-push): 올릴 브랜치에 원격 어디에도 없는 커밋이 둘 이상이면 push 를 막고 묶는 법을 알려 준다.
 // 「원격에 없다」는 원격 추적 브랜치(refs/remotes, 마지막 fetch 기준) 어디에도 없는 것. 원격 기록이 하나도 없으면(처음 올리기) 보지 않는다.
 // 같은 명령에서 push 앞의 git commit 은 아직 없는 커밋이라 하나씩 더해 센다(--amend·--dry-run 은 커밋 수를 늘리지 않는다).
-import { git, gitSegments, shortFlags } from '../lib/core.mjs';
+import { git, gitSegments, shortFlags, repoState } from '../lib/core.mjs';
 import { timelineOf } from '../lib/branches.mjs';
 
 const MAX_LISTED = 6;
@@ -44,9 +44,7 @@ export const pushSources = (words) => {
 };
 
 const lines = (out) => (out || '').split('\n').map((s) => s.trim()).filter(Boolean);
-const hasRemoteRefs = (root) => lines(git(root, ['for-each-ref', '--count=1', 'refs/remotes'])).length > 0;
 const localBranches = (root) => lines(git(root, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']));
-const isBranch = (root, name) => git(root, ['rev-parse', '--verify', '--quiet', `refs/heads/${name}^{commit}`]) !== null;
 const unpushedCount = (root, name) => Number(lines(git(root, ['rev-list', '--count', `refs/heads/${name}`, '--not', '--remotes']))[0] || 0);
 
 // 묶을 기준(올리지 않은 커밋 바로 앞)과 올리지 않은 커밋 목록
@@ -61,11 +59,15 @@ const squashPlan = (root, name) => {
 export const squashPush = {
   id: 'squash-push',
   on: 'shell',
-  check({ cmd, shell, root, t }) {
+  check({ cmd, shell, root, repo, t }) {
     if (!root) return null;
     const pushes = gitSegments(cmd, 'push', shell);
-    if (!pushes.length || !hasRemoteRefs(root)) return null;
-    const branchAt = timelineOf(cmd, shell, root);
+    if (!pushes.length) return null;
+    // 원격 추적 브랜치·브랜치가 있는지는 ref 파일로 먼저 본다(애매하면 git — core.mjs repoState)
+    const state = repo || repoState(root);
+    if (!state.hasRemoteRefs()) return null;
+    const isBranch = (_, name) => state.isBranch(name);
+    const branchAt = timelineOf(cmd, shell, root, state);
     const commits = gitSegments(cmd, 'commit', shell).filter((c) => !AMEND.test(c.bare) && !DRY_RUN.test(c.bare));
     // 브랜치마다 git 에 한 번만 묻는다(같은 명령에 push 가 여럿이어도)
     const counted = new Map();

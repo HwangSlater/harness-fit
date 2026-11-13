@@ -13,7 +13,8 @@ import { execFileSync } from 'node:child_process';
 import { PLUGIN_ROOT, readJson } from './paths.mjs';
 import { listPlugins } from './installed.mjs';
 import { claudeHome } from '../../hooks/lib/claude-home.mjs';
-import { eventOf, ownSpace, makeSpace, makeHome, eventInput, spaceEnv, runCommand, verdict, seedChecklist, gitAsync, HOME_VARS } from './probe-run.mjs';
+import { probeCacheFile, probeCacheKey, readProbeCache, writeProbeCache } from './probe-cache.mjs';
+import { eventOf, ownSpace, makeSpace, makeHome, eventInput, spaceEnv, runCommand, verdict, seedChecklist, gitAsync, removeDir, HOME_VARS } from './probe-run.mjs';
 
 const DEFAULT_TIMEOUT_S = 10; // settings 에 timeout 이 없을 때(Claude Code 기본값보다 짧게 — 시험이 화면을 오래 막지 않게)
 const MAX_PARALLEL = 6;
@@ -132,6 +133,13 @@ export const makeProbeRepoAsync = async () => {
   }
   return dir;
 };
+// 한 번 만든 시험용 저장소를 복사해 새 자리로(git 을 열 번 부르는 대신 파일 복사 한 번 — 2026-11-13).
+// 커밋 날짜를 고정해 두어 복사본도 새로 만든 것과 커밋·브랜치·올린 참조가 같다.
+const copyProbeRepo = (template) => async () => {
+  const dir = newProbeDir();
+  await fs.promises.cp(template, dir, { recursive: true });
+  return dir;
+};
 
 // 동시에 너무 많이 띄우지 않게
 const limit = async (jobs, n) => {
@@ -158,29 +166,35 @@ const gate = (n) => {
   };
 };
 const setupGate = gate(MAX_SETUP);
+// 훅 프로세스는 모든 시험을 통틀어 동시에 MAX_PROCS 개까지(코어 수, 2~8). 기다리는 동안은 시간을 세지 않는다(시간은 띄운 뒤부터).
+const MAX_PROCS = Math.max(2, Math.min(8, os.availableParallelism?.() ?? os.cpus().length));
+const procGate = gate(MAX_PROCS);
 
-// 한 시험 자리에서 훅들을 차례로 돌린다 → [{ h, blocked }]
+// 한 시험 자리에서 훅들을 함께 돌린다 → [{ h, blocked, timedOut }]
+// 훅마다 따로 판정하고(같은 입력·같은 자리), 서로의 출력을 보지 않으므로 차례로 돌린 것과 판정이 같다(2026-11-13 — 이 PC 13개 훅으로 견줌).
 const runHooks = async (x, hooks, space, env) => {
   const input = eventInput(x, space);
-  const out = [];
-  for (const h of hooks) out.push({ h, blocked: verdict(x, await runCommand(h.command, input, { cwd: space.dir, env, timeoutS: h.timeout, args: h.args })) });
-  return out;
+  return Promise.all(hooks.map(async (h) => {
+    const r = await procGate(() => runCommand(h.command, input, { cwd: space.dir, env, timeoutS: h.timeout, args: h.args }));
+    return { h, blocked: verdict(x, r), timedOut: !!r.timedOut };
+  }));
 };
 
 // 시험 입력 하나 × 그 때에 걸리는 훅들 → [{ h, blocked }]. 자기 자리가 필요한 시험은 자리를 만들고 끝나면 지운다.
 // 도구 시험은 함께 쓰는 저장소(sharedDir)에서 돌되, 홈은 언제나 임시 폴더(sharedHome — 없으면 이 시험만의 것을 만들고 지운다).
 // startCommands: 체크리스트 시험 전에 돌릴 세션 시작 명령들(그 훅들이 알려 준 경로에 체크리스트를 써 둔다)
-export const runProbeCase = async (x, hooks, { sharedDir, sharedHome = null, startCommands = [], prepare = () => {} } = {}) => {
+// makeRepo: 자기 자리 저장소를 만드는 함수(겹침 알아보기는 미리 만든 저장소를 복사한다)
+export const runProbeCase = async (x, hooks, { sharedDir, sharedHome = null, startCommands = [], prepare = () => {}, makeRepo = makeProbeRepoAsync } = {}) => {
   if (!ownSpace(x)) {
     const home = sharedHome || makeHome();
     try {
       const space = { dir: sharedDir, home, vars: { probe: sharedDir.split(path.sep).join('/') } };
       return await runHooks(x, hooks, space, spaceEnv(space));
     } finally {
-      if (!sharedHome) fs.rmSync(home, { recursive: true, force: true });
+      if (!sharedHome) removeDir(home);
     }
   }
-  const space = await setupGate(() => makeSpace(x, makeProbeRepoAsync));
+  const space = await setupGate(() => makeSpace(x, makeRepo));
   try {
     prepare(space.dir);
     const env = spaceEnv(space);
@@ -198,12 +212,30 @@ export const runProbeCase = async (x, hooks, { sharedDir, sharedHome = null, sta
 export const trustsProject = () => !!process.env.CLAUDECODE;
 export const skippedProjectHooks = (root, home) => (trustsProject() ? 0 : listHooks(root, home).filter((h) => h.scope !== 'user').length);
 
-export const probeExistingHooks = async (root, { home, probes = readJson(path.join(PLUGIN_ROOT, 'catalog', 'probes.json')), trustProject = trustsProject() } = {}) => {
+// cache: 결과를 <설정 폴더>/harness-fit/probe-cache.json 에 담아 두고 훅·시험 입력·플러그인이 그대로면 다시 쓴다(probe-cache.mjs).
+export const probeExistingHooks = async (root, { home, probes = readJson(path.join(PLUGIN_ROOT, 'catalog', 'probes.json')), trustProject = trustsProject(), cache = true } = {}) => {
   const hooks = listHooks(root, home).filter((h) => h.scope === 'user' || trustProject);
   if (!hooks.length || !probes) return {};
-  const sharedDir = await makeProbeRepoAsync();
+  const file = probeCacheFile(home);
+  const key = cache ? await probeCacheKey(hooks, probes) : null;
+  if (key) {
+    const hit = await readProbeCache(file, key);
+    if (hit) return hit;
+  }
+  const { out, timedOut } = await probeHooks(hooks, probes);
+  if (key && !timedOut) await writeProbeCache(file, key, out);
+  return out;
+};
+
+// 시험을 실제로 돌린다 → { out, timedOut(시간이 넘은 훅이 있었나) }
+const probeHooks = async (hooks, probes) => {
+  // 자리마다 git 으로 새로 만들지 않고 하나를 만들어 복사한다(함께 쓰는 저장소도 복사본 — 원본은 손대지 않게 둔다)
+  const template = await makeProbeRepoAsync();
+  const makeRepo = copyProbeRepo(template);
   const sharedHome = makeHome();
+  let sharedDir = null;
   try {
+    sharedDir = await makeRepo();
     const cases = Object.entries(probes).filter(([id]) => !id.startsWith('_'))
       .flatMap(([id, p]) => [...p.block.map((x) => ({ id, want: 'block', x })), ...p.pass.map((x) => ({ id, want: 'pass', x }))]);
     const startCommands = hooks.filter((h) => h.event === 'SessionStart' && matches(h.matcher, 'startup')).map((h) => ({ command: h.command, args: h.args }));
@@ -211,9 +243,10 @@ export const probeExistingHooks = async (root, { home, probes = readJson(path.jo
     const jobs = cases.map((c) => async () => {
       const fit = hooks.filter((h) => hookFits(h, c.x));
       if (!fit.length) return [];
-      return (await runProbeCase(c.x, fit, { sharedDir, sharedHome, startCommands })).map((r) => ({ c, ...r }));
+      return (await runProbeCase(c.x, fit, { sharedDir, sharedHome, startCommands, makeRepo })).map((r) => ({ c, ...r }));
     });
     const results = (await limit(jobs, MAX_PARALLEL)).flat();
+    const timedOut = results.some((r) => r.timedOut);
     const out = {};
     for (const id of new Set(cases.map((c) => c.id))) {
       // 기존 훅마다 따로 본다: 그 훅 하나가 block 을 모두 막고 pass 를 모두 통과시켜야 같은 훅
@@ -235,10 +268,9 @@ export const probeExistingHooks = async (root, { home, probes = readJson(path.jo
       const from = [...new Map(same.map((h) => [`${h.scope}\u0000${h.plugin || ''}\u0000${labelOf(h)}`, { label: labelOf(h), scope: h.scope, plugin: h.plugin }])).values()];
       out[id] = { scope, by: [...new Set(same.map(labelOf))], from };
     }
-    return out;
+    return { out, timedOut };
   } finally {
-    fs.rmSync(sharedDir, { recursive: true, force: true });
-    fs.rmSync(sharedHome, { recursive: true, force: true });
+    for (const d of [template, sharedDir, sharedHome]) if (d) removeDir(d);
   }
 };
 

@@ -7,7 +7,9 @@ export const fromCombo = (k, cur) => ({
   combo: k.id, flow: k.flow, skills: new Set(k.skills), hooks: new Set(k.hooks), rules: new Set(k.rules),
   explore: cur?.explore || new Set(), note: cur?.note || '', share: !!k.share, // 팀원 공유 기본값은 combos.json(auto 와 같은 값)
   // GitHub 저장소 설정(기본 꺼짐)·항목 선택·훅 옵션은 사용자가 고른 것이라 조합을 바꿔도 그대로 둔다
-  github: !!cur?.github, githubChoice: cur?.githubChoice || {}, hookOpts: cur?.hookOpts || {},
+  // 조합이 저장소에 맞춰 정한 옵션(커밋 기록 언어 → commit-msg lang, ROS 2 → ask-cmd 명령 등, catalog.mjs expandCombo)은 baseOpts 로 따로 둔다 —
+  // 사용자가 고친 것(hookOpts) > 지난번 harness.json > baseOpts 차례(hook-options.js optionValue·sentOpts, 검토 2026-11-11)
+  github: !!cur?.github, githubChoice: cur?.githubChoice || {}, hookOpts: { ...(cur?.hookOpts || {}) }, baseOpts: k.hookOpts || {},
 });
 export const snapshot = (x) => ({ ...x, skills: new Set(x.skills), hooks: new Set(x.hooks), rules: new Set(x.rules), explore: new Set(x.explore) });
 

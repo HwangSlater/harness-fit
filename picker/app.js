@@ -2,6 +2,8 @@
 // 그리기는 frame·steps·skills·hooks·rules·review.js, 창은 panel.js(+ browse.js). 셈은 stats.js 한 곳.
 import { h, fmt } from './dom.js';
 import { api, errText, errInfo } from './api.js';
+import { sentOpts } from './hook-options.js';
+import { renderWhenFree } from './press.js';
 import * as F from './frame.js';
 import { comboStep, requestStep } from './steps.js';
 import { skillsStep } from './skills.js';
@@ -29,13 +31,14 @@ const ui = {
   busy: false, progress: null, done: undefined, applied: null, pathsOpen: false, ruleView: 'full',
   github: null, // GET /api/github 의 답(null = 확인 중)
   optBad: {}, // 훅 옵션 목록 칸에서 꼴이 틀려 뺀 값(칸마다)
+  ruleAlt: {}, // 다른 선택일 때의 지침 글(act.ruleAlt) — 선택이 바뀌면 비운다
 };
 
 const t = (key, vars) => fmt(S.strings[key] ?? key, vars, S.lang);
 const ctx = (x = sel, extra = {}) => ({ S, sel: x, ui: { ...ui, ...extra }, t, act, dup: dupsFor(S, x), defaults: defaultsFor(S, x), mates: matesFor(S, x) });
 const payload = (x) => ({
   lang: S.lang, combo: x.combo, flow: x.flow, skills: [...x.skills], hooks: [...x.hooks], rules: [...x.rules],
-  explore: [...x.explore], note: x.note, share: x.share, github: githubOn(ui, x), githubChoice: choiceOf(ui, x), hookOpts: x.hookOpts,
+  explore: [...x.explore], note: x.note, share: x.share, github: githubOn(ui, x), githubChoice: choiceOf(ui, x), hookOpts: sentOpts(x.baseOpts, S.prevRules, x.hookOpts),
   covered: [...dupsFor(S, x).hooks.keys()], skipLines: S.detected.skipLines || {},
 });
 
@@ -56,10 +59,11 @@ const refreshPreview = (delay = PREVIEW_DELAY_MS) => {
     if (my !== previewSeq) return;
     ui.preview = p;
     ui.previewStale = false;
-    render();
+    // 누르는 도중 응답이 오면 뗀 뒤에 그린다 — 바로 그리면 누른 단추가 바뀌어 click 이 먹히지 않았다(전체 검토 2026-11-13)
+    renderWhenFree(render);
   }, delay);
 };
-const changed = () => (refreshPreview(), render());
+const changed = () => ((ui.ruleAlt = {}), refreshPreview(), render());
 const edited = () => ((ui.custom = true), (ui.switched = null), changed());
 
 let toastTimer;
@@ -178,6 +182,22 @@ const keepShare = (answer) => ui.shareAnswered && sel.share !== answer && setSha
 
 // 창 열기·닫기·전체 보기·원문(panel.js)
 Object.assign(act, panelActions({ ui, t, render: () => render(), lastClicked: () => lastClicked, state: () => S }));
+// 다른 선택일 때 CLAUDE.md 에 들어갈 지침 글(켜지는 것 보기 칸 · 꺼진 지침 창): 미리보기와 같은 서버 계산을 그 선택으로 한 번.
+// ui.ruleAlt[key] = { loading } → { texts, dropped } 또는 { error }. 그사이 선택이 바뀌어 비웠으면 늦게 온 답은 버린다.
+act.ruleAlt = async (key, x) => {
+  if (ui.ruleAlt[key]) return;
+  ui.ruleAlt[key] = { loading: true };
+  let r;
+  try {
+    const p = await api('/api/preview', payload(x));
+    r = { texts: p.ruleTexts || {}, dropped: p.ruleDropped || {} };
+  } catch (e) {
+    r = { error: errText(t, e) };
+  }
+  if (!ui.ruleAlt[key]?.loading) return;
+  ui.ruleAlt[key] = r;
+  render();
+};
 // 이미 있는 스킬·훅 작은 창(info-dialog.js — 큰 창 위에 겹쳐 뜬다)
 Object.assign(act, infoActions({ ui, render: () => render(), lastClicked: () => lastClicked }));
 
@@ -215,7 +235,7 @@ Object.assign(act, applyActions({ ui, t, current: () => sel, ctx: () => ctx(), p
 Object.assign(act, budgetActions({ ui, current: () => sel, edited }));
 
 // 적용·그만두기를 기다리는 동안과 끝난 뒤에는 선택을 바꾸는 동작을 모두 막는다(화면도 inert).
-const ALWAYS = new Set(['go', 'loadRaw', 'toggleOpen', 'togglePaths', 'setRuleView', 'toggleDropped', 'closePanel', 'browseGroup', 'browseSearch', 'browseTo', 'openInfo', 'closeInfo']);
+const ALWAYS = new Set(['go', 'loadRaw', 'toggleOpen', 'togglePaths', 'setRuleView', 'toggleDropped', 'closePanel', 'browseGroup', 'browseSearch', 'browseTo', 'openInfo', 'closeInfo', 'comboGroup', 'ruleAlt']);
 for (const [name, fn] of Object.entries(act)) {
   if (!ALWAYS.has(name)) act[name] = (...a) => (ui.busy || ui.done !== undefined ? undefined : fn(...a));
 }
@@ -234,7 +254,8 @@ function renderFrame(c) {
 function render() {
   const active = document.activeElement;
   const key = active?.dataset?.key;
-  const caret = key && 'selectionStart' in active ? [active.selectionStart, active.selectionEnd] : null;
+  // 글을 쓰는 칸만 커서 자리를 지킨다 — 체크 상자에도 selectionStart 속성은 있어(값 null) 되돌릴 때 InvalidStateError 가 났다(검토 2026-11-12)
+  const caret = key && typeof active.selectionStart === 'number' ? [active.selectionStart, active.selectionEnd] : null;
   const wasOpen = $('panel').open;
   const y = window.scrollY;
   const doneView = ui.done !== undefined;
@@ -312,7 +333,7 @@ let lastClicked = null;
 document.addEventListener('click', (e) => (lastClicked = e.target.closest?.('[data-key]')?.dataset.key || lastClicked), true);
 
 // GitHub 저장소 설정을 켤 수 있는지(gh 를 몇 번 부르느라 1~3초). 화면은 먼저 띄우고 답이 오면 다시 그린다.
-const loadGithub = (refresh = false) => api(`/api/github${refresh ? '?refresh=1' : ''}`).then((g) => (ui.github = g), () => (ui.github = { offered: false, reason: 'error' })).then(() => ui.done === undefined && render());
+const loadGithub = (refresh = false) => api(`/api/github${refresh ? '?refresh=1' : ''}`).then((g) => (ui.github = g), () => (ui.github = { offered: false, reason: 'error' })).then(() => ui.done === undefined && renderWhenFree(render));
 
 // 기존 훅 시험 결과(서버가 화면을 띄운 뒤 마저 한다 — 몇 초~십몇 초). 오면 상태를 바꾸고 겹치는 기본 훅을 뺀 뒤 다시 그린다.
 // 그동안 확인 단계는 적용을 막는다(frame.js applyBlock). 못 받으면 「확인하지 못했다」로 바꾼다.
@@ -328,7 +349,7 @@ const waitExisting = () => api(`/api/existing?lang=${S.lang}`).then(async (next)
   else syncDups(before);
   refreshPreview();
 }).catch(() => Object.assign(S.detected.existing, { hooksPending: false, hookProbeFailed: true }))
-  .then(() => ui.done === undefined && render());
+  .then(() => ui.done === undefined && renderWhenFree(render));
 
 async function load(lang, keep) {
   try {
@@ -345,7 +366,7 @@ async function load(lang, keep) {
     refreshPreview();
     render();
     // 끝 화면이 뜬 뒤 늦게 온 답은 다시 그리지 않는다(펼쳐 둔 경로·초점이 흐트러지지 않게).
-    const later = () => ui.done === undefined && render();
+    const later = () => ui.done === undefined && renderWhenFree(render);
     if (ui.github === null && !keep) loadGithub();
     if (S.detected.existing?.hooksPending && !existingWait) existingWait = waitExisting();
     if (ui.fresh === null) api('/api/fresh').then((f) => ((ui.fresh = f), later()), (e) => ((ui.fresh = { error: errText(t, e), repos: [] }), later()));

@@ -92,3 +92,25 @@ test('화면 문구는 두 언어가 같은 파일·같은 키를 갖고, 같은
     assert.equal(Object.keys(stateIn(lang).strings).length, seen.size, '화면 상태는 모든 파일을 합친다');
   }
 });
+
+test('받지 못한 스킬 알림: 한도와 다른 실패가 섞이면 「한도가 풀리면 다시」는 한도에 걸린 스킬만, 나머지는 그 까닭과 따로(독립 검토 2026-11-13)', async () => {
+  const { failedText } = await import('../../picker/stats.js');
+  const { fmt } = await import('../../picker/dom.js');
+  const nameOf = (f) => f.skill;
+  const limit = { skill: 'a', error: 'rate', reason: 'rate-limit', waitMin: 12 };
+  const notFound = { skill: 'b', error: '404 Not Found' };
+  const license = { skill: 'c', error: 'license unknown' };
+  for (const lang of ['ko', 'en']) {
+    const s = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'picker', 'i18n', lang, 'review.json'), 'utf8'));
+    const t = (k, v) => { assert.ok(s[k], `${lang} ${k}`); return fmt(s[k], v, lang); };
+    const mixed = failedText(t, [limit, notFound, license], nameOf);
+    assert.equal(mixed.title, t('doneFailedMixed', { list: 'a, b, c' }), '제목은 한도 뒤에 다시 받는다고 하지 않는다');
+    assert.ok(mixed.desc.includes(t('doneFailedLimitOf', { list: 'a', n: 12 })), mixed.desc);
+    assert.ok(mixed.desc.includes(t('doneFailedOtherOf', { list: 'b', why: '404 Not Found' })) && mixed.desc.includes(t('doneFailedOtherOf', { list: 'c', why: 'license unknown' })), mixed.desc);
+    // 한도만이면 예전 그대로, 다른 실패만이면 한도 말이 없다
+    assert.equal(failedText(t, [limit], nameOf).title, t('doneFailedLimit', { list: 'a' }));
+    const other = failedText(t, [notFound], nameOf);
+    assert.equal(other.title, t('doneFailed', { list: 'b' }));
+    assert.equal(other.desc, t('doneFailedWhy', { why: '404 Not Found' }));
+  }
+});

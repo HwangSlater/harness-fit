@@ -1,7 +1,7 @@
 // 화면 틀: 머리 막대, 단계 막대(UnderlineNav), 단계 머리, 오른쪽 요약 카드, 휴대폰 요약 막대, 아래 「이전 · 다음」.
 // 단계는 주소 #(combo·skills·hooks·rules·request·review)마다 하나. 그리기만 하고 상태는 app.js 가 갖는다.
 import { h, icon } from './dom.js';
-import { num } from './parts.js';
+import { num, btn, btnLink } from './parts.js';
 import { shareOpen } from './team.js';
 import { budgetLine } from './budget-view.js';
 import { costOf, pct, ruleCount, ruleLines, skillTokens, ruleTokens, weightWord, comboBy, flowBy, skillBy } from './stats.js';
@@ -85,7 +85,7 @@ export function sum(c) {
     h('div.sact', {},
       ui.busy ? progress(c) : null,
       // 적용은 확인 단계의 단추만 한다. 요약 카드는 확인 단계로 데려간다.
-      ui.busy || ui.step === 'review' ? null : h('a.btn.lg.primary.block', { href: '#review', 'data-key': 'toReview' }, t('toReview'))));
+      ui.busy || ui.step === 'review' ? null : btnLink('toReview', t('toReview'), '#review', '.lg.primary.block')));
 }
 
 export function mbar(c) {
@@ -109,11 +109,11 @@ export function cta(c) {
   const last = i === STEPS.length - 1;
   const block = last ? applyBlock(c) : null;
   return h('div.cta', {},
-    h('button.btn.lg', { type: 'button', 'data-key': 'prev', disabled: i === 0 || ui.busy, on: { click: () => act.go(STEPS[i - 1].id) } }, icon('i-left'), t('prev')),
+    btn('prev', [icon('i-left'), t('prev')], () => act.go(STEPS[i - 1].id), '.lg', { disabled: i === 0 || ui.busy }),
     h('span.sp'),
     h(`span.next-k${block ? '.warn' : ''}`, { id: 'nextK', role: block ? 'status' : null }, block ? t(block) : last ? t('barCountV', { s: sel.skills.size, h: sel.hooks.size, r: ruleCount(sel, ui) }) : t('nextK', { name: t(`step_${STEPS[i + 1].id}`) })),
-    h('button.btn.lg.primary', { type: 'button', 'data-key': last ? 'applyCta' : 'next', 'aria-describedby': last ? 'nextK' : null, disabled: ui.busy || !!block, on: { click: () => (last ? act.confirmApply() : act.go(STEPS[i + 1].id)) } },
-      last ? (ui.busy ? t('applyingShort') : t('applyNow')) : t('next')));
+    btn(last ? 'applyCta' : 'next', last ? (ui.busy ? t('applyingShort') : t('applyNow')) : t('next'), () => (last ? act.confirmApply() : act.go(STEPS[i + 1].id)), '.lg.primary',
+      { 'aria-describedby': last ? 'nextK' : null, disabled: ui.busy || !!block }));
 }
 
 export const footer = ({ S, t }) => h('footer', {}, h('span', {}, t('footLocal')), h('span', {}, t('footCatalog', { date: S.checkedAt })));

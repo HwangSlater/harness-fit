@@ -7,6 +7,7 @@ import { git } from '../lib/core.mjs';
 import { targetFile } from '../lib/lines.mjs';
 import { DOCS_DIR, inDocs, isDocFile, slash, docsProblems } from '../lib/docs-format.mjs';
 import { turnCommits } from '../lib/turn-commits.mjs';
+import { findRepo } from '../lib/repo-files.mjs';
 import { turnOf, markOf } from './turn.mjs';
 
 const MAX_SHOWN = 6;
@@ -29,6 +30,11 @@ export const docsWrite = {
 };
 
 const lines = (out) => (out || '').split('\n').map((s) => s.trim()).filter(Boolean);
+// git 저장소 안인가: .git 을 파일로 찾고, 애매할 때만 git 에게(lib/repo-files.mjs)
+const inRepo = (dir) => {
+  const found = findRepo(dir);
+  return found === undefined ? git(dir, ['rev-parse', '--is-inside-work-tree']) !== null : !!found;
+};
 
 // 바뀐 docs/ 파일(프로젝트 기준): HEAD 와 다른 것(stage 한 것 포함) + 새 파일(무시 목록 밖) + 이번 턴 커밋이 바꾼 것
 const changedDocs = (project, commits) => {
@@ -50,9 +56,9 @@ export const docsStop = {
   id: 'docs-check',
   on: 'stop',
   check({ input, project, opts, t, shared }) {
-    if (!project || git(project, ['rev-parse', '--is-inside-work-tree']) === null) return null;
+    if (!project || !inRepo(project)) return null;
     const turn = turnOf(input, shared);
-    const commits = turn && Number.isFinite(turn.since) ? turnCommits(project, turn.since) : [];
+    const commits = turn && Number.isFinite(turn.since) ? turnCommits(project, turn.since, shared) : [];
     const changed = changedDocs(project, commits);
     if (!changed.length) return null;
     const problems = docsProblems(project, changed, { dateLine: opts.dateLine !== false });

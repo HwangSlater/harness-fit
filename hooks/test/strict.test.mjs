@@ -16,8 +16,21 @@ import gitCases from './strict-cases/git.mjs';
 import commitCases from './strict-cases/commit.mjs';
 import langCases from './strict-cases/lang.mjs';
 import eventCases from './strict-cases/events.mjs';
+import migrationCases from './strict-cases/migration.mjs';
+import followupCases from './strict-cases/followup.mjs';
+import infraCases from './strict-cases/infra.mjs';
+import infraReviewCases from './strict-cases/infra-review.mjs';
+import infraReview2Cases from './strict-cases/infra-review2.mjs';
+import infraReview3Cases from './strict-cases/infra-review3.mjs';
+import askReviewCases from './strict-cases/ask-review.mjs';
+import gapCases from './strict-cases/gaps.mjs';
+import blockReviewCases from './strict-cases/block-review.mjs';
+import iosReviewCases from './strict-cases/ios-review.mjs';
+import blockReview2Cases from './strict-cases/block-review2.mjs';
+import blockReview3Cases from './strict-cases/block-review3.mjs';
+import blockReview4Cases from './strict-cases/block-review4.mjs';
 import { makeProbeRepo, runProbeCase } from '../../scripts/lib/existing-hooks.mjs';
-import { eventOf, ownSpace } from '../../scripts/lib/probe-run.mjs';
+import { eventOf, ownSpace, buildScratch } from '../../scripts/lib/probe-run.mjs';
 import { checklistFile } from '../rules/checklist.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -27,7 +40,12 @@ const ENTRY = { PreToolUse: RUN, Stop: path.join(ROOT, 'hooks', 'stop.mjs'), Ses
 const packs = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'packs.json'), 'utf8'));
 const probes = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'probes.json'), 'utf8'));
 const FLOW_OPTS = packs.flows.find((f) => f.id === 'github-flow').hooks;
-const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases };
+const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases };
+// 뒤에 더한 사례 파일은 같은 훅의 사례에 이어 붙인다(훅 옵션은 원래 파일의 것)
+for (const [id, more] of [...Object.entries(followupCases), ...Object.entries(infraCases), ...Object.entries(infraReviewCases), ...Object.entries(infraReview2Cases), ...Object.entries(infraReview3Cases), ...Object.entries(askReviewCases), ...Object.entries(gapCases), ...Object.entries(blockReviewCases), ...Object.entries(iosReviewCases), ...Object.entries(blockReview2Cases), ...Object.entries(blockReview3Cases), ...Object.entries(blockReview4Cases)]) {
+  const spec = CASES[id] || { block: [], pass: [] };
+  CASES[id] = { ...spec, block: [...spec.block, ...more.block], pass: [...spec.pass, ...more.pass] };
+}
 const MIN_CASES = 3;
 const PARALLEL = 8;
 
@@ -99,9 +117,11 @@ const hookEnv = (home = null) => {
 const homeDir = () => path.join(tmp, 'home');
 // 한도를 넉넉히: npm test 는 crash·git 훅 시험(10~50MB 입력, 진짜 커밋)과 함께 돌아, 보통 0.3초인 호출이 30초를 넘긴 적이 있다.
 // 시간은 crash.test.mjs 가 따로 잰다 — 여기는 막음·통과만 본다.
-const runHook = (input, event = 'PreToolUse') =>
+// tmpRoot: 세션 시작 사례마다 따로 둔 임시 폴더(TEMP·TMP·TMPDIR — stale-scratch 가 이 PC 의 진짜 Temp 를 보지 않게)
+const runHook = (input, event = 'PreToolUse', tmpRoot = null) =>
   new Promise((resolve, reject) => {
     const env = hookEnv(event === 'PreToolUse' ? null : homeDir());
+    if (tmpRoot) Object.assign(env, { TEMP: tmpRoot, TMP: tmpRoot, TMPDIR: tmpRoot });
     const child = execFile(process.execPath, [ENTRY[event]], { encoding: 'utf8', timeout: 120000, env }, (err, out) =>
       err ? reject(new Error(`${path.basename(ENTRY[event])} 실패(${err.killed ? '시간 초과' : err.code}): ${JSON.stringify(input.tool_input || input.transcript_path).slice(0, 200)}`)) : resolve(out));
     child.stdin.end(JSON.stringify(input));
@@ -121,7 +141,9 @@ const decision = (out, c = {}) => {
     if (shown) assert.equal(j.hookSpecificOutput.hookEventName, c.event);
     return { blocked: shown.includes(c.expect), reason: shown };
   }
-  if (j.hookSpecificOutput?.permissionDecision === 'deny') return { blocked: true, reason: j.hookSpecificOutput.permissionDecisionReason };
+  if (j.hookSpecificOutput?.permissionDecision === 'deny') return { blocked: true, kind: 'deny', reason: j.hookSpecificOutput.permissionDecisionReason };
+  // 묻는 훅(kind ask — ask-cmd): 확인 창을 띄우면 「걸림」
+  if (j.hookSpecificOutput?.permissionDecision === 'ask') return { blocked: true, kind: 'ask', reason: j.hookSpecificOutput.permissionDecisionReason };
   // 알림 훅(kind notice — prefer-gh): 막지 않고 Claude 문맥에 글을 더하면 「걸림」
   if (j.hookSpecificOutput?.additionalContext) {
     assert.equal(j.hookSpecificOutput.hookEventName, 'PreToolUse');
@@ -136,6 +158,7 @@ const decision = (out, c = {}) => {
 
 // 사례 하나 → 훅 입력들(셸 사례는 셸마다 하나)
 let sessionSeq = 0;
+const tmpRoots = new WeakMap(); // 훅 입력 → 그 사례의 임시 폴더
 const inputsOf = (c, dir) => {
   const abs = (f) => path.join(dir, f);
   if (c.event) {
@@ -146,6 +169,13 @@ const inputsOf = (c, dir) => {
       const recs = typeof c.transcript === 'function' ? c.transcript({ dir, git: (...a) => gitIn(dir, ...a) }) : c.transcript;
       input.transcript_path = path.join(tmp, `${session}.jsonl`);
       fs.writeFileSync(input.transcript_path, recs.map((r) => JSON.stringify(r)).join('\n') + '\n');
+    }
+    if (c.event === 'SessionStart') {
+      // 사례의 scratch: 임시 폴더 <tmp>/claude 아래에 만들 것(dir 의 <session> 은 이 사례의 세션 id)
+      const root = path.join(tmp, `${session}-tmp`);
+      fs.mkdirSync(root, { recursive: true });
+      if (c.scratch) buildScratch(path.join(root, 'claude'), c.scratch.map((e) => ({ ...e, dir: e.dir.replace('<session>', session) })));
+      tmpRoots.set(input, root);
     }
     if (typeof c.checklist === 'string') {
       const file = checklistFile(dir, c.otherSession ? `${session}-other` : session, homeDir());
@@ -189,11 +219,14 @@ test('packs.json 의 훅마다 엄격 사례가 있다(막음·통과 각 3개 �
 
 // 사례 하나를 돌려 기대와 다르면 그 설명을 돌려준다.
 const check = (want, c, input) => async () => {
-  const got = decision(await runHook(input, c.event), c);
-  if (got.blocked === (want === 'block')) return null;
+  const got = decision(await runHook(input, c.event, tmpRoots.get(input)), c);
+  // 막음 사례의 c.decision('deny'·'ask')은 결정 꼴까지, c.reason(정규식)은 글까지 본다 — ask-cmd 의 막기·묻기, GitLab 의 MR 글(2026-11-13)
+  const kindOk = !(want === 'block' && got.blocked) || ((!c.decision || got.kind === c.decision) && (!c.reason || c.reason.test(got.reason || '')));
+  if (got.blocked === (want === 'block') && kindOk) return null;
   const ti = input.tool_input || {};
   const where = ti.command ?? ti.file_path ?? ti.notebook_path ?? ti.url ?? c.event;
-  return `${want} 이어야 함 [${input.tool_name || c.event}] ${c.why}: ${JSON.stringify(where).slice(0, 120)}${got.reason ? ` → ${got.reason.slice(0, 160)}` : ''}`;
+  const wanted = kindOk ? want : `${want}(${c.decision || ''}${c.reason ? ` ${c.reason}` : ''}, 받은 것 ${got.kind || ''})`;
+  return `${wanted} 이어야 함 [${input.tool_name || c.event}] ${c.why}: ${JSON.stringify(where).slice(0, 120)}${got.reason ? ` → ${got.reason.slice(0, 160)}` : ''}`;
 };
 
 describe('엄격 사례(훅마다 함께 돈다)', { concurrency: true }, () => {

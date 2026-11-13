@@ -117,7 +117,7 @@ test('80% 이상이면 near, 넘으면 over', () => {
   assert.equal(budgetOf(L, [{ id: 'a', descChars: 2500 }]).added, 1 + DESC_CAP);
 });
 
-test('「권장대로 줄이기」: 겹침 → 직접 더한 것 → 조합 → 스택 맞춤 차례로, 80% 아래가 될 때까지', () => {
+test('「권장대로 줄이기」: 겹침 → 직접 더한 것 → 조합 → 스택 맞춤 차례로, 한도 아래가 될 때까지', () => {
   const ks = [
     { id: 'combo-a', descChars: 600 }, { id: 'combo-b', descChars: 900 }, { id: 'stack-a', descChars: 900 },
     { id: 'extra-a', descChars: 300 }, { id: 'dup-1', descChars: 500 }, { id: 'dup-2', descChars: 100 },
@@ -126,13 +126,65 @@ test('「권장대로 줄이기」: 겹침 → 직접 더한 것 → 조합 → 
   const tierOf = trimTier({ comboSkills: new Set(['combo-a', 'combo-b']), stackSkills: new Set(['stack-a']), overlaps: [['dup-1', 'dup-2']] }, ids, (id) => ks.find((k) => k.id === id).descChars);
   assert.deepEqual(ids.map(tierOf), [2, 2, 3, 1, 0, 1], '겹침 묶음은 가장 짧은 것(dup-2)을 남긴다');
   const L = { current: 2000, budget: 8000, budgetSource: 'default', maxDesc: DESC_CAP };
-  const big = { ...L, current: 4000 };
+  // 한도 안(80% 넘어도)이면 설명이 빠지지 않으니 뺄 것이 없다
+  assert.deepEqual(trimPlan({ ...L, current: 4500 }, ks, tierOf), []);
+  const big = { ...L, current: 5000 }; // 5000 + 3338 = 8338
   const drop = trimPlan(big, ks, tierOf);
-  assert.deepEqual(drop, ['dup-1', 'extra-a', 'dup-2', 'combo-b']);
-  assert.ok(budgetOf(big, ks.filter((k) => !drop.includes(k.id))).ratio < 0.8);
-  // 지금 있는 것만으로 이미 80% 이상이면 겹침·직접 더한 것만 뺀다(조합·스택 맞춤까지 빼도 알림이 안 사라진다)
-  assert.deepEqual(trimPlan({ ...L, current: 7000 }, ks, tierOf), ['dup-1', 'extra-a', 'dup-2']);
+  assert.deepEqual(drop, ['dup-1'], '넘친 만큼만 — 겹침 하나로 한도 아래');
+  assert.ok(budgetOf(big, ks.filter((k) => !drop.includes(k.id))).ratio <= 1);
+  // 지금 있는 것만으로 이미 80% 이상이어도 목표는 한도(100%) — 가벼운 것부터 빼되, 100% 를 넘지 않을 때까지(검토 2026-11-11)
+  const full = { ...L, current: 7000 };
+  const fullDrop = trimPlan(full, ks, tierOf);
+  assert.equal(fullDrop[0], 'dup-1', fullDrop.join(',')); // 겹침이 가장 먼저(되살리기로 작은 것은 다시 들어올 수 있다)
+  assert.ok(budgetOf(full, ks.filter((k) => !fullDrop.includes(k.id))).ratio <= 1, fullDrop.join(','));
   assert.deepEqual(trimPlan(L, [], tierOf), []);
+});
+
+test('「권장대로 줄이기」: 하는 일이 덜 중요한 것(git·ci·plan)부터 — 끝내기 전 확인(test)은 늦게(역할극 5 회차)', () => {
+  const ks = [
+    { id: 'verification-before-completion', descChars: 225, stages: ['test', 'review'] },
+    { id: 'gha-security-review', descChars: 363, stages: ['security', 'ci'] },
+    { id: 'grilling', descChars: 152, stages: ['plan'] },
+    { id: 'handoff', descChars: 86, stages: ['git', 'meta'] },
+  ];
+  const ids = ks.map((k) => k.id);
+  const by = (id) => ks.find((k) => k.id === id);
+  const tierOf = trimTier({ comboSkills: new Set(['verification-before-completion', 'grilling', 'handoff']), stackSkills: new Set(['gha-security-review']), stagesOf: (id) => by(id).stages }, ids, (id) => by(id).descChars);
+  const L = { current: 7000, budget: 8000, budgetSource: 'default', maxDesc: DESC_CAP };
+  const order = trimPlan({ ...L, current: 2000, budget: 2500 }, ks, tierOf); // 2000 + 919 = 2919 > 2500
+  // 빼는 차례(중요도): handoff < grilling < 끝내기 전 확인(조합) < gha(스택 맞춤 — 조합 스킬을 다 뺀 뒤에야). 빼는 결과는 되살리기로 달라지므로 차례 값으로 본다
+  assert.ok(tierOf('handoff') <= tierOf('grilling') && tierOf('grilling') < tierOf('verification-before-completion') && tierOf('verification-before-completion') < tierOf('gha-security-review'));
+  assert.ok(order.length > 0);
+  assert.ok(!order.includes('gha-security-review'), order.join(','));
+});
+
+test('「권장대로 줄이기」: 스택에 맞춘 스킬은 일반 작업 스킬보다 늦게, 목표는 한도 그대로(역할극 14 회차: 778자 넘었는데 5개를 빼라고 했다)', () => {
+  // 14 회차 숫자: 지금 6,313자 + 새 2,465자 = 8,778자 / 8,000자
+  const ks = [
+    { id: 'brainstorming', descChars: 480, stages: ['plan'] }, { id: 'writing-plans', descChars: 300, stages: ['plan'] },
+    { id: 'receiving-code-review', descChars: 420, stages: ['review'] }, { id: 'finishing-a-development-branch', descChars: 250, stages: ['git'] },
+    { id: 'supabase-postgres', descChars: 330, stages: ['impl'] }, { id: 'gha-security-review', descChars: 363, stages: ['security', 'ci'] },
+  ];
+  const by = (id) => ks.find((k) => k.id === id);
+  const fill = 2465 - ks.reduce((a, k) => a + catalogChars(k), 0);
+  ks[0].descChars += fill; // 합계를 2,465자로 맞춘다
+  const tierOf = trimTier({ comboSkills: new Set(ks.slice(0, 4).map((k) => k.id)), stackSkills: new Set(['supabase-postgres', 'gha-security-review']), stagesOf: (id) => by(id).stages }, ks.map((k) => k.id), (id) => by(id).descChars);
+  const L = { current: 6313, budget: 8000, budgetSource: 'default', maxDesc: DESC_CAP };
+  assert.equal(budgetOf(L, ks).total, 8778);
+  const drop = trimPlan(L, ks, tierOf);
+  assert.ok(!drop.includes('supabase-postgres') && !drop.includes('gha-security-review'), drop.join(','));
+  const after = budgetOf(L, ks.filter((k) => !drop.includes(k.id))).total;
+  assert.ok(after <= 8000, `${after}`);
+  // 뺀 것 하나를 다시 넣으면 한도를 넘는다(필요한 만큼만 뺐다)
+  for (const id of drop) assert.ok(after + catalogChars(by(id)) > 8000, id);
+  assert.ok(drop.length <= 2, drop.join(','));
+});
+
+test('80% 선 바로 아래(6,313/6,400자)에서 새 스킬을 다 빼라고 하지 않는다(역할극 8 회차 다시)', () => {
+  const ks = Array.from({ length: 11 }, (_, i) => ({ id: `s${i}`, descChars: 240, stages: [i < 3 ? 'git' : 'test'] }));
+  const tierOf = trimTier({ comboSkills: new Set(ks.map((k) => k.id)), stackSkills: new Set(), stagesOf: (id) => ks.find((k) => k.id === id).stages }, ks.map((k) => k.id), () => 240);
+  const drop = trimPlan({ current: 6313, budget: 8000, budgetSource: 'default', maxDesc: DESC_CAP }, ks, tierOf);
+  assert.ok(drop.length > 0 && drop.length < ks.length, drop.join(','));
 });
 
 test('새로 들어가는 스킬: 복사 설치 + 프로젝트에 같은 폴더가 없는 것만', () => {
@@ -181,4 +233,11 @@ test('카탈로그 설명: 모든 스킬에 잰 값이 있다(1,536자 넘김·�
 
 test('화면 파일 목록에 예산 화면 파일이 있다', () => {
   assert.ok(STATIC['/budget.js'] && STATIC['/budget-view.js']);
+});
+
+test('줄이기 차례표(STAGE_KEEP)에 카탈로그의 stage 가 모두 있다', async () => {
+  const { STAGE_KEEP } = await import('../../picker/budget.js');
+  const all = loadAll();
+  const stages = new Set(all.catalog.skills.flatMap((s) => s.stages || []));
+  for (const s of stages) assert.ok(s in STAGE_KEEP, `STAGE_KEEP 에 없음: ${s}`);
 });
