@@ -171,6 +171,18 @@ const vaultSecret = (w) => {
   return a === 'kv' && b === 'get';
 };
 
-const BY_TOOL ={ aws: awsSecret, kubectl: kubeSecret, terraform: tfOutput, tofu: tfOutput, gcloud: gcloudSecret, az: azSecret, vault: vaultSecret };
+// macOS 키체인: security find-generic-password·find-internet-password 의 -w(비밀번호만 찍음)·-g(비밀번호도 찍음) — 역할극 16 회차 G4, 2026-11-16.
+// 그냥 찾기(속성만 보임)는 묻지 않는다. 짧은 옵션은 붙여 쓸 수 있다(-gw). 값을 받는 옵션(-a 계정 -s 서비스 …)의 값은 건너뛴다
+const SECURITY_VALUE = /^-[acCDGjlrstTsdpP]$/;
+const securitySecret = (w) => {
+  if (!/^find-(?:generic|internet)-password$/.test(w[1] || '')) return false;
+  for (let i = 2; i < w.length; i++) {
+    if (SECURITY_VALUE.test(w[i])) { i++; continue; }
+    if (/^-[A-Za-z]*[wg][A-Za-z]*$/.test(w[i])) return true;
+  }
+  return false;
+};
+
+const BY_TOOL ={ aws: awsSecret, kubectl: kubeSecret, terraform: tfOutput, tofu: tfOutput, gcloud: gcloudSecret, az: azSecret, vault: vaultSecret, security: securitySecret };
 // w: 앞붙이를 벗긴 낱말(첫 낱말은 도구 이름), ctx.cwd: 명령이 도는 폴더(terraform output 의 .tf 를 읽는 자리)
 export const secretRead = (w, ctx = {}) => Object.hasOwn(BY_TOOL, w[0] || '') && BY_TOOL[w[0]](w, ctx);

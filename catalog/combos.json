@@ -204,8 +204,10 @@
     {"when":["Spring Boot"],"skills":[],"rules":["spring"]},
     {"when":["PyTorch","scikit-learn","XGBoost","MLflow","Optuna","Hydra","wandb"],"skills":[],"rules":["ml"]},
     {"when":["dbt"],"skills":[],"rules":["dbt"]},
-    {"_설명":"인프라 코드 지침은 Terraform(OpenTofu 포함)·Ansible 에만. 줄 대부분(prevent_destroy·publicly_accessible·required_providers·tfvars)이 Terraform 것이라 Kubernetes 매니페스트만 있는 앱 저장소에는 맞지 않았다(독립 검토 2026-11-13)","when":["Terraform","Ansible"],"skills":[],"rules":["iac"]},
+    {"_설명":"인프라 안전장치를 끄는 고침 묻기(iac-edit) — .tf 의 삭제 보호·스냅숏·공개·prevent_destroy·인바운드 0.0.0.0/0 과 운영 Argo CD 의 prune(역할극 15 회차 G1·M5·M6, 2026-11-16)","when":["Terraform","Argo CD"],"skills":[],"hooks":["iac-edit"]},
+    {"_설명":"인프라 코드 지침은 Terraform(OpenTofu 포함)·Ansible·Argo CD 에만. 줄 대부분(prevent_destroy·publicly_accessible·required_providers·tfvars)이 Terraform 것이라 Kubernetes 매니페스트만 있는 앱 저장소에는 맞지 않았다(독립 검토 2026-11-13). Argo CD(GitOps)만 있는 저장소도 「Argo CD 로만」 줄이 필요해 넣고, Terraform 줄은 {{kind:terraform}} 으로 뺀다(검토 2026-11-16)","when":["Terraform","Ansible","Argo CD"],"skills":[],"rules":["iac"]},
     {"when":["Rust"],"skills":[],"rules":["rust"]},
+    {"_설명":"Next.js 지침(역할극 13 회차, 2026-11-16): 비밀값은 서버 코드에서만, 클라이언트 컴포넌트에 props 로 넘기지 않기, 로그인 검사는 middleware 밖에서도, dangerouslySetInnerHTML 은 정화 함수 하나로","when":["Next.js"],"skills":[],"rules":["nextjs"]},
     {"_설명":"결제·돈 계산 지침(사용자 결정 2026-11-13, 역할극 14 회차 M5·M7). Payments 는 결제 SDK 의존성이나 소스 경로의 돈 도메인 낱말 둘 이상으로만 잡힌다(scripts/lib/payments.mjs)","when":["Payments"],"skills":[],"rules":["payments"]},
     {"when":["FastAPI","NestJS","Express","Django REST Framework","Spring Boot"],"skills":["api-and-interface-design"]}
   ],

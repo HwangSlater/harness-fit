@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { extractBlock, setBlock } from './claude-md.mjs';
 import { readPluginJson } from './paths.mjs';
-import { MARKER, launcherText, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
+import { isOurLauncher, PRE_COMMIT_CONFIG, PRE_COMMIT_ENTRY, PRE_COMMIT_RUNNER } from '../../hooks/lib/git-hook.mjs';
 
 export const BACKUP_DIR = path.join('.claude', 'harness-backup');
 export const GITIGNORE_LINE = '.claude/harness-backup/';
@@ -19,9 +19,13 @@ const STAMP = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/; // new Date().toIS
 const UNDONE_SUFFIX = '.undone'; // 고친 모습을 남겨 둔 백업은 이름을 바꿔 다음 되돌리기 대상에서 뺀다
 const CLOCK_SKEW_MS = 60e3; // 시계 차이 허용. 이보다 미래인 백업은 심어 둔 것으로 본다
 // 적용이 만들 수 있는 경로(plan 과 같은 목록). 이 밖의 경로는 백업 목록에 있어도 건드리지 않는다.
-// .git/ 안은 이 파일 하나만(커밋 때 다시 보는 git 훅, apply.mjs gitHookPlan). .git/hooks 의 다른 훅·설정은 목록에 있어도 건드리지 않는다.
+// .git/ 안은 pre-commit 과 그 .legacy 만(커밋 때 다시 보는 git 훅, plan.mjs gitHookPlan — 사본이 우리 실행기 그대로일 때만 되살린다). .git/hooks 의 다른 훅·설정은 목록에 있어도 건드리지 않는다.
 const GIT_HOOK_PATH = '.git/hooks/pre-commit';
-const ALLOWED = new Set(['.claude/harness.json', 'CLAUDE.md', '.claude/settings.json', '.claude/harness-request.md', '.gitignore', GIT_HOOK_PATH]);
+// .claude/harness-fit-pre-commit.mjs: pre-commit 프레임워크를 쓰는 저장소에 넣는 실행 파일(hooks/lib/git-hook.mjs PRE_COMMIT_RUNNER)
+// .git/hooks/pre-commit.legacy: pre-commit install 이 옮겨 둔 옛 우리 훅. pre-commit 으로 바꿀 때 적용이 지우고(plan.mjs gitHookPlan) 되돌리기는 되살리지 않고 알린다(notes)
+const LEGACY_HOOK_PATH = `${GIT_HOOK_PATH}.legacy`;
+const GIT_HOOK_PATHS = new Set([GIT_HOOK_PATH, LEGACY_HOOK_PATH]);
+const ALLOWED = new Set(['.claude/harness.json', 'CLAUDE.md', '.claude/settings.json', '.claude/harness-request.md', '.gitignore', ...GIT_HOOK_PATHS, PRE_COMMIT_RUNNER]);
 const SKILL_PATH = /^\.claude\/skills\/[\w-][\w.-]*$/; // 첫 글자가 점이면 안 된다(`.`·`..` 로 폴더 전체를 지우지 못하게)
 
 const posix = (p) => p.split(path.sep).join('/');
@@ -165,19 +169,24 @@ const withoutShare = (now, before) => {
 };
 
 // 한 항목 되돌리기 → 'removed' | 'restored' | 'trimmed'(넣은 부분만 뺌) | 'saved'(고친 모습을 남기고 되돌림) | 'gone' | 'skipped'(믿을 수 없는 경로)
-// git 훅은 백업 폴더의 사본을 믿지 않는다(심어 둔 사본을 되살리면 다음 커밋 때 그 코드가 돈다).
-// 우리 표시가 있는 파일만 지우고, 「있던 우리 훅」은 지금 플러그인 경로로 새로 만든다. 표시가 없으면(사용자 훅) 건드리지 않는다.
-// 우리 표시가 없으면 'kept' — 적용 뒤 팀원이 pre-commit install·Husky 등으로 바꾼 훅이다. 지우면 팀의 커밋 검사가 소리 없이 멈춘다
-// (역할극 15 회차, 2026-11-13). 'skipped'(믿을 수 없는 백업)와 나눠 「남겨 뒀어요」로 알린다
-const undoGitHook = (abs, e) => {
+// git 훅: 지금 글이 우리 실행기 그대로일 때만 지우거나 바꾼다(isOurLauncher — 표시만 있는 남의 훅·줄을 덧붙인 훅은 둔다).
+// 아니면 'kept' — 적용 뒤 팀원이 pre-commit install·Husky 등으로 바꾼 훅이다. 지우면 팀의 커밋 검사가 소리 없이 멈춘다
+// (역할극 15 회차, 2026-11-13). 'skipped'(믿을 수 없는 백업)와 나눠 「남겨 뒀어요」로 알린다.
+// 되살릴 때는 백업 사본 글을 그대로 쓴다(다시 만들면 원래 적어 둔 경로가 바뀌었다 — 검토 2026-11-16). 적용은 우리 실행기 그대로인 것만
+// 바꾸거나 지우므로, 사본이 우리 실행기가 아니면 심어 둔 것으로 보고 쓰지 않는다(다음 커밋 때 그 코드가 돌지 않게).
+// .legacy 는 되살리지 않는다 — pre-commit 의 훅이 그것을 부르는데 Windows 에서는 /bin/sh 를 못 찾아 모든 커밋이 막힌다. 'legacy-not-restored' 로 알린다
+const undoGitHook = (abs, e, dir) => {
   const now = readText(abs);
-  if (now !== null && !now.includes(MARKER)) return 'kept';
+  if (now !== null && !isOurLauncher(now)) return 'kept';
   if (e.action === 'create') {
     if (now === null) return 'gone';
     fs.rmSync(abs, { force: true });
     return 'removed';
   }
-  fs.writeFileSync(abs, launcherText(PLUGIN_DIR));
+  const original = readText(path.join(dir, 'files', e.path));
+  if (!isOurLauncher(original)) return 'skipped';
+  if (posix(e.path) === LEGACY_HOOK_PATH) return 'legacy-not-restored';
+  if (now !== original) fs.writeFileSync(abs, original);
   fs.chmodSync(abs, 0o755);
   return 'restored';
 };
@@ -185,7 +194,7 @@ const undoGitHook = (abs, e) => {
 const undoEntry = (root, dir, e, savedDir) => {
   const abs = resolveAllowed(root, e.path);
   if (!abs) return 'skipped';
-  if (posix(e.path) === GIT_HOOK_PATH) return undoGitHook(abs, e);
+  if (GIT_HOOK_PATHS.has(posix(e.path))) return undoGitHook(abs, e, dir);
   const original = e.action === 'create' ? null : path.join(dir, 'files', e.path);
   if (!fs.existsSync(abs) && !original) return 'gone';
   const edited = !!e.hash && fs.existsSync(abs) && fingerprint(abs) !== e.hash;
@@ -226,14 +235,18 @@ export const undo = (root) => {
   if (!found) return { error: 'no-backup' };
   const { dir, manifest } = found;
   const savedDir = path.join(dir, 'edited');
-  const out = { undone: manifest.stamp, removed: [], restored: [], trimmed: [], saved: [], skipped: [], kept: [] };
+  const out = { undone: manifest.stamp, removed: [], restored: [], trimmed: [], saved: [], skipped: [], kept: [], notes: [] };
   for (const e of manifest.entries) {
     const r = undoEntry(root, dir, e, savedDir);
-    if (out[r]) out[r].push(e.path);
+    if (r === 'legacy-not-restored') out.notes.push({ path: e.path, reason: r });
+    else if (out[r]) out[r].push(e.path);
   }
   // pre-commit 프레임워크는 있던 훅(우리 실행기)을 pre-commit.legacy 로 옮겨 함께 돌린다 — 지우지 않고 알린다
   // (설정 파일이 사라지면 그 실행기는 아무것도 막지 않는다)
-  if (out.kept.includes(GIT_HOOK_PATH) && (readText(path.join(root, `${GIT_HOOK_PATH}.legacy`)) || '').includes(MARKER)) out.kept.push(`${GIT_HOOK_PATH}.legacy`);
+  if (out.kept.includes(GIT_HOOK_PATH) && !out.restored.includes(LEGACY_HOOK_PATH) && isOurLauncher(readText(path.join(root, LEGACY_HOOK_PATH)))) out.kept.push(LEGACY_HOOK_PATH);
+  // 사용자가 붙여 넣은 pre-commit 항목(id: harness-fit)은 남의 설정이라 고치지 않는다. 불러오기 글은 실행 파일이 없으면 알리고 통과하지만(git-hook.mjs PRE_COMMIT_LOADER)
+  // 쓸모가 없어졌으니 지워도 된다고 알린다
+  if (manifest.entries.some((e) => posix(e.path) === PRE_COMMIT_RUNNER) && PRE_COMMIT_ENTRY.test(readText(path.join(root, PRE_COMMIT_CONFIG)) || '')) out.kept.push(PRE_COMMIT_CONFIG);
   if (!out.kept.length) delete out.kept;
   if (out.saved.length) {
     // 고친 모습을 남겼으면 백업 폴더를 지우지 않고 이름만 바꾼다(다음 되돌리기 대상에서는 빠진다).
@@ -247,6 +260,6 @@ export const undo = (root) => {
       if (!fs.readdirSync(d).length) fs.rmdirSync(d);
     } catch {}
   }
-  for (const k of ['trimmed', 'saved', 'skipped']) if (!out[k].length) delete out[k];
+  for (const k of ['trimmed', 'saved', 'skipped', 'notes']) if (!out[k].length) delete out[k];
   return out;
 };

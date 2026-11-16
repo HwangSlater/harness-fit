@@ -11,6 +11,7 @@ import { CONVENTIONAL, ANY_CONVENTIONAL } from '../hooks/rules/message.mjs';
 const EXTRA_TYPE_MIN = 1; // 표준 밖 타입을 저장소 꼴로 칠 최소 횟수(한 번이라도 쓰면 — 사람이 고른 타입이다)
 import { suggest } from './lib/suggest.mjs';
 import { paymentSignal } from './lib/payments.mjs';
+import { sqlcConfig } from './lib/sqlc.mjs';
 import { authSignal, depRanges, rangesWide, toolStacks, TOOL_STACKS } from './lib/signals.mjs';
 
 // 형식 훅(commit-msg·branch-name) 기본값을 정하려고 보는 기록 크기(scripts/lib/catalog.mjs fitOff)
@@ -111,6 +112,8 @@ const git = (cwd, args) => {
 
 // [표시 이름, 판정] — 판정은 (deps, has) → boolean
 // React 는 RN·Expo 앱이 아닐 때만(RN 앱에도 react 가 있어 웹용 React 스킬이 같이 들어가던 일 — 2026-11-05)
+// next 가 devDependencies 에만 있을 때 Next.js 앱으로 볼 단서(설정 파일·라우트 폴더)
+const NEXT_FILES = ['next.config.js', 'next.config.mjs', 'next.config.ts', 'next.config.cjs', 'app', 'pages', 'src/app', 'src/pages'];
 const JS_STACKS = [
   ['Next.js', (d) => d.next], ['React', (d) => d.react && !d.next && !d['react-native'] && !d.expo], ['Vue', (d) => d.vue], ['Svelte', (d) => d.svelte],
   ['Angular', (d) => d['@angular/core']], ['React Native', (d) => d['react-native']], ['Expo', (d) => d.expo],
@@ -164,7 +167,7 @@ const GO_STACKS = [
   ['PostgreSQL', /github\.com\/(?:jackc\/pgx|lib\/pq)\b/], ['Redis', /github\.com\/(?:(?:redis|go-redis)\/go-redis|go-redis\/redis\b|redis\/rueidis|gomodule\/redigo)/],
 ];
 // 파일·폴더로만 아는 것: ROS 2(package.xml 의 ament 빌드), C/C++(CMake, 또는 Makefile 과 C 소스), Jupyter 노트북
-const EXTRA_STACKS = ['ROS 2', 'Payments', 'C/C++', 'Jupyter', 'Terraform', 'Kubernetes', 'Helm', 'Argo CD', 'Ansible', ...TOOL_STACKS, 'Gradle', 'Maven', 'uv', 'Rails', 'dbt', 'SQL migrations', 'Swift', ...JVM_STACKS.map(([n]) => n)];
+const EXTRA_STACKS = ['ROS 2', 'Payments', 'C/C++', 'Jupyter', 'Terraform', 'Kubernetes', 'Helm', 'Argo CD', 'Ansible', ...TOOL_STACKS, 'Gradle', 'Maven', 'uv', 'Rails', 'dbt', 'sqlc', 'SQL migrations', 'Swift', ...JVM_STACKS.map(([n]) => n)];
 
 // 스택 → 카탈로그 분류. 조합 추천에 쓴다.
 const KIND = { web: ['Next.js', 'React', 'Vue', 'Svelte', 'Angular'], mobile: ['React Native', 'Expo', 'Flutter', 'iOS'],
@@ -177,11 +180,11 @@ const APP_KINDS = ['web', 'mobile', 'backend', 'data', 'robotics'];
 // 앱 코드가 있다고 볼 스택(언어 + 앱 종류 스택) — detect().code
 const CODE_STACKS = new Set(['Python', 'C/C++', 'Node.js', 'TypeScript', 'Gradle', 'Maven', 'Swift', ...APP_KINDS.flatMap((k) => KIND[k])]);
 // 저장소 단서 종류(지침 줄의 {{kind:…}} — rule-files.mjs kindFits): html·js 그 파일이 있음, auth 로그인 단서(lib/signals.mjs authSignal),
-// pinned 의존성을 범위로 두지 않는 JS 저장소(라이브러리도 아님), helm Helm 차트가 있음. 사용자가 알려 준 스택으로 다시 셀 때도 그대로 둔다(withHints)
+// pinned 의존성을 범위로 두지 않는 JS 저장소(라이브러리도 아님), helm Helm 차트가 있음, argocd Argo CD 앱 정의가 있음(인프라 지침 「Argo CD 로만」 줄), terraform .tf 가 있음(인프라 지침의 Terraform 줄 — Argo CD 만 있는 저장소에 빼려고), ansible Ansible 설정이 있음(인바운드·공개 버킷 줄은 terraform|ansible — Ansible 만 있는 저장소에서 빠지던 회귀, 검토 2026-11-16). 사용자가 알려 준 스택으로 다시 셀 때도 그대로 둔다(withHints)
 const SIGNAL_KINDS = ['html', 'js', 'auth', 'pinned'];
 // 앱 코드가 없으면(code: false — 인프라만) general 도 두지 않는다: 모르는 앱이 아니라 앱이 없는 것이다(로그인 검사 줄이 인프라 저장소에 — 역할극 15 회차, 2026-11-13)
 const kindsOf = (stack, signals = [], code = true) => {
-  const kinds = [...Object.keys(KIND).filter((k) => KIND[k].some((s) => stack.includes(s))), ...SIGNAL_KINDS.filter((k) => signals.includes(k)), ...(stack.includes('Helm') ? ['helm'] : [])];
+  const kinds = [...Object.keys(KIND).filter((k) => KIND[k].some((s) => stack.includes(s))), ...SIGNAL_KINDS.filter((k) => signals.includes(k)), ...(stack.includes('Helm') ? ['helm'] : []), ...(stack.includes('Argo CD') ? ['argocd'] : []), ...(stack.includes('Terraform') ? ['terraform'] : []), ...(stack.includes('Ansible') ? ['ansible'] : [])];
   const out = kinds.some((k) => APP_KINDS.includes(k)) || code === false ? kinds : ['general', ...kinds];
   // 로그인 단서는 서버 쪽 코드가 있을 수 있는 저장소에서만(웹·서버·모르는 앱) — iOS 앱의 LoginView.swift 로 「서버에서 검사」 줄이 들어가지 않게(역할극 16 회차)
   return out.some((k) => ['web', 'backend', 'general'].includes(k)) ? out : out.filter((k) => k !== 'auth');
@@ -218,11 +221,19 @@ export const detect = (dir) => {
   const pkg = readJson(path.join(root, 'package.json'));
   const dirs = packageDirs(root, pkg);
   const hasIn = (f) => dirs.some((d) => fs.existsSync(path.join(root, d, f)));
-  const pkgs = dirs.map((d) => (d === '.' ? pkg : readJson(path.join(root, d, 'package.json')))).filter(Boolean);
-  const depsOf = (p) => ({ ...(p.dependencies || {}), ...(p.devDependencies || {}) });
-  const deps = Object.assign({}, ...pkgs.map(depsOf));
+  const pkgAt = dirs.map((d) => [d, d === '.' ? pkg : readJson(path.join(root, d, 'package.json'))]).filter(([, p]) => p);
+  const pkgs = pkgAt.map(([, p]) => p);
+  // next 가 devDependencies 에만 있으면(React UI 라이브러리의 @storybook/nextjs 등) Next.js 앱이 아니다 — next.config.* 나 app/·pages/ 가 있을 때만 센다(검토 2026-11-16)
+  const nextApp = (d) => NEXT_FILES.some((f) => fs.existsSync(path.join(root, d, f)));
+  const depsOf = ([d, p]) => {
+    const all = { ...(p.dependencies || {}), ...(p.devDependencies || {}) };
+    if (all.next && !p.dependencies?.next && !nextApp(d)) delete all.next;
+    return all;
+  };
+  const depsList = pkgAt.map(depsOf);
+  const deps = Object.assign({}, ...depsList);
   // 패키지마다 따로 판정해 합친다 — 합친 의존성으로 보면 apps/mobile 의 react-native 때문에 apps/web 의 React 가 사라졌다(검토 2026-11-11)
-  const stack = JS_STACKS.filter(([, ok]) => pkgs.some((p) => ok(depsOf(p)))).map(([n]) => n);
+  const stack = JS_STACKS.filter(([, ok]) => depsList.some((d) => ok(d))).map(([n]) => n);
   const add = (n) => !stack.includes(n) && stack.push(n);
   for (const [name, files] of FILE_STACKS) if (files.some(hasIn)) add(name);
   for (const [name, files] of TOP_ONLY) if (files.some(has)) add(name);
@@ -293,6 +304,8 @@ export const detect = (dir) => {
   if (/^\s*image:\s*["']?(?:[\w.-]+\/)*(?:postgres|postgresql|pgvector|postgis)(?::[\w.-]+)?["']?\s*$/im.test(compose) && OWNS_SCHEMA.some((s) => stack.includes(s))) add('PostgreSQL');
   // 데이터 엔지니어링 도구(역할극 10 회차): dbt 프로젝트 파일
   if (has('dbt_project.yml') || dirs.some((d) => fs.existsSync(path.join(root, d, 'dbt_project.yml')))) add('dbt');
+  // sqlc 설정(쿼리 → Go 코드 생성). 지침 「생성 코드」 줄은 commands.mjs 가 찾은 명령으로 채운다(역할극 14 회차 M6)
+  if (sqlcConfig(root)) add('sqlc');
   if (!stack.length && pkg) stack.push('Node.js');
   // 워크플로 파일이 있어야 GitHub Actions(빈 폴더만으로 잡던 일 — 역할극 6 회차, 2026-11-11)
   if (workflowFiles(root)) stack.push('GitHub Actions');

@@ -3,11 +3,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { RULE_MODULES, loadRules, kindOf } from '../lib/pretool.mjs';
+import { RULE_MODULES, loadRules, kindOf, KINDS } from '../lib/pretool.mjs';
 import { ruleOpts, runRules } from '../lib/dispatch.mjs';
 
 const RULES_DIR = new URL('../rules/', import.meta.url);
-const KINDS = ['shell', 'write', 'fetch'];
 
 test('표의 ids 는 그 모듈이 그 종류로 내는 규칙 id 와 같다', async () => {
   for (const m of RULE_MODULES) {
@@ -39,8 +38,8 @@ test('켠 id 만으로 부른 규칙은 모두 부른 것에서 켠 것만 고�
   }
 });
 
-test('kindOf: 셸·쓰기·웹 말고는 null', () => {
-  assert.deepEqual(['Bash', 'PowerShell', 'Write', 'Edit', 'NotebookEdit', 'WebFetch', 'Read', 'bash', ''].map(kindOf), ['shell', 'shell', 'write', 'write', 'write', 'fetch', null, null, null]);
+test('kindOf: 셸·쓰기·웹·읽기 말고는 null', () => {
+  assert.deepEqual(['Bash', 'PowerShell', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'WebFetch', 'Read', 'Glob', 'bash', ''].map(kindOf), ['shell', 'shell', 'write', 'write', 'write', 'write', 'fetch', 'read', null, null, null]);
 });
 
 test('dispatch: 옵션 모양, 켠 것만, 터진 규칙은 모으고 나머지는 돈다', () => {

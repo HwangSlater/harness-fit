@@ -6,6 +6,7 @@ import { findUnsafeHtml, unsafeHtmlTarget } from '../lib/unsafe-html.mjs';
 import { findUnpinned } from '../lib/pin-deps.mjs';
 import { findGhaInject } from '../lib/gha-inject.mjs';
 import { allowFor } from '../lib/allow.mjs';
+import { findClientEnv } from '../lib/client-env.mjs';
 // 찾은 것 → 문구. 쓰기 검사와 커밋 검사가 같은 문구를 쓴다(lib/messages.mjs).
 import { list, unsafeHtmlMessage, pinDepsMessage, ghaMessage } from '../lib/messages.mjs';
 
@@ -43,4 +44,17 @@ export const ghaInject = {
   },
 };
 
-export default [unsafeHtml, pinDeps, ghaInject];
+// "use client" 파일에서 NEXT_PUBLIC_ 이 아닌 process.env 읽기 — 막지 않고 Claude 에게 알린다(notice, lib/client-env.mjs)
+export const clientEnv = {
+  id: 'unsafe-html',
+  on: 'write',
+  notice: true,
+  check({ input, cwd, t }) {
+    const ti = input.tool_input || {};
+    const file = targetFile(ti);
+    const names = findClientEnv(ti, cwd, file);
+    return names.length ? t('clientEnv.notice', { file, names: names.map((n) => `process.env.${n}`).join(', ') }) : null;
+  },
+};
+
+export default [unsafeHtml, clientEnv, pinDeps, ghaInject];

@@ -1,6 +1,6 @@
 # 결정 — 훅
 
-> 최종 수정: 2026-11-13 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-16 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다 — 고쳐 온 차례는 git 기록과 archive 에 있다.
 
@@ -250,6 +250,38 @@
 - `vercel --target production`(`=production` 도, deploy 앞뒤 상관없이)과 `vercel redeploy` 를 Vercel 기본 묻는 명령에 더했다. `--target preview` 는 묻지 않는다. `catalog/combos.json`, 시험 `strict-cases/gaps.mjs`.
 - unsafe-html 설명은 「정화 함수를 거치면 통과」 를 맨 앞과 알아 둘 점에 둔다 — 긴 글 끝에 묻혀 세션이 「새로 넣으면 어디서나 막힌다」 고 적었다. 실제 동작: innerHTML 은 넣는 값이 모두 감싸일 때, dangerouslySetInnerHTML 등은 같은 줄에 정화 함수가 있을 때(미리 정화한 변수만 넣으면 막힘).
 
+### v0.4.1: 역할극 13·15·16 회차에서 미룬 훅 쪽 (2026-11-16)
+- **iac-edit(새 훅, kind ask)**: 15 회차 사용자가 가장 걱정한 것은 Claude 가 안전장치를 끄는 일. Write·Edit·MultiEdit 로 .tf·.tfvars·.hcl 을 고칠 때 고친 뒤 파일과 앞 파일에서 꼴의 수를 세어 늘면 묻는다(prevent_destroy = true 는 줄면) — 이미 있던 설정은 묻지 않는다. 꼴: deletion_protection = false(enable_·_enabled 포함)·skip_final_snapshot = true·publicly_accessible = true·인바운드 규칙의 0.0.0.0/0·::/0. 주석은 같은 길이 빈칸으로 가린 뒤 센다. `hooks/lib/iac-edit.mjs`.
+- 인바운드는 감싼 블록으로 가린다: ingress { }·dynamic "ingress"·type = "ingress" 인 aws_security_group_rule·aws_vpc_security_group_ingress_rule·google_compute_firewall 의 source_ranges·Azure Inbound+Allow·이름에 ingress 가 든 모듈 값. egress·라우팅 표·변수 기본값은 묻지 않는다(헛물음). 같은 블록이 80·443 하나만 연다고 분명히 적었으면(from_port = to_port, ports·destination_port_range·ingress_rules = https-443-tcp) 공개 ALB 예외. 80~443 범위는 예외가 아니다.
+- Argo CD: 경로 낱말 prod·production(products 는 아님) 의 argoproj.io Application·ApplicationSet 에 syncPolicy.automated.prune: true 가 늘면 묻는다. 들여쓰기로 부모 키를 따라가는 작은 읽기 — YAML 해석기는 넣지 않는다(의존성 없음).
+- 묻기(permissionDecision ask)는 도구 종류를 가리지 않아 Write·Edit 에도 확인 창이 뜬다. 막지 않는 까닭: 시험 환경의 skip_final_snapshot 처럼 일부러 끄는 일이 흔하다. 셸로 고친 .tf(sed -i)는 보지 않는다 — 커밋 검사에 넣으면 사람 커밋까지 막게 돼서. 기본: Terraform·Argo CD 감지 때 stackAddons 로 켠다. MultiEdit 도 쓰기 종류로 본다(hooks.json matcher·kindOf).
+- **비밀 파일 읽기 묻기(protected-files 의 askRead, 기본 켬)**: 15 회차 G5·16 회차 G4 — 읽은 값이 대화 기록에 남는다. Read 도구(matcher 에 Read 를 더해 kind read)와 cat·less·more·head·tail·bat·nl·type·Get-Content·gc. 묻는 것은 키·인증서·SSH 키(forbiddenFile 의 file.key·file.ssh), *.tfvars·*.auto.tfvars(.json), kubeconfig*·.kube/config, 사용자가 그대로 적은 파일, 비밀 파일 이름처럼 보이는 꼴(*.tfstate*·secrets/·.vault_pass*·.env). 예시 파일은 뺀다.
+- 맞바꿈: .env 읽기는 디버깅에 흔해 적지 않으면 묻지 않는다(쓰기는 그대로 막는다). data/raw/ 같은 보통 보호 경로도 읽기는 묻지 않는다. 그 대가로 .env 값이 대화에 남을 수 있다 — 원하면 더 지킬 경로에 .env 를 적는다. grep 처럼 일부만 찍는 명령·스크립트 속 읽기는 보지 않는다. Read 를 matcher 에 넣어 읽을 때마다 Node 가 한 번 뜬다(설정 없는 프로젝트는 바로 통과). 예전 사례 「cat *.tfstate* 는 읽기만이라 통과」 는 묻기로 바꿨다(상태 파일엔 비밀값이 평문).
+- iOS 키체인: security find-generic-password·find-internet-password 의 -w·-g(붙여 쓴 -gw 도)는 ask-cmd 의 비밀값 찍기로 묻는다. 값을 받는 옵션의 값(-s -w)은 건너뛴다. `hooks/lib/secret-read.mjs`.
+- **"use client" 비공개 env 알림(unsafe-html, notice)**: 13 회차. 맨 앞 문장이 'use client' 인 .ts·.tsx·.js·.jsx·.mjs 에 NEXT_PUBLIC_ 이 아닌 process.env 읽기(NODE_ENV 빼고)를 새로 넣으면 additionalContext 로 알린다 — 막지 않는다(서버로 옮기라는 안내라 막을 일이 아님). 비밀값 훅이 아니라 unsafe-html 에 둔 까닭: 값이 아니라 코드 꼴(새 줄)을 보고, JS·TS 대상 거르기를 같이 쓴다. "use client" 를 새로 붙인 고치기는 파일 전체를 본다. `hooks/lib/client-env.mjs`.
+- **pre-commit 프레임워크**: 15 회차 6번 — .pre-commit-config.yaml 이 있으면 pre-commit install 이 있던 .git/hooks/pre-commit 을 pre-commit.legacy 로 옮겨 함께 돌린다(덮어쓰는 것이 아니다). Windows 에서는 우리 #!/bin/sh 실행기가 `ExecutableNotFoundError: /bin/sh` 로 모든 커밋을 막는다. 그래서 git 훅을 넣지 않고, 이 길로 바꿀 때 옛 우리 훅은 적용이 지운다(kind git-hook-remove, action remove) — .git/hooks/pre-commit 은 우리 실행기 그대로일 때, .legacy 는 그에 더해 pre-commit 의 훅이 있을 때만. 되돌리기는 pre-commit 만 백업 사본 그대로 되살린다(아래 두 번째 검토). 저장소 안에 실행 파일 `.claude/harness-fit-pre-commit.mjs`(적용이 넣고 되돌리기가 뺀다)를 두고 manual 에 kind: pre-commit 항목(repo: local, entry: node, args: ["-e", 짧은 불러오기 글], language: system, pass_filenames: false, always_run: true)을 준다. 불러오기 글(`PRE_COMMIT_LOADER`, 220자 아래)은 실행 파일이 있으면 불러오고 없거나 불러오다 깨지면 한 줄 알리고 0 — entry 가 파일을 바로 부르면 되돌리기 뒤나 .claude/ 를 커밋하지 않은 팀원 clone 에서 모든 커밋이 「Cannot find module」로 막혔다(검토 2026-11-16, 진짜 pre-commit 4.7.0 으로 확인). 지금 항목 그대로 붙여 넣었으면 붙여 넣기 단계를 다시 보이지 않는다(옛 항목이면 바꿔 넣으라고 보인다). 되돌리기는 붙여 넣은 항목이 남아 있으면 kept 에 `.pre-commit-config.yaml` 을 적어 지워도 된다고 알린다. 남의 yaml 은 고치지 않는다. 설정은 커밋해서 팀이 같이 쓰므로 이 PC 경로를 적지 않는다 — 실행 파일이 돌 때 각자 PC 에서 locatePlugin 으로 플러그인을 찾고, 못 찾으면 알리고 통과(없는 경로로 막으면 모든 커밋이 막힌다). 처음에는 찾는 코드를 node -e 로 통째로 넣었는데 설정에 1,400자 줄이 생겨 읽고 믿기 어려웠다(2026-11-16 화면 확인). 화면: 확인 단계 줄 + 끝 화면의 붙여 넣을 글과 「복사」 단추(`picker/changes.js` preCommitBox). 시험 `scripts/test/git-hook-apply.test.mjs`.
+- 시험: `hooks/test/strict-cases/v041.mjs`(읽기 R·MultiEdit M 사례 꼴을 helpers 에 더함).
+
+### v0.4.1 독립 검토 반영 (2026-11-16)
+- "use client" 찾기: 정규식(\s 와 /*…*/ 의 [\s\S]*? 가 겹침)이 앞 주석 24줄에 3.6초 — 공백·// 줄·/* */ 를 앞에서 한 번 훑는 반복으로. `hooks/test/client-env.test.mjs`.
+- iac-edit heredoc: `<<EOT`·`<<-EOT` 부터 그 낱말만 있는 줄까지는 본문을 빈칸으로 가리고(maskHclComments) 건너뛴다(scanBlocks). 본문 속 따옴표 밖 /* 가 파일 뒤를 숨기고, 홀수 개의 " 가 끝까지 따옴표로 읽히고, 정책·스크립트 속 skip_final_snapshot = true 를 설정으로 셌다. scanBlocks 의 따옴표도 줄 끝에서 닫는다(HCL 글자는 줄을 넘지 않음).
+- iac-edit 헛물음: test/·tests/·fixtures/·examples/·testdata/ 폴더 밑과 *.tftest.hcl 은 묻지 않는다. 폴더 이름 dev·develop·development·sandbox·playground(modules/ 밑은 빼고) 에서는 삭제 보호·마지막 스냅숏을 묻지 않는다(지우고 다시 만드는 자리) — 공개 DB·열린 포트는 묻는다. 운영 낱말(prod·production·prd·live)이 있으면 시험·개발 자리보다 앞선다. staging 은 운영에 가까워 dev 로 치지 않는다.
+- Argo CD: 파일 이름의 prod 낱말도 운영으로 센다(apps/api-prod.yaml — app-of-apps 에서 환경을 파일 이름으로 가르는 일이 흔하다. 헛물음은 prune 을 켤 때 한 번뿐). 진짜 `apiVersion: argoproj.io/…` 줄만 Argo CD 로 본다(주석 속 argoproj.io + apiVersion app.k8s.io 를 Argo CD 로 보던 일).
+- .tf.json·.tofu·.tofu.json·.tfvars.json 도 본다. 설정 꼴은 `키 = 값` 과 `"키": 값` 을 같이 받고, JSON 의 "ingress": [ { … } ] 도 인바운드로 본다. 알려진 놓침: `cidr_blocks = [local.anywhere]` 처럼 변수로 건넨 0.0.0.0/0(값을 따라가지 않는다), JSON 의 aws_security_group_rule(resource 머리 꼴이 달라 type 을 못 봄).
+- askRead 헛물음: kubeconfig* 는 코드·문서 확장자(.go·.md·.sh·.ts·.js·.py …)면 묻지 않고 이름 끝의 .tmpl·.tpl·.example 등은 틀로 보되 안을 보고, .yaml·.yml·.txt·확장자 없음은 묻되 helm templates/(위에 Chart.yaml) 밑은 안을 보고. .pem 은 1MB 까지 읽어 PRIVATE KEY 가 있을 때만(공개 인증서·CA 묶음이 흔하다) — 더 크거나 못 읽으면 묻는다. 키 파일은 경로를 푼 뒤 저장소 안 node_modules/·test(s)/fixtures/·testdata/ 밑이면 묻지 않는다.
+- 셸 읽기: 넘겨쓰기 대상(> f · 2> f · >f · >>f)은 쓰는 파일이라 보지 않는다. bash 의 `type 이름` 은 명령 이름을 알려 주는 내장 명령이라 PowerShell 이거나 인자에 . 또는 / 가 있을 때만 읽기로 본다. `cat <file`(붙여 쓴 <)은 읽기.
+- 시험: `hooks/test/strict-cases/v041-review.mjs`, `scripts/test/pre-commit-apply.test.mjs`(진짜 pre-commit 이 PATH 나 HARNESS_PRE_COMMIT 에 있으면 실제 커밋까지).
+
+### v0.4.1 두 번째 검토 반영 (2026-11-16)
+- 우리 git 훅은 표시(MARKER)가 아니라 글로 알아본다(`isOurLauncher` — 적어 둔 경로만 비우고 지금 실행기와, 옛 릴리스 v0.3.0~v0.4.0 실행기는 지문으로). 표시를 주석에 적은 남의 훅·줄을 덧붙인 실행기를 지우고 되돌리기가 원래 글 대신 실행기를 쓰던 일. 표시만 있으면 지우지 않고 git-hook-exists 로 알리고, gitHookActive 도 PreToolUse 커밋 검사를 끄지 않는다.
+- 되돌리기는 지우거나 바꾼 우리 훅을 백업 사본 글 그대로 되살린다(옛 경로까지). 사본이 우리 실행기가 아니면 심어 둔 것으로 보고 skipped.
+- .legacy 는 되살리지 않고 `notes: [{ path, reason: 'legacy-not-restored' }]` 로 알린다 — 되살리면 pre-commit 의 훅이 그것을 불러 Windows 에서 모든 커밋이 막힌다. 지우는 것도 .git/hooks/pre-commit 이 pre-commit 의 훅(머리글 `# File generated by pre-commit` + INSTALL_PYTHON·hook-impl)일 때만 — 사용자의 감싸는 훅이 .legacy 를 부르면 그대로 돈다.
+- 불러오기 글은 import 거절(던짐·문법 오류·폴더)도 받아 한 줄 알리고 0. verbose 는 뺐다(통과하는 커밋마다 3~4줄) — 알림은 `pre-commit run -v` 에서만 보이고, Claude Code 안의 커밋 검사는 상관없이 돈다. 붙여 넣기 단계는 yaml 에 지금 불러오기 글이 그대로 있을 때만 숨기고, id: harness-fit 만 있으면 `replace: true` 로 바꿔 넣으라고 보인다.
+- askRead: .pem 은 1MB 까지 다 읽는다(HAProxy·nginx 묶음은 키가 맨 끝). 경로는 절대 경로로 푼 뒤 저장소 안일 때만 시험 자료로 봐준다(`node_modules/../../.ssh/id_rsa`). kubeconfig 코드·문서에서 .txt 를 뺐다(`kubectl config view --raw > kubeconfig.txt`). 틀 이름(.tpl·.example·.j2·.gotmpl …)은 끝에 붙은 것만, 그리고 키·kubeconfig 이름이면 안에 PRIVATE KEY·client-key-data·token: 값이 있는지 본다({{ }}·${ }·<…> 자리 표시는 값이 아님). templates/ 는 바로 위 폴더에 Chart.yaml 이 있을 때만 helm 틀.
+- iac-edit: 파일 이름 속 _test(load_test_db.tf·ab_testing.tf)와 파일 이름·modules/ 밑 폴더 이름의 dev(dev-db.tf·modules/dev-portal)는 더 이상 봐주지 않는다. 운영 낱말에 prd 를 더했고 운영 낱말이 examples/·tests/ 보다 앞선다. live 는 넣었다가 뺐다 — Terragrunt 의 표준 꼴 infrastructure-live/{dev,prod} 에서 dev 예외가 사라졌다(짧은 검토 2026-11-16). 환경별 변수 파일(dev.tfvars·environments/sandbox.tfvars)은 파일 이름을 환경으로 본다(.tf 이름은 여전히 보지 않음). Argo CD 는 JSON 꼴("apiVersion": "argoproj.io/…", 한 줄·여러 줄)도 본다.
+- 넘겨쓰기: 2>&1·>&2·2>&- 는 낱말 안에서 끝나 다음 낱말을 건너뛰지 않는다(`redirectWord`). 알려진 놓침은 그대로: & 가르기가 `2>&1` 을 두 조각으로 나눠 `cat x 2>&1 ~/.ssh/id_rsa` 의 뒤 파일은 읽기 명령 밖으로 떨어진다.
+- 시험: `hooks/test/strict-cases/v041-review2.mjs`, `hooks/test/review6.test.mjs`, `scripts/test/review-v041b.test.mjs`, `scripts/test/pre-commit-apply.test.mjs`(진짜 pre-commit 4.7.0 으로 깨진 실행 파일 세 꼴까지).
+
 ## 이미 있는 훅과의 겹침
 
 ### 이미 있는 훅과 겹치면 끈다 (사용자 요청·선택, 2026-11-05)
@@ -270,6 +302,9 @@
 - 팀원 공유면 목록에서 못 찾은 이름(Claude 가 --similar 로 짚은 이 PC 의 스킬)도 겹침으로 치지 않는다. `picker/dup.js`.
 
 ## 바뀐 이력
+- 2026-11-16: v0.4.1 두 번째 검토 — git 훅은 글이 우리 실행기 그대로일 때만 지우고 되돌리기는 사본 그대로(.legacy 는 알리기만), 불러오기 글은 깨져도 통과·verbose 뺌·옛 항목 바꿔 넣기, askRead .pem 끝·../ 경로·kubeconfig.txt·틀 속 값·Chart.yaml, iac-edit _test·dev 이름·prd·live·JSON Argo CD.
+- 2026-11-16: v0.4.1 독립 검토 — pre-commit 항목은 실행 파일이 없어도 통과(불러오기 글·verbose)·옛 우리 git 훅 지우기·이미 붙여 넣으면 단계 숨김, "use client" 찾기 선형으로, iac-edit heredoc·시험·개발 자리·.tf.json·.tofu·Argo apiVersion, askRead kubeconfig 코드·문서·.pem 내용·시험 자료, 셸 넘겨쓰기·bash type·붙여 쓴 <.
+- 2026-11-16: v0.4.1 훅 쪽 — 새 훅 iac-edit(인프라 안전장치 끄기 묻기), 비밀 파일 읽기 묻기(protected-files askRead·Read 도구), 키체인 -w·-g 묻기, "use client" 비공개 env 알림, pre-commit 프레임워크 저장소는 git 훅 대신 붙여 넣을 항목, MultiEdit 도 쓰기로.
 - 2026-11-13: 다섯째 검토(평소 명령 1,002개) 헛막음 — 확인한 .env 처음 만들기, 커밋 없는 env -i, rollout status·history, 원격 도움말, 이 PC 주소 비밀번호, @'…'@ 메시지, git clean 경로, 숨은 실행 알림. 역할극 13 회차 4차 — Vercel --target production·redeploy 묻기, unsafe-html 설명 앞에 예외.
 - 2026-11-13: 다시 한 독립 검토와 역할극 16 회차 다시 매기기 — 적은 명령의 -h 를 도움말로 센 회귀, xargs 뒤 옵션·대상, 무시 파일 검사의 pathspec 마법 이름(못 보면 막음), CLAUDECODE 는 있으면 Claude·명령줄에서 바꾸면 막음, 셸 쓰기·danger-cmd 도 앞붙이·숨은 실행, 앞붙이·숨은 실행 더함, 태그 올리기 막기·이름 붙인 태그·push.followTags, 예시 파일, HEAD 에서 되돌리기는 묻기, 알려진 한계 정리.
 - 2026-11-13: 독립 검토 반영 — 비밀값 거르개 제곱 시간, 막기는 시험 실행 표시 무시·숨은 실행(백틱·파이프·find -exec·Start-Process…)·글 하나 block, 비밀값 읽기·도구 이름만 적은 묻기, 무시 파일 검사는 새 파일 전부·CLAUDECODE=0, .cer 빼기, JDBC·파일 DB, plist·python·ruby 쓰기 꼴.

@@ -29,6 +29,9 @@ import iosReviewCases from './strict-cases/ios-review.mjs';
 import blockReview2Cases from './strict-cases/block-review2.mjs';
 import blockReview3Cases from './strict-cases/block-review3.mjs';
 import blockReview4Cases from './strict-cases/block-review4.mjs';
+import v041Cases from './strict-cases/v041.mjs';
+import v041ReviewCases from './strict-cases/v041-review.mjs';
+import v041Review2Cases from './strict-cases/v041-review2.mjs';
 import { makeProbeRepo, runProbeCase } from '../../scripts/lib/existing-hooks.mjs';
 import { eventOf, ownSpace, buildScratch } from '../../scripts/lib/probe-run.mjs';
 import { checklistFile } from '../rules/checklist.mjs';
@@ -42,7 +45,7 @@ const probes = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'probes.jso
 const FLOW_OPTS = packs.flows.find((f) => f.id === 'github-flow').hooks;
 const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases };
 // 뒤에 더한 사례 파일은 같은 훅의 사례에 이어 붙인다(훅 옵션은 원래 파일의 것)
-for (const [id, more] of [...Object.entries(followupCases), ...Object.entries(infraCases), ...Object.entries(infraReviewCases), ...Object.entries(infraReview2Cases), ...Object.entries(infraReview3Cases), ...Object.entries(askReviewCases), ...Object.entries(gapCases), ...Object.entries(blockReviewCases), ...Object.entries(iosReviewCases), ...Object.entries(blockReview2Cases), ...Object.entries(blockReview3Cases), ...Object.entries(blockReview4Cases)]) {
+for (const [id, more] of [...Object.entries(followupCases), ...Object.entries(infraCases), ...Object.entries(infraReviewCases), ...Object.entries(infraReview2Cases), ...Object.entries(infraReview3Cases), ...Object.entries(askReviewCases), ...Object.entries(gapCases), ...Object.entries(blockReviewCases), ...Object.entries(iosReviewCases), ...Object.entries(blockReview2Cases), ...Object.entries(blockReview3Cases), ...Object.entries(blockReview4Cases), ...Object.entries(v041Cases), ...Object.entries(v041ReviewCases), ...Object.entries(v041Review2Cases)]) {
   const spec = CASES[id] || { block: [], pass: [] };
   CASES[id] = { ...spec, block: [...spec.block, ...more.block], pass: [...spec.pass, ...more.pass] };
 }
@@ -189,6 +192,8 @@ const inputsOf = (c, dir) => {
   if (c.tool === 'Edit') return [{ tool_name: 'Edit', cwd: dir, tool_input: { file_path: abs(c.file), old_string: c.old_string, new_string: c.new_string } }];
   if (c.tool === 'NotebookEdit') return [{ tool_name: 'NotebookEdit', cwd: dir, tool_input: { notebook_path: abs(c.file), new_source: c.new_source } }];
   if (c.tool === 'WebFetch') return [{ tool_name: 'WebFetch', cwd: dir, tool_input: { url: c.url, prompt: 'x' } }];
+  if (c.tool === 'Read') return [{ tool_name: 'Read', cwd: dir, tool_input: { file_path: c.abs === false ? c.file : abs(c.file) } }];
+  if (c.tool === 'MultiEdit') return [{ tool_name: 'MultiEdit', cwd: dir, tool_input: { file_path: abs(c.file), edits: c.edits } }];
   throw new Error(`모르는 사례: ${JSON.stringify(c)}`);
 };
 

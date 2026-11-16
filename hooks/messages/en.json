@@ -114,5 +114,16 @@
   "docs.stop": "Some documents do not follow the format. Fix them before finishing.\n{list}",
   "protected.commitNewUnchecked": "Blocked: could not check whether the new files in this commit are ignored by git (git check-ignore failed). Check the file names and try again, or ask the user to commit them.",
   "commit.claudeEnv": "This command changes or removes the CLAUDECODE environment variable, which makes the git hook treat Claude's commit as a human one. Run it without that part.",
-  "protected.restore": "This command restores {why} ({file}) to its committed content, so it needs your confirmation. Any changes the user made by hand will be lost."
+  "protected.restore": "This command restores {why} ({file}) to its committed content, so it needs your confirmation. Any changes the user made by hand will be lost.",
+  "protected.read": "Reading {file} ({why}) puts its values into the conversation log, so it needs your confirmation.",
+  "file.tfvars": "Terraform variable values file",
+  "file.kubeconfig": "cluster credentials (kubeconfig)",
+  "iac.ask": "{file} gets a setting that turns off a safety switch: {what}. These switches are there to prevent accidents, so it needs your confirmation.",
+  "iac.deletion": "deletion protection off (deletion_protection = false)",
+  "iac.snapshot": "no final snapshot on delete (skip_final_snapshot = true)",
+  "iac.public": "database opened to the internet (publicly_accessible = true)",
+  "iac.preventDestroy": "prevent_destroy = true removed (the resource can be deleted on destroy or replacement)",
+  "iac.openIngress": "a port other than 80/443 opened to the whole internet ({cidr})",
+  "iac.prune": "prune: true turned on for Argo CD automated sync (production resources removed from Git are deleted right away)",
+  "clientEnv.notice": "{file} is a \"use client\" file but reads {names}. In code sent to the browser, values not starting with NEXT_PUBLIC_ are undefined after the build. If it is a secret, read it only on the server (a server-only module or a route handler) and do not pass it to client components through props. If it is fine to make public, rename it to NEXT_PUBLIC_…."
 }

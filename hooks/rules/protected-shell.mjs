@@ -8,6 +8,7 @@ import { forbiddenFile, foldCase, protectedBy } from '../lib/secrets.mjs';
 import { isGlob, globMayHold, insideHit, skipNames } from '../lib/path-glob.mjs';
 import { missingOnly } from '../lib/exist-guard.mjs';
 import { substNote } from '../lib/hidden-runs.mjs';
+import { shellReadAsk } from '../lib/secret-files.mjs';
 
 // 보호 파일(.env·키·사용자가 적은 경로)을 셸로 바꾸거나 지우기 — Write·Edit 만 보던 빈틈(역할극 2·3·4 회차, 2026-11-11).
 // 커밋에 들어가는지는 rules/commit.mjs 가 따로 본다.
@@ -116,4 +117,7 @@ export const protectedShell = { id: 'protected-files', on: 'shell', check: (ctx)
 // (역할극 8·11 회차) 그냥 두지 않고 확인 창을 띄운다. 다른 커밋·브랜치에서 가져오기는 그대로 막는다(protectedShell)
 export const protectedRestore = { id: 'protected-files', on: 'shell', ask: true, check: (ctx) => protectedHit(ctx, true) };
 
-export default [protectedShell, protectedRestore];
+// 비밀 파일 내용을 화면에 찍는 명령(cat·less·head·tail·type·Get-Content …)은 묻는다 — 읽은 값이 대화 기록에 남아서(lib/secret-files.mjs)
+export const protectedReadShell = { id: 'protected-files', on: 'shell', ask: true, check: (ctx) => (ctx.opts.askRead === false ? null : shellReadAsk(ctx)) };
+
+export default [protectedShell, protectedRestore, protectedReadShell];

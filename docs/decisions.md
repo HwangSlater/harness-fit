@@ -1,6 +1,6 @@
 # 결정
 
-> 최종 수정: 2026-11-13 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-16 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 긴 근거·측정값·옛 이름은 archive 의 원문에 있다. 훅 원칙과 훅별 결정은 [decisions-hooks.md](decisions-hooks.md), 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정은 [decisions-recommend.md](decisions-recommend.md) 에 있다.
 
@@ -339,6 +339,7 @@
 - 어디서: `Downloads/find-your-skill-시안/`
 
 ## 바뀐 이력
+- v0.4.1 (2026-11-16, https://github.com/HwangSlater/harness-fit/releases/tag/v0.4.1): 인프라 안전장치 끄기를 묻는 iac-edit 훅(27개), 비밀 파일 읽기 묻기, use client 비공개 env 알림, pre-commit 프레임워크 저장소 지원, Next.js 지침(18개), Argo CD·sqlc·iOS 마이그레이션 시험 줄, 옵션 설명 한 줄, 검토 네 번.
 - v0.4.0 (2026-11-13, https://github.com/HwangSlater/harness-fit/releases/tag/v0.4.0): 실행 전에 묻기·막을 명령·migration-edit·stale-scratch 훅, 분야 지침 8→17개, 저장소 단서로 묻는 명령·보호 경로 미리 채우기, README·CI 명령, 옵션 칩·설명 달린 메뉴·확인 단계 옵션 표·공통 부품, 스킬 받기·겹침 시험·훅의 git 줄이기, 역할극 16 분야.
 - 2026-11-13: 화면 역할 평가 반영 — 제안 값 「+」 단추, 긴 까닭 목록 「외 N개」, 팀원 「아니요」에도 저장소 보호 경로 유지, 적용 실패 안내를 오류 종류별로.
 버전별 자세한 내용은 GitHub 릴리스(v0.3.0 부터)나 태그 메시지에 있다. 날짜별 옛 이력은 [decisions-archive.md](decisions-archive.md#바뀐-이력).

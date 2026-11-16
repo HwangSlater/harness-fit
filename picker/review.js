@@ -4,7 +4,7 @@ import { lrow, flash, shead, num, link, withCode, btn } from './parts.js';
 import { teamBox, teamHowTo } from './team.js';
 import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy, failedText } from './stats.js';
 import { stepHead, sumRows } from './frame.js';
-import { outcomeItems, warningsOf, pathLines, changeGroups } from './changes.js';
+import { outcomeItems, warningsOf, pathLines, changeGroups, manualSkills, preCommitStep, preCommitBox } from './changes.js';
 import { githubBox, githubResult } from './github.js';
 import { budgetBox, skillCommands } from './budget-view.js';
 import { noteFlash } from './review-notes.js';
@@ -81,7 +81,8 @@ export function finished(c, result) {
     h('p.qs', {}, t('done'), sel.note.trim() ? ` ${t('doneNote')}` : ''),
     h('div.qb.stack', {},
       result.failed?.length ? flash({ role: 'alert', ...failedText(t, result.failed, nameOf) }) : null,
-      result.manual?.length ? flash({ cls: '.info', title: t('doneManual', { list: names(result.manual) }) }) : null,
+      manualSkills(result).length ? flash({ cls: '.info', title: t('doneManual', { list: names(manualSkills(result)) }) }) : null,
+      preCommitBox(t, preCommitStep(result)),
       githubResult(c, result.github),
       p ? h('div.box', {}, h('div.box-h', {}, h('span', {}, t('doneWhat'))), changeGroups(c, p, result.failed)) : null,
       // CLAUDE.md 에 지침을 넣었을 때만: 사람만 아는 것은 직접 적게(지침 단계와 같은 한 줄)

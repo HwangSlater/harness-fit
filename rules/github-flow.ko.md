@@ -4,3 +4,4 @@
 - 브랜치 이름은 `feature/…`·`fix/…` 로 시작한다. {{!hook:branch-name}}
 - PR 하나에는 기능 하나(대략 400줄을 넘으면 나눈다). {{judge}}
 - 스쿼시 병합하고, 병합한 브랜치는 지운다. {{!hook:pr-merge}}
+- 작업을 마칠 때는 로컬 병합 대신 PR(GitLab 은 MR)을 연다. {{skill:finishing-a-development-branch}}

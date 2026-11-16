@@ -109,6 +109,7 @@
     ],
     "pass": [{ "tool_name": "Bash", "tool_input": { "command": "kubectl get pods" } }, { "tool_name": "Bash", "tool_input": { "command": "terraform plan" } }]
   },
+  "iac-edit": {"said":{"ko":"`deletion_protection = false` 를 넣는 .tf 쓰기는 묻고, 보호를 켜 둔 .tf 쓰기는 통과시켰어요","en":"Asked before writing a .tf file with `deletion_protection = false` and let one that keeps protection on through"},"block":[{"tool_name":"Write","tool_input":{"file_path":"<probe>/infra/db.tf","content":"resource \"aws_db_instance\" \"main\" {\n  deletion_protection = false\n}\n"},"ask":true},{"tool_name":"Write","tool_input":{"file_path":"<probe>/infra/sg.tf","content":"resource \"aws_security_group\" \"db\" {\n  ingress {\n    from_port   = 5432\n    to_port     = 5432\n    cidr_blocks = [\"0.0.0.0/0\"]\n  }\n}\n"},"ask":true}],"pass":[{"tool_name":"Write","tool_input":{"file_path":"<probe>/infra/db.tf","content":"resource \"aws_db_instance\" \"main\" {\n  deletion_protection = true\n}\n"}},{"tool_name":"Write","tool_input":{"file_path":"<probe>/infra/alb.tf","content":"resource \"aws_security_group\" \"alb\" {\n  ingress {\n    from_port   = 443\n    to_port     = 443\n    cidr_blocks = [\"0.0.0.0/0\"]\n  }\n}\n"}}]},
   "squash-push": {
     "said": { "ko": "커밋이 둘인 브랜치 푸시는 막고, 커밋을 하나로 묶은 브랜치 푸시는 통과시켰어요", "en": "Blocked pushing a branch with two commits and let a branch squashed to one through" },
     "block": [

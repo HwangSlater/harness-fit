@@ -201,5 +201,16 @@
   "applyFsSpace": "The disk is full. Free up space and apply again.",
   "applyFsBusy": "Another program is using the file. Close it and apply again.",
   "applyLostTitle": "Did not get the setup result",
-  "applyLostUndo": "If setup finished in the terminal and you want to undo it, type {cmd} in the Claude Code prompt."
+  "applyLostUndo": "If setup finished in the terminal and you want to undo it, type {cmd} in the Claude Code prompt.",
+  "wPreCommit": "An entry to paste into your pre-commit config",
+  "wPreCommitD": "This repository uses pre-commit, so no separate git hook is installed. Paste the entry shown after setup into .pre-commit-config.yaml to check at commit time too.",
+  "wGitHookRemove": "Remove the git pre-commit hook added earlier",
+  "wGitHookRemoveD": ".git/hooks/pre-commit — the entry in your pre-commit config now runs the same checks, so this one is removed. Undo puts it back.",
+  "cPreCommit": "An entry to paste into your pre-commit config",
+  "cPreCommitWhat": "Used instead of a git hook. It adds the runner .claude/harness-fit-pre-commit.mjs and leaves the config file alone — paste the entry below under repos: yourself.",
+  "cPreCommitHow": "Paste it under repos: in {file} and run pre-commit install again. Until then, commit checks run only inside Claude Code.",
+  "cPreCommitReplace": "The harness-fit entry in {file} is an older version. Delete it, paste the entry below in its place, and run pre-commit install again.",
+  "copy": "Copy",
+  "copied": "Copied",
+  "copyFail": "Could not copy — select the text and copy it yourself"
 }

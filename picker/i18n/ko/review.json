@@ -201,5 +201,16 @@
   "applyFsSpace": "디스크 공간이 모자라요. 공간을 비운 뒤 다시 적용해 주세요.",
   "applyFsBusy": "다른 프로그램이 파일을 쓰고 있어요. 그 프로그램을 닫고 다시 적용해 주세요.",
   "applyLostTitle": "적용 결과를 받지 못했어요",
-  "applyLostUndo": "터미널에서 적용이 끝났는데 되돌리고 싶으면 Claude Code 입력창에 {cmd} 를 치세요."
+  "applyLostUndo": "터미널에서 적용이 끝났는데 되돌리고 싶으면 Claude Code 입력창에 {cmd} 를 치세요.",
+  "wPreCommit": "pre-commit 설정에 붙여 넣을 항목",
+  "wPreCommitD": "이 저장소는 pre-commit 을 써서 git 훅을 따로 넣지 않아요. 적용 뒤 보여 주는 항목을 .pre-commit-config.yaml 에 붙여 넣으면 커밋할 때도 검사해요.",
+  "wGitHookRemove": "전에 넣은 커밋 전 git 훅 빼기",
+  "wGitHookRemoveD": ".git/hooks/pre-commit — 이제 pre-commit 설정의 항목이 같은 검사를 해서, 겹치지 않게 빼요. 되돌리기로 다시 넣을 수 있어요.",
+  "cPreCommit": "pre-commit 설정에 붙여 넣을 항목",
+  "cPreCommitWhat": "git 훅 대신 쓰는 길이에요. 실행 파일 .claude/harness-fit-pre-commit.mjs 를 넣고, 설정 파일은 고치지 않아요 — 아래 항목을 repos: 밑에 직접 붙여 넣으세요.",
+  "cPreCommitHow": "{file} 의 repos: 밑에 붙여 넣고 pre-commit install 을 다시 실행하세요. 넣기 전까지 커밋 검사는 Claude Code 안에서만 돌아요.",
+  "cPreCommitReplace": "{file} 에 있는 harness-fit 항목이 옛 모습이에요. 그 항목을 지우고 아래 항목으로 바꿔 넣은 뒤 pre-commit install 을 다시 실행하세요.",
+  "copy": "복사",
+  "copied": "복사했어요",
+  "copyFail": "복사하지 못했어요 — 글을 직접 골라 복사해 주세요"
 }

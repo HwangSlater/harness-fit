@@ -73,7 +73,8 @@ export default {
       S('rm -rf infra/modules', '보호 파일이 없는 폴더(실제로 훑음)', o({ setup: looseRepo })),
       S('rm -rf docs', '보호 파일이 없는 다른 폴더', o({ setup: infraRepo })),
       S('rm -f README2.md', '보호 꼴에 안 맞는 파일', o({ setup: looseRepo })),
-      S('cat infra/prod/terraform.tfstate.backup', '읽기만', o({ setup: infraRepo })),
+      // 읽기는 막지 않는다 — 비밀처럼 보이는 보호 경로(*.tfstate*)는 v0.4.1 부터 묻는다(v041.mjs). askRead 를 끄면 그냥 지나간다
+      S('cat infra/prod/terraform.tfstate.backup', '읽기만(askRead 끔)', { opts: { ...INFRA, askRead: false }, setup: infraRepo }),
       S('git add docs/a.md', '보호 꼴에 안 맞는 add', o({ setup: infraRepo })),
     ],
   },

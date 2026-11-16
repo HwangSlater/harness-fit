@@ -11,8 +11,8 @@ export const TAG = /\s*\{\{(?:(!?)(hook|skill):([\w|-]+)|judge)\}\}(?:\s*\{\{kin
 // 종류를 모르는 저장소(general — KIND 표에 없는 Fastify·Rails·PHP 등)도 넣는다: 보안 줄이 조용히 빠지지 않게(검토 2026-11-11)
 // 앱 코드가 없는 저장소(인프라만)와 모바일 앱에는 detect 가 general 을 두지 않는다 — 웹·서버 줄(로그인 검사)이 빠진다(역할극 15·16 회차, 2026-11-13).
 // 다만 html·js 는 저장소 파일로 확인한 것이라 general 이어도 넣지 않는다(HTML 없는 저장소에 「HTML 이스케이프」 줄 — 역할극 12 회차, 2026-11-11)
-// pinned(의존성을 범위로 두지 않음)·helm(차트 있음)도 같다. auth(로그인 단서)는 아니다 — {{kind:backend|auth}} 는 종류를 모르는 서버(Fastify·PHP)에도 넣는다
-const EVIDENCE = new Set(['html', 'js', 'pinned', 'helm']);
+// pinned(의존성을 범위로 두지 않음)·helm(차트 있음)·argocd(Argo CD 앱 정의 있음)·terraform(.tf 있음)도 같다. auth(로그인 단서)는 아니다 — {{kind:backend|auth}} 는 종류를 모르는 서버(Fastify·PHP)에도 넣는다
+const EVIDENCE = new Set(['html', 'js', 'pinned', 'helm', 'argocd', 'terraform', 'ansible']);
 export const kindFits = (m, kinds) => {
   if (!m?.[4] || !Array.isArray(kinds)) return true;
   const tags = m[4].split('|');

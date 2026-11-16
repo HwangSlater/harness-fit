@@ -4,6 +4,7 @@ import path from 'node:path';
 import { findSecrets, forbiddenFile } from '../lib/secrets.mjs';
 import { writeRows, targetFile } from '../lib/lines.mjs';
 import { allowFor } from '../lib/allow.mjs';
+import { readAsk } from '../lib/secret-files.mjs';
 import { secretsAllowOn, secretsHint, DEFAULT_MAX_LINES, sizeTarget, lineCount, sizeVerdict } from '../lib/messages.mjs';
 
 // 판정·문구 도우미는 커밋 검사와 같이 쓰려고 lib/messages.mjs 에 있다(예전 가져오기를 위해 여기서도 내보낸다).
@@ -54,4 +55,12 @@ export const fileSize = {
   },
 };
 
-export default [secretsWrite, protectedFiles, fileSize];
+// 비밀 파일을 Read 도구로 읽기 — 막지 않고 묻는다(protected-files 의 askRead, 기본 켬). 무엇을 묻는지는 lib/secret-files.mjs
+export const protectedRead = {
+  id: 'protected-files',
+  on: 'read',
+  ask: true,
+  check: ({ input, cwd, project, opts, t }) => (opts.askRead === false ? null : readAsk(input.tool_input?.file_path, { cwd, project, opts, t })),
+};
+
+export default [secretsWrite, protectedFiles, fileSize, protectedRead];

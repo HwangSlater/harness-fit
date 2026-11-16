@@ -15,6 +15,9 @@ export const W = (file, content, why, extra = {}) => ({ tool: 'Write', file, con
 export const E = (file, old_string, new_string, why, extra = {}) => ({ tool: 'Edit', file, old_string, new_string, why, ...extra });
 export const N = (file, new_source, why, extra = {}) => ({ tool: 'NotebookEdit', file, new_source, why, ...extra });
 export const F = (url, why) => ({ tool: 'WebFetch', url, why });
+// R(파일): Read, M(파일, [[옛 글, 새 글], …]): MultiEdit
+export const R = (file, why, extra = {}) => ({ tool: 'Read', file, why, ...extra });
+export const M = (file, edits, why, extra = {}) => ({ tool: 'MultiEdit', file, edits: edits.map(([old_string, new_string]) => ({ old_string, new_string })), why, ...extra });
 
 // 비밀값 모양(시험용 가짜)
 export const FAKE = {

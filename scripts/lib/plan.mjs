@@ -7,7 +7,7 @@ import { buildClaudeMd } from './claude-md.mjs';
 import { GITIGNORE_LINE } from './backup.mjs';
 import { pluginActive } from './installed.mjs';
 import { currentListing, planBudget } from './skill-budget.mjs';
-import { COMMIT_HOOK_IDS, gitHookState, launcherText, chainCommand, PLUGIN_DIR } from '../../hooks/lib/git-hook.mjs';
+import { COMMIT_HOOK_IDS, MARKER, gitHookState, ownHookPath, launcherText, chainCommand, PLUGIN_DIR, PRE_COMMIT_CONFIG, PRE_COMMIT_RUNNER, preCommitSnippet, preCommitPasted, runnerText, isOurLauncher, isPreCommitFrameworkHook } from '../../hooks/lib/git-hook.mjs';
 import { localDate } from '../../hooks/lib/dates.mjs';
 import { readJson } from './paths.mjs';
 import { detect } from '../detect.mjs';
@@ -29,6 +29,24 @@ const HOOK_MODE = 0o755;
 const HOOK_WARNING = { other: 'git-hook-exists', 'hooks-path': 'git-hook-exists', elsewhere: 'git-hook-elsewhere' };
 export const gitHookPlan = (root, sel, active) => {
   if (!active || !sel.hooks.some((id) => COMMIT_HOOK_IDS.includes(id))) return {};
+  // pre-commit 프레임워크를 쓰면 git 훅을 넣지 않고, 설정에 붙여 넣을 항목을 손으로 할 일(manual)로 준다(hooks/lib/git-hook.mjs preCommitSnippet).
+  // 지금 항목 그대로 붙여 넣었으면 붙여 넣기 단계는 다시 보이지 않는다(실행 파일은 넣는다). id: harness-fit 만 있고 글이 옛것이면
+  // 단계를 보이고 「있는 항목을 바꿔 넣으세요」라고 덧붙인다(replace).
+  // 전에 넣어 둔 우리 git 훅(.git/hooks/pre-commit, pre-commit 이 옮긴 .legacy)은 지운다 — pre-commit install 은 있던 훅을 .legacy 로
+  // 옮겨 함께 돌리는데, Windows 에서는 #!/bin/sh 를 못 찾아(ExecutableNotFoundError) 모든 커밋이 막힌다(검토 2026-11-16).
+  // 글이 우리 실행기 그대로인 것만 지운다(표시만 있는 남의 훅·줄을 덧붙인 훅은 둔다 — isOurLauncher). 백업이 사본을 남겨 되돌리기가 그대로 되살린다.
+  // .legacy 는 pre-commit 의 훅이 있을 때만 지운다 — 사용자가 직접 쓴 감싸는 훅이 .legacy 를 부르면 그대로 돌아야 한다.
+  const yaml = path.join(root, PRE_COMMIT_CONFIG);
+  if (fs.existsSync(yaml)) {
+    const { state, file } = gitHookState(root);
+    const legacy = `${ownHookPath(root)}.legacy`;
+    const frameworkLegacy = state === 'other' && isPreCommitFrameworkHook(read(file)) && isOurLauncher(read(legacy));
+    const remove = [state === 'ours' ? file : null, frameworkLegacy ? legacy : null].filter(Boolean);
+    const pasted = preCommitPasted(read(yaml));
+    // 표시는 있는데 우리 실행기 그대로가 아니면(줄을 덧붙였거나 표시를 적은 남의 훅) 지우지 않고 알린다
+    const lookalike = state === 'other' && (read(file) || '').includes(MARKER);
+    return { preCommit: preCommitSnippet(), pasted: pasted === 'current', replace: pasted === 'outdated', remove, ...(lookalike ? { warning: 'git-hook-exists' } : {}) };
+  }
   const { state, file } = gitHookState(root);
   if (HOOK_WARNING[state]) return { warning: HOOK_WARNING[state] };
   if (state !== 'none' && state !== 'ours') return {};
@@ -126,6 +144,14 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
     changes.at(-1).mode = HOOK_MODE;
   }
   if (hook.warning) warnings.push(hook.warning);
+  // pre-commit 설정이 부를 실행 파일(팀이 같이 쓰도록 저장소 안에 — 경로를 적지 않고 돌 때 플러그인을 찾는다)
+  if (hook.preCommit) {
+    const runner = path.join(root, PRE_COMMIT_RUNNER);
+    const text = runnerText();
+    if (read(runner) !== text) add(runner, 'pre-commit-runner', text);
+    // 지우는 것도 바꿀 목록에 넣는다(백업이 사본을 남기고 되돌리기가 다시 만든다 — scripts/lib/backup.mjs undoGitHook)
+    for (const f of hook.remove) changes.push({ path: f, kind: 'git-hook-remove', action: 'remove', content: null });
+  }
 
   const skills = sel.skills.map((id) => all.catalog.skills.find((s) => s.id === id)).filter(Boolean);
   const skipped = [];
@@ -140,6 +166,8 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
     const repo = all.catalog.repos.find((r) => r.repo === s.repo);
     return { skill: s.id, repo: s.repo, how: repo?.install || `claude plugin marketplace add ${s.repo}` };
   });
+  // 스킬이 아닌 손으로 할 일은 kind 로 가른다(화면은 이름 대신 할 일과 붙여 넣을 글을 보여 준다 — picker/changes.js manualName)
+  if (hook.preCommit && !hook.pasted) manual.push({ kind: 'pre-commit', file: PRE_COMMIT_CONFIG, how: hook.preCommit, ...(hook.replace ? { replace: true } : {}) });
   // 목록 예산: 새로 생기는 스킬 폴더만 더한다(있던 폴더를 고치는 것은 이미 지금 크기에 들어 있다)
   const fresh = changes.filter((c) => c.kind === 'skill' && c.action === 'create').map((c) => c.skill);
   const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}), () => (Array.isArray(sel.stack) ? sel.stack : detect(root).stack));

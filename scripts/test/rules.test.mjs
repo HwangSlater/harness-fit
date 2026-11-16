@@ -39,7 +39,7 @@ test('한국어·영어 규칙 글은 같은 줄을 같은 표시로 갖는다',
 });
 
 // 스택에 딸린 지침 묶음(combos.json stackAddons 의 rules): 그 스택이 있는 저장소에만 들어간다(2026-11-13 전체 검토 — 8개 분야에서 꼭 필요한 지침이 없었다)
-const DOMAIN = { ml: ['PyTorch', 'scikit-learn', 'XGBoost', 'MLflow', 'Optuna', 'Hydra', 'wandb'], dbt: ['dbt'], iac: ['Terraform', 'Ansible'], ios: ['iOS'], rust: ['Rust'], payments: ['Payments'] };
+const DOMAIN = { ml: ['PyTorch', 'scikit-learn', 'XGBoost', 'MLflow', 'Optuna', 'Hydra', 'wandb'], dbt: ['dbt'], iac: ['Terraform', 'Ansible', 'Argo CD'], ios: ['iOS'], rust: ['Rust'], payments: ['Payments'], nextjs: ['Next.js'] };
 const detOf = (stack) => ({ stack, kinds: [], authors: 1, commits: 10, team: false, existing: {} });
 
 test('스택 지침 묶음은 지침 목록·글·스택 맞춤에 모두 있다', () => {
@@ -65,7 +65,7 @@ test('스택 지침 묶음은 그 스택에서만 들어간다(혼자·팀·꼼�
   const unrelated = [['Python'], ['pandas', 'Jupyter'], ['PySpark', 'Airflow'], ['Docker'], ['Go'], ['Kubernetes'], ['Go', 'Docker', 'Kubernetes', 'PostgreSQL'], ['React', 'TypeScript'], ['Next.js', 'Vercel'], ['Django', 'PostgreSQL'], []];
   for (const stack of unrelated) {
     const rules = expandCombo(all, 'team', detOf(stack)).rules;
-    for (const id of Object.keys(DOMAIN)) assert.ok(!rules.includes(id), `[${stack}]: ${id} 이 들어감`);
+    for (const [id, own] of Object.entries(DOMAIN)) if (!own.some((s) => stack.includes(s))) assert.ok(!rules.includes(id), `[${stack}]: ${id} 이 들어감`);
   }
   // 여러 분야가 겹치면 같이(데이터 파이프라인 = dbt + Terraform), 같은 지침은 한 번만
   const both = expandCombo(all, 'team', detOf(['dbt', 'Terraform', 'Kubernetes', 'PyTorch', 'MLflow'])).rules;

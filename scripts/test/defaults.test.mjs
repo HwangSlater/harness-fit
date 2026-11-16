@@ -215,7 +215,7 @@ test('--catalog 요약: 훅마다 막는 꼴(blocks)·옵션, 스킬마다 이�
     assert.equal(d.hooks.length, all.packs.hooks.length);
     for (const h of d.hooks) assert.ok(h.name && h.desc && h.blocks, `${lang} ${h.id}`);
     const pf = d.hooks.find((h) => h.id === 'protected-files');
-    assert.deepEqual(pf.options.map((o) => o.key), ['paths']);
+    assert.deepEqual(pf.options.map((o) => o.key), ['paths', 'askRead']);
     assert.ok(d.hooks.find((h) => h.id === 'commit-msg').options.find((o) => o.key === 'lang').choices.includes('ko'));
     assert.equal(d.skills.length, all.catalog.skills.length);
     assert.ok(d.skills.every((s) => s.id && s.title));

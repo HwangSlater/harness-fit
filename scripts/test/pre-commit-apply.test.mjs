@@ -1,0 +1,178 @@
+// pre-commit 프레임워크 저장소(v0.4.1 검토 2026-11-16): 붙여 넣은 항목은 실행 파일이 없어도 커밋을 막지 않고,
+// 옛 우리 git 훅(.git/hooks/pre-commit · .legacy)은 적용이 지우고 되돌리기가 pre-commit 만 사본 그대로 되살리며(.legacy 는 알리기만), 이미 붙여 넣었으면 붙여 넣기 단계를 다시 보이지 않는다.
+// 진짜 pre-commit 이 있으면(PATH 또는 HARNESS_PRE_COMMIT) 실제 커밋으로도 본다.
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { tmpDir, gitInit } from './helpers.mjs';
+import { plan } from '../lib/plan.mjs';
+import { apply, undo } from '../lib/apply-run.mjs';
+import { loadAll } from '../lib/catalog.mjs';
+import { launcherText, PLUGIN_DIR, PRE_COMMIT_LOADER, preCommitSnippet, runnerText } from '../../hooks/lib/git-hook.mjs';
+
+const all = loadAll();
+const sel = { lang: 'ko', combo: 'team', skills: [], hooks: ['secrets', 'protected-files'], rules: [], flow: 'github-flow', explore: [], note: '', share: false };
+const HOOK = path.join('.git', 'hooks', 'pre-commit');
+const LEGACY = `${HOOK}.legacy`;
+const RUNNER = path.join('.claude', 'harness-fit-pre-commit.mjs');
+const YAML = '.pre-commit-config.yaml';
+const OTHER = 'repos:\n  - repo: https://github.com/psf/black\n    rev: 24.1.0\n    hooks:\n      - id: black\n';
+let tmp;
+let saved;
+before(() => {
+  tmp = tmpDir('harness-precommit-apply-');
+  saved = process.env.CLAUDE_PLUGIN_ROOT;
+  process.env.CLAUDE_PLUGIN_ROOT = PLUGIN_DIR;
+  process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET = '100000000';
+});
+after(() => {
+  delete process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET;
+  if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
+  else process.env.CLAUDE_PLUGIN_ROOT = saved;
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+let seq = 0;
+const repo = (yaml = OTHER) => {
+  const dir = path.join(tmp, `r${++seq}`);
+  gitInit(dir, { branch: 'main' });
+  fs.writeFileSync(path.join(dir, YAML), yaml);
+  return dir;
+};
+const textOf = (dir, rel) => (fs.existsSync(path.join(dir, rel)) ? fs.readFileSync(path.join(dir, rel), 'utf8') : null);
+// 붙여 넣는 항목의 args 는 YAML 큰따옴표 줄 — 이 꼴에서는 JSON 과 같아 그대로 읽힌다
+const argsOf = (snippet) => JSON.parse(snippet.match(/^\s+args: (\[.*\])$/m)[1]);
+
+test('불러오기 글: 짧고(220자 아래), YAML 큰따옴표를 깨는 글자가 없고, 항목에 verbose 는 없다(통과하는 커밋마다 줄이 붙어서)', () => {
+  assert.ok(PRE_COMMIT_LOADER.length < 220, String(PRE_COMMIT_LOADER.length));
+  assert.ok(!/["\\]/.test(PRE_COMMIT_LOADER));
+  const snippet = preCommitSnippet();
+  assert.deepEqual(argsOf(snippet), ['-e', PRE_COMMIT_LOADER]);
+  assert.match(snippet, /^ +entry: node$/m);
+  assert.doesNotMatch(snippet, /verbose/);
+});
+
+test('불러오기 글: 실행 파일이 없으면 한 줄 알리고 0, 있으면 그 파일의 종료 코드를 낸다', () => {
+  const dir = tmpDir('harness-loader-');
+  try {
+    const run = () => spawnSync(process.execPath, argsOf(preCommitSnippet()), { cwd: dir, encoding: 'utf8' });
+    const gone = run();
+    assert.equal(gone.status, 0, gone.stderr);
+    assert.match(gone.stdout, /harness-fit: \.claude\/harness-fit-pre-commit\.mjs not found/);
+    fs.mkdirSync(path.join(dir, '.claude'));
+    fs.writeFileSync(path.join(dir, RUNNER), "process.stderr.write('ran');\nprocess.exitCode = 3;\n");
+    const got = run();
+    assert.equal(got.status, 3, got.stderr);
+    assert.match(got.stderr, /ran/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('이미 붙여 넣었으면(id: harness-fit) 붙여 넣기 단계는 없고 실행 파일은 넣는다', () => {
+  const dir = repo(`repos:\n${preCommitSnippet()}`);
+  const p = plan(dir, sel, all, { active: true });
+  assert.ok(!p.manual.some((m) => m.kind === 'pre-commit'), JSON.stringify(p.manual));
+  assert.ok(p.changes.some((c) => c.kind === 'pre-commit-runner'));
+  // 붙여 넣지 않았으면 단계가 있다
+  assert.ok(plan(repo(), sel, all, { active: true }).manual.some((m) => m.kind === 'pre-commit'));
+  // 주석 속 id: harness-fit 은 붙여 넣은 것이 아니다
+  assert.ok(plan(repo(`${OTHER}# id: harness-fit 은 나중에\n`), sel, all, { active: true }).manual.some((m) => m.kind === 'pre-commit'));
+});
+
+test('pre-commit 으로 바꿀 때 옛 우리 git 훅을 지우고(백업), 되돌리면 다시 만든다', async () => {
+  const dir = repo();
+  fs.writeFileSync(path.join(dir, HOOK), launcherText(PLUGIN_DIR));
+  const p = plan(dir, sel, all, { active: true });
+  const rm = p.changes.filter((c) => c.kind === 'git-hook-remove');
+  assert.equal(rm.length, 1, JSON.stringify(p.changes.map((c) => c.kind)));
+  assert.equal(rm[0].action, 'remove');
+  const r = await apply(dir, sel);
+  assert.ok(r.changed.includes('- .git/hooks/pre-commit'), JSON.stringify(r.changed));
+  assert.equal(textOf(dir, HOOK), null, '지웠다');
+  const u = undo(dir);
+  assert.ok(u.restored.includes('.git/hooks/pre-commit'), JSON.stringify(u));
+  assert.equal(textOf(dir, HOOK), launcherText(PLUGIN_DIR));
+});
+
+test('pre-commit install 이 .legacy 로 옮긴 옛 우리 훅도 지운다(Windows 에서 /bin/sh 를 못 찾아 모든 커밋이 막히던 일)', async () => {
+  const dir = repo();
+  const framework = '#!/usr/bin/env bash\n# File generated by pre-commit: https://pre-commit.com\nexec pre-commit hook-impl --hook-type=pre-commit\n';
+  fs.writeFileSync(path.join(dir, HOOK), framework);
+  fs.writeFileSync(path.join(dir, LEGACY), launcherText(PLUGIN_DIR));
+  await apply(dir, sel);
+  assert.equal(textOf(dir, LEGACY), null);
+  assert.equal(textOf(dir, HOOK), framework, 'pre-commit 의 훅은 건드리지 않는다');
+  // 되돌리기는 .legacy 를 되살리지 않는다 — 되살리면 pre-commit 의 훅이 그것을 불러 같은 실패로 돌아간다(검토 2026-11-16)
+  const u = undo(dir);
+  assert.ok(!u.restored.includes('.git/hooks/pre-commit.legacy'), JSON.stringify(u));
+  assert.deepEqual(u.notes, [{ path: '.git/hooks/pre-commit.legacy', reason: 'legacy-not-restored' }]);
+  assert.equal(textOf(dir, LEGACY), null);
+});
+
+test('남의 git 훅·남의 .legacy 는 지우지 않는다', () => {
+  const dir = repo();
+  fs.writeFileSync(path.join(dir, HOOK), '#!/bin/sh\nnpm test\n');
+  fs.writeFileSync(path.join(dir, LEGACY), '#!/bin/sh\nmake lint\n');
+  const p = plan(dir, sel, all, { active: true });
+  assert.ok(!p.changes.some((c) => c.kind === 'git-hook-remove'));
+});
+
+test('되돌리기: 붙여 넣은 항목이 남아 있으면 kept 에 설정 파일을 적고(지워도 된다고), 설정은 고치지 않는다', async () => {
+  const yaml = `repos:\n${preCommitSnippet()}`;
+  const dir = repo(yaml);
+  await apply(dir, sel);
+  assert.ok(fs.existsSync(path.join(dir, RUNNER)));
+  const u = undo(dir);
+  assert.deepEqual(u.kept, [YAML], JSON.stringify(u));
+  assert.equal(textOf(dir, YAML), yaml);
+  assert.ok(!fs.existsSync(path.join(dir, RUNNER)));
+  // 항목을 붙여 넣지 않았으면 알릴 것도 없다
+  const plain = repo();
+  await apply(plain, sel);
+  assert.equal(undo(plain).kept, undefined);
+});
+
+// 진짜 pre-commit: 붙여 넣은 항목 + 되돌리기(실행 파일 없음) → 커밋 통과, 실행 파일이 있으면 .env 커밋은 막힌다
+const preCommitBin = (() => {
+  for (const bin of [process.env.HARNESS_PRE_COMMIT, 'pre-commit'].filter(Boolean)) if (spawnSync(bin, ['--version'], { stdio: 'ignore' }).status === 0) return bin;
+  return null;
+})();
+test('진짜 pre-commit: 실행 파일이 없으면 통과, 있으면 .env 를 막는다', { skip: preCommitBin ? false : 'pre-commit 이 없음(HARNESS_PRE_COMMIT 로 경로를 줄 수 있다)' }, async () => {
+  const dir = repo(`repos:\n${preCommitSnippet()}`);
+  const env = { ...process.env, PRE_COMMIT_HOME: path.join(tmp, 'pc-cache') };
+  const git = (...a) => spawnSync('git', ['-c', 'user.email=t@e.com', '-c', 'user.name=t', ...a], { cwd: dir, env, encoding: 'utf8' });
+  assert.equal(spawnSync(preCommitBin, ['install'], { cwd: dir, env }).status, 0);
+  await apply(dir, sel);
+  git('add', YAML, '.claude/harness.json', RUNNER.split(path.sep).join('/'));
+  fs.writeFileSync(path.join(dir, '.env'), 'DEBUG=1\n');
+  git('add', '-f', '.env');
+  const blocked = git('commit', '-m', 'env');
+  assert.notEqual(blocked.status, 0, blocked.stdout + blocked.stderr);
+  git('rm', '-q', '--cached', '.env');
+  undo(dir);
+  git('add', '-u'); // 되돌리기로 지운 파일만(.env 는 그대로 밖에)
+  const passed = git('commit', '-m', 'after undo');
+  assert.equal(passed.status, 0, passed.stdout + passed.stderr);
+  // verbose 를 빼서 통과하는 커밋에는 알림이 붙지 않는다. -v 로 돌릴 때만 보인다
+  assert.doesNotMatch(passed.stdout + passed.stderr, /not found, skipped/);
+  const loud = spawnSync(preCommitBin, ['run', 'harness-fit', '-v'], { cwd: dir, env, encoding: 'utf8' });
+  assert.equal(loud.status, 0, loud.stdout + loud.stderr);
+  assert.match(loud.stdout + loud.stderr, /not found, skipped/);
+  // 실행 파일이 던지거나 문법이 틀리거나 폴더여도 커밋은 통과한다(스택과 함께 막히던 일 — 검토 2026-11-16)
+  const runner = path.join(dir, RUNNER);
+  fs.mkdirSync(path.dirname(runner), { recursive: true });
+  for (const [label, put] of [
+    ['throw', () => fs.writeFileSync(runner, "throw new Error('boom');\n")],
+    ['syntax', () => fs.writeFileSync(runner, 'export const x = ;\n')],
+    ['dir', () => { fs.rmSync(runner, { force: true }); fs.mkdirSync(runner); fs.writeFileSync(path.join(runner, 'k'), ''); }],
+  ]) {
+    put();
+    fs.writeFileSync(path.join(dir, `${label}.txt`), 'x\n');
+    git('add', `${label}.txt`);
+    const r = git('commit', '-m', label);
+    assert.equal(r.status, 0, `${label}: ${r.stdout}${r.stderr}`);
+    assert.doesNotMatch(r.stdout + r.stderr, /boom|SyntaxError|ERR_UNSUPPORTED_DIR_IMPORT/, label);
+  }
+});

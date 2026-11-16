@@ -114,5 +114,16 @@
   "docs.stop": "문서 형식이 맞지 않아요. 고친 뒤 끝내세요.\n{list}",
   "protected.commitNewUnchecked": "새로 커밋하는 파일이 git 이 무시하는 파일인지 확인하지 못해서 막았어요(git check-ignore 가 실패). 파일 이름을 확인하고 다시 해 보거나, 사용자에게 직접 커밋해 달라고 하세요.",
   "commit.claudeEnv": "명령에서 CLAUDECODE 환경 변수를 바꾸거나 지우면 git 훅이 Claude 의 커밋을 사람의 커밋으로 잘못 봐요. 그 부분을 빼고 실행하세요.",
-  "protected.restore": "{why}({file})을 커밋된 내용으로 되돌리는 명령이라 실행 전에 확인해요. 사용자가 손으로 고친 값이 있으면 사라져요."
+  "protected.restore": "{why}({file})을 커밋된 내용으로 되돌리는 명령이라 실행 전에 확인해요. 사용자가 손으로 고친 값이 있으면 사라져요.",
+  "protected.read": "{file}({why})을 읽으면 그 값이 대화 기록에 남아요. 읽기 전에 확인해요.",
+  "file.tfvars": "Terraform 변수 값 파일",
+  "file.kubeconfig": "클러스터 접속 정보(kubeconfig)",
+  "iac.ask": "{file} 에 안전장치를 끄는 설정이 들어가요: {what}. 사고를 막으려고 둔 스위치라 바꾸기 전에 확인해요.",
+  "iac.deletion": "삭제 보호를 끔(deletion_protection = false)",
+  "iac.snapshot": "지울 때 마지막 스냅숏을 남기지 않음(skip_final_snapshot = true)",
+  "iac.public": "DB 를 인터넷에 공개(publicly_accessible = true)",
+  "iac.preventDestroy": "prevent_destroy = true 를 뺌(destroy·교체 때 리소스가 지워질 수 있어요)",
+  "iac.openIngress": "인터넷 전체({cidr})에 80·443 이 아닌 포트를 엶",
+  "iac.prune": "Argo CD 자동 동기화에 prune: true 를 켬(Git 에서 빠진 운영 리소스를 바로 지워요)",
+  "clientEnv.notice": "{file} 은 \"use client\" 파일인데 {names} 를 읽어요. 브라우저로 가는 코드에서는 NEXT_PUBLIC_ 으로 시작하지 않는 값이 빌드 때 undefined 가 돼요. 비밀값이면 서버 쪽(server-only 모듈이나 route handler)에서만 읽고, props 로 클라이언트 컴포넌트에 넘기지 마세요. 공개해도 되는 값이면 이름을 NEXT_PUBLIC_ 으로 바꾸세요."
 }

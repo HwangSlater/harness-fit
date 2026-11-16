@@ -1,6 +1,6 @@
 # harness-fit 자세한 안내
 
-> 최종 수정: 2026-11-13 · README 에서 옮긴 화면·훅·팀 공유·GitHub 설정의 자세한 설명
+> 최종 수정: 2026-11-16 · README 에서 옮긴 화면·훅·팀 공유·GitHub 설정의 자세한 설명
 
 처음이라면 [README](../README.md)만 읽어도 충분해요. 이 문서는 궁금한 항목만 찾아 읽으면 돼요.
 
@@ -8,7 +8,7 @@
 - [팀원과 함께 쓰기](#팀원과-함께-쓰기)
 - [이미 있는 것과 겹칠 때](#이미-있는-것과-겹칠-때)
 - [GitHub 저장소 설정](#github-저장소-설정)
-- [훅 26개](#훅-26개)
+- [훅 27개](#훅-27개)
 - [조합마다 기본으로 켜지는 훅](#조합마다-기본으로-켜지는-훅)
 - [훅 옵션](#훅-옵션)
 - [git 커밋 전 훅](#git-커밋-전-훅)
@@ -28,10 +28,10 @@
 
 1. **얼마나 챙길까요?** (조합·브랜치 전략) 가볍게 · 혼자 빠르게 · 팀 협업 · 꼼꼼하게 중 하나. 카드마다 「켜지는 것 보기」로 들어갈 스킬·훅·지침을 미리 봐요. 스택에 맞는 스킬(React, Supabase, GitHub Actions…)은 자동으로 더해져요. 같은 화면 아래에서 **브랜치 전략**(GitHub Flow · Git Flow · 트렁크 기반 · 정하지 않음)을 고르면 관련 훅도 같이 맞춰져요. 전략마다 갈래 색(main 파랑·develop 보라·feature 초록·release 노랑)을 칠한 git 그래프 그림으로 보여 줘요.
 2. **어떤 스킬을 넣을까요?** 기획 → 설계·화면 → 만들기 → 테스트·디버깅 → 리뷰·보안 → 올리기·배포 묶음마다 칩을 눌러 켜고 꺼요. 「추가로 권장」은 저장소 스택에 맞춘 것, 「전체 스킬 보기」는 카탈로그 81개 가운데 훅과 같은 일을 하는 3개를 뺀 78개를 찾아보는 창이에요. 창의 스킬 줄마다 무엇이 달라지는지 쉬운 한 줄, 쓰는 때, 토큰·출처, 그리고 실제 대가가 있으면 「알아 둘 점」(꺼내 쓸 때 토큰이 많이 듦, 질문·확인 단계로 느려짐, 따로 깔 도구 등)을 보여 줘요. 같은 일을 하는 스킬이 이미 골라져 있으면 「비슷한 스킬이 이미 들어 있어요」 이름표가 붙고, 이름을 누르면 그 스킬 줄로 가서 둘 중 하나를 바로 켜고 끌 수 있어요.
-3. **어떤 실수를 막을까요?** 훅 26개를 6개 묶음(비밀·위험 / git 기록 / 코드 / 언어·도구별 / 일하는 방식 / 토큰 아끼기)으로 보여 줘요. 「자세히 보기」에서 무엇을 차단하는지, 「알아 둘 점」(헛막음·늘어나는 단계·알림 훅의 토큰), 훅 옵션을 봐요. 이 저장소 기록과 맞지 않아 기본에서 뺀 훅은 그 이유를 한 줄로 알려요(예: 「이 저장소 커밋 기록이 이 형식이 아니라 기본에서 뺐어요(최근 30개 중 4개)」). 「차단하는 것만」을 누르면 명령·파일 쓰기를 차단하는 훅 가운데 이 저장소에 맞는 것만 켜고, 묻거나 알려 주기만 하는 훅(실행 전에 묻기·커밋 해시 알리기·작업 체크리스트·임시 폴더 쌓임 알림·답 언어 맞추기·GitHub 은 gh 명령으로 읽기)은 꺼요.
+3. **어떤 실수를 막을까요?** 훅 27개를 6개 묶음(비밀·위험 / git 기록 / 코드 / 언어·도구별 / 일하는 방식 / 토큰 아끼기)으로 보여 줘요. 「자세히 보기」에서 무엇을 차단하는지, 「알아 둘 점」(헛막음·늘어나는 단계·알림 훅의 토큰), 훅 옵션을 봐요. 이 저장소 기록과 맞지 않아 기본에서 뺀 훅은 그 이유를 한 줄로 알려요(예: 「이 저장소 커밋 기록이 이 형식이 아니라 기본에서 뺐어요(최근 30개 중 4개)」). 「차단하는 것만」을 누르면 명령·파일 쓰기를 차단하는 훅 가운데 이 저장소에 맞는 것만 켜고, 묻거나 알려 주기만 하는 훅(실행 전에 묻기·인프라 안전장치 끄기 전에 묻기·커밋 해시 알리기·작업 체크리스트·임시 폴더 쌓임 알림·답 언어 맞추기·GitHub 은 gh 명령으로 읽기)은 꺼요.
 
    훅 옵션은 한 줄에 하나씩 놓여요. 고르는 옵션은 선택지마다 설명 한 줄이 달린 메뉴이고, 목록 옵션(실행 전에 물을 명령·더 지킬 파일·폴더·지킬 브랜치·더 받을 타입)은 값마다 칩 하나예요. Enter 로 더하고 × 로 빼요. 쉼표나 줄바꿈이 든 글을 붙여 넣으면 나눠서 들어가요. 받지 않는 값은 빨간 칩으로 남고 그 이유가 칸 바로 아래에 나와요. 저장소에서 찾아 미리 넣은 값에는 찾은 이유가 한 줄씩 붙어요(예: 「Makefile 이 원격 스크립트(deploy.sh)를 불러요」, 「iOS 저장소의 기본값이에요」). 이유가 같은 값이 4개를 넘으면 앞 셋만 보이고 「외 N개」로 줄여요. 미리 넣지 않고 제안만 하는 값(커밋해 둔 결과·논문 폴더)은 칸 아래 「+ 값」 단추를 눌러 넣어요.
-4. **CLAUDE.md 에 어떤 지침을 넣을까요?** 켠 훅에 맞춰 실제로 써질 글을 오른쪽에 미리 보여 줘요(줄여 보기 / 전체 보기). 맨 위 **「이 저장소 명령」**은 package.json scripts(pnpm·yarn·bun 잠금 파일이면 그 명령으로)·Makefile·pyproject(pytest·ruff·mypy·tox·hatch)·Cargo·go.mod·Gradle·Maven(래퍼가 있으면 `./gradlew`·`./mvnw`)·ROS 2 colcon·Django `manage.py` 에서 읽은 테스트·코드 검사(lint)·타입 검사·형식·빌드 명령이에요. Cargo 는 CI 설정(GitHub Actions·GitLab CI)에 적힌 옵션(`--workspace`·`-- -D warnings` 등)을 따라요. 「그 밖의 명령」 줄에는 개발 서버·마이그레이션 같은 package.json 스크립트, Makefile 대상, pyproject 가 설치하는 명령, Procfile 프로세스를 10개까지 넣어요. README·CONTRIBUTING 의 코드 블록과 GitHub Actions 의 `run:` 줄에 적힌 python 스크립트·모듈과 cargo 하위 명령도, 그 파일·패키지가 저장소에 실제로 있으면 뒤에 붙여요(설치·배포 절 아래, 배포·출시 워크플로, `ENV=prod` 같은 운영 값, 지우기·마이그레이션 낱말이 든 명령은 빼요). 저장소에 있는 것만 넣고, 하나도 없거나 내 CLAUDE.md 에 이미 적혀 있으면 넣지 않아요. 「실행 전에 묻기」에 든 명령(배포·출시 대상 등)은 평소 명령에서 빼요. 테스트 도구를 확실히 알 수 있으면(vitest·jest·Playwright·bun·node --test·pytest·cargo·go) 「테스트 하나만」 명령도 넣어요. 지침 줄을 누르면(또는 Enter·Space) 작은 창에서 설명 전체, CLAUDE.md 에 넣을 줄, 훅·스킬이 맡아서 뺀 줄, 줄 수·토큰을 보고 켜고 끌 수 있어요. 「줄을 대신 맡는 훅」 칩을 켜면 그 훅이 차단하니 겹치는 줄이 빠지고, 「뺀 줄 보기」로 훅·스킬이 맡아서(또는 이미 CLAUDE.md 에 있어서) 뺀 줄을 줄 그어 이유와 함께 볼 수 있어요. 헷갈리는 곳·저장소에 없는 결정·두 번 바로잡은 것은 Claude 가 저장소를 읽어도 모르니, harness-fit 표시 밖에 직접 적어 두세요(예: 「`src/legacy/` 는 아직 쓰지만 새 코드는 따라 하지 않는다.」).
+4. **CLAUDE.md 에 어떤 지침을 넣을까요?** 켠 훅에 맞춰 실제로 써질 글을 오른쪽에 미리 보여 줘요(줄여 보기 / 전체 보기). 맨 위 **「이 저장소 명령」**은 package.json scripts(pnpm·yarn·bun 잠금 파일이면 그 명령으로)·Makefile·pyproject(pytest·ruff·mypy·tox·hatch)·Cargo·go.mod·Gradle·Maven(래퍼가 있으면 `./gradlew`·`./mvnw`)·ROS 2 colcon·Django `manage.py` 에서 읽은 테스트·코드 검사(lint)·타입 검사·형식·빌드 명령이에요. Cargo 는 CI 설정(GitHub Actions·GitLab CI)에 적힌 옵션(`--workspace`·`-- -D warnings` 등)을 따라요. 「그 밖의 명령」 줄에는 개발 서버·마이그레이션 같은 package.json 스크립트, Makefile 대상, pyproject 가 설치하는 명령, Procfile 프로세스를 10개까지 넣어요. README·CONTRIBUTING 의 코드 블록과 GitHub Actions 의 `run:` 줄에 적힌 python 스크립트·모듈과 cargo 하위 명령도, 그 파일·패키지가 저장소에 실제로 있으면 뒤에 붙여요(설치·배포 절 아래, 배포·출시 워크플로, `ENV=prod` 같은 운영 값, 지우기·마이그레이션 낱말이 든 명령은 빼요). 저장소에 있는 것만 넣고, 하나도 없거나 내 CLAUDE.md 에 이미 적혀 있으면 넣지 않아요. 「실행 전에 묻기」에 든 명령(배포·출시 대상 등)은 평소 명령에서 빼요. 테스트 도구를 확실히 알 수 있으면(vitest·jest·Playwright·bun·node --test·pytest·cargo·go) 「테스트 하나만」 명령도 넣어요. sqlc 설정(`sqlc.yaml` 등)이 있으면 「생성 코드는 손으로 고치지 않고 쿼리를 고친 뒤 다시 만든다」 줄을 그 저장소의 make 대상(없으면 `sqlc generate`)과 함께 넣어요. 지침 줄을 누르면(또는 Enter·Space) 작은 창에서 설명 전체, CLAUDE.md 에 넣을 줄, 훅·스킬이 맡아서 뺀 줄, 줄 수·토큰을 보고 켜고 끌 수 있어요. 「줄을 대신 맡는 훅」 칩을 켜면 그 훅이 차단하니 겹치는 줄이 빠지고, 「뺀 줄 보기」로 훅·스킬이 맡아서(또는 이미 CLAUDE.md 에 있어서) 뺀 줄을 줄 그어 이유와 함께 볼 수 있어요. 헷갈리는 곳·저장소에 없는 결정·두 번 바로잡은 것은 Claude 가 저장소를 읽어도 모르니, harness-fit 표시 밖에 직접 적어 두세요(예: 「`src/legacy/` 는 아직 쓰지만 새 코드는 따라 하지 않는다.」).
 
 <div align="center">
 <img src="images/rules-ko.png" alt="4단계 CLAUDE.md 지침 — 이 저장소 명령, 줄을 대신 맡는 훅, 뺀 줄 보기" width="760">
@@ -93,7 +93,7 @@
 - 화면 없이(`auto`) 쓸 때는 Claude 가 항목과 권장 값을 보여 주고, 고른 항목만 넘겨요(`--github-settings=squash,pr:main,…`).
 - 되돌리기를 하면 바꾼 설정도 이전 값으로 돌아가요. 그 뒤 누가 GitHub 에서 다시 바꾼 값은 건드리지 않아요.
 
-## 훅 26개
+## 훅 27개
 
 판단이 필요 없는 규칙은 글이 아니라 훅으로 막아요. 어길 때만 한 줄 안내해요. 훅은 약속한 패턴을 빠짐없이 막을 수 있는 것만 두고, 짐작해야 하는 것(값 바로 적기, SQL·셸 주입, 로그 속 비밀값)은 훅 대신 지침과 스킬로 둬요(짐작이 들어간 「답 언어 맞추기」는 놓쳐도 위험하지 않아 기본 꺼짐인 옵션으로만 둬요). 훅마다 「막는 것」과 「막지 않는 것」을 실제 진입점에 넣어 보는 테스트가 있어요(`hooks/test/strict.test.mjs`).
 
@@ -102,11 +102,12 @@
 | 훅 | 이렇게 하면 → |
 | --- | --- |
 | 비밀값 차단 | GitHub·AWS·OpenAI·Slack·Google·Stripe 키, 개인 키, JWT 모양 글자, `password = "실제값"`, 설정 파일(`.yml`·`.properties` 등)에 따옴표 없이 넣은 `password: 값`·`jwt.secret=값`, 브라우저 번들에 실리는 이름(`NEXT_PUBLIC_`·`VITE_` 등)으로 시작하면서 SECRET·PASSWORD 로 끝나는 변수를 쓰거나 커밋하면 막아요 (적어 둔 형식만) |
-| 파일 보호 | `.env`·인증서·SSH 키 파일에 쓰거나 셸로 바꾸고 지우거나 커밋하지 않아요. 옵션 「더 지킬 파일·폴더」에는 `.gitignore` 처럼 `*`·`**` 글롭도 적을 수 있고(`*.tfstate*`), 그 경로는 `git rm`·`git checkout --`·`git restore` 로 바꾸는 것과 Claude 가 `git add`·`git commit` 으로 커밋에 넣는 것도 막아요 (사람이 직접 하는 커밋은 막지 않음) |
+| 파일 보호 | `.env`·인증서·SSH 키 파일에 쓰거나 셸로 바꾸고 지우거나 커밋하지 않아요. 옵션 「더 지킬 파일·폴더」에는 `.gitignore` 처럼 `*`·`**` 글롭도 적을 수 있고(`*.tfstate*`), 그 경로는 `git rm`·`git checkout --`·`git restore` 로 바꾸는 것과 Claude 가 `git add`·`git commit` 으로 커밋에 넣는 것도 막아요 (사람이 직접 하는 커밋은 막지 않음). 키·인증서·`*.tfvars`·`kubeconfig*` 와 적은 경로 가운데 비밀 파일처럼 보이는 것을 읽으면(Read·`cat`·`Get-Content` 등) 막지 않고 물어요 — 읽은 값이 대화 기록에 남아서. 적지 않은 `.env` 읽기는 디버깅에 흔해 묻지 않아요(옵션 「비밀 파일 읽기 전에 묻기」, 기본 켜짐) |
 | 적용된 마이그레이션 고치기 막기 | 이미 커밋한 마이그레이션 파일(Flyway·Django·Alembic·Prisma·Rails·goose·golang-migrate)을 고치거나 이름을 바꾸거나 지우면 막고, 새 마이그레이션을 만들게 해요 |
 | 위험 명령 차단 | `rm -rf ~`·`Remove-Item -Recurse` 로 통째 지우기, `curl … \| sh`·`irm … \| iex`, `chmod 777`, DB 데이터 지우기(`docker compose down -v`·`prisma migrate reset`·`manage.py migrate <앱> zero`·`flyway clean`·`dropdb` 등), 커밋 안 한 변경이 있을 때 `reset --hard` (적어 둔 형식만) |
 | 명령줄 비밀번호 차단 | `mysql -p비밀번호`, `curl -u 아이디:비번`, `PGPASSWORD=값`, `postgres://아이디:비번@` (적어 둔 형식만) |
-| 실행 전에 묻기 | 적어 둔 명령(예: `ros2 launch`, `python scripts/train.py`, `dbt build --target prod`)을 실행하기 전에 Claude Code 확인 창을 띄워요. 옵션 「실행 못 하게 막을 명령」에 적은 명령은 묻지 않고 막아요(같은 법으로 맞추고, `--dry-run` 을 붙여도 막음 — 사람이 직접 실행). 적은 옵션은 순서가 달라도 맞추고, `--dry-run`·`make -n` 같은 시험 실행은 묻지 않아요. 옵션 「원격·운영 명령도 묻기」(기본 켜짐)면 `ssh`·`scp`·원격 `rsync`, 바꾸는 `kubectl`·`helm`·`terraform apply`·`ansible-playbook`·`argocd`·`vault`, `aws`·`gcloud`·`az` 로 바꾸는 명령, 다른 호스트의 `psql`·`mysql`·`redis-cli`, 버전 태그 `git push`도 묻고, `aws secretsmanager get-secret-value`·`kubectl get secret -o yaml` 처럼 비밀값을 화면에 찍는 명령도 물어요. 확인할 사람이 없는 `claude -p`·CI 에서는 막혀요 |
+| 실행 전에 묻기 | 적어 둔 명령(예: `ros2 launch`, `python scripts/train.py`, `dbt build --target prod`)을 실행하기 전에 Claude Code 확인 창을 띄워요. 옵션 「실행 못 하게 막을 명령」에 적은 명령은 묻지 않고 막아요(같은 법으로 맞추고, `--dry-run` 을 붙여도 막음 — 사람이 직접 실행). 적은 옵션은 순서가 달라도 맞추고, `--dry-run`·`make -n` 같은 시험 실행은 묻지 않아요. 옵션 「원격·운영 명령도 묻기」(기본 켜짐)면 `ssh`·`scp`·원격 `rsync`, 바꾸는 `kubectl`·`helm`·`terraform apply`·`ansible-playbook`·`argocd`·`vault`, `aws`·`gcloud`·`az` 로 바꾸는 명령, 다른 호스트의 `psql`·`mysql`·`redis-cli`, 버전 태그 `git push`도 묻고, `aws secretsmanager get-secret-value`·`kubectl get secret -o yaml` 처럼 비밀값을 화면에 찍는 명령도 물어요. 확인할 사람이 없는 `claude -p`·CI 에서는 막혀요. macOS 키체인 비밀번호를 찍는 `security find-generic-password … -w` 도 물어요 |
+| 인프라 안전장치 끄기 전에 묻기 | `.tf`·`.tfvars`·`.hcl` 에 `deletion_protection = false`·`skip_final_snapshot = true`·`publicly_accessible = true` 가 새로 들어가거나, 있던 `prevent_destroy = true` 를 빼거나, 인바운드 규칙에 `0.0.0.0/0`·`::/0` 을 넣으면(80·443 하나만 여는 블록은 제외) 쓰기 전에 확인 창을 띄워요. 경로에 prod 가 든 Argo CD Application 에 `syncPolicy.automated.prune: true` 를 켜도 물어요. Terraform·Argo CD 가 감지되면 켜져요 |
 
 **git 기록**
 
@@ -126,7 +127,7 @@
 | 훅 | 이렇게 하면 → |
 | --- | --- |
 | 큰 새 파일 차단 | 400줄 넘는 새 코드 파일 (커밋으로 처음 들어가는 파일도) |
-| 위험한 HTML·코드 실행 차단 | `innerHTML =`·`dangerouslySetInnerHTML`·`v-html`·`eval(`·`new Function(`, 서버 템플릿(Django·Jinja)의 `\|safe`·`{% autoescape off %}` |
+| 위험한 HTML·코드 실행 차단 | `innerHTML =`·`dangerouslySetInnerHTML`·`v-html`·`eval(`·`new Function(`, 서버 템플릿(Django·Jinja)의 `\|safe`·`{% autoescape off %}`. `"use client"` 파일에서 `NEXT_PUBLIC_` 이 아닌 `process.env` 값을 읽으면 막지 않고 「브라우저에서는 undefined, 비밀값은 서버에서만」 이라고 Claude 에게 알려요 |
 | 의존성 버전 고정 | package.json 에 `^1.2.3`·`~1.2`·`latest` 같은 범위 버전 (`npm install` 로 들어간 것도 커밋할 때, peerDependencies 는 제외) |
 | GitHub Actions 주입 차단 | `run:` 에 `${{ github.event.issue.title }}` 바로 넣기, `pull_request_target` 에서 PR 코드 받기, 남의 액션을 `@v1` 처럼 커밋 해시 없이 쓰기 |
 
@@ -183,8 +184,8 @@
   - 저장소에서 찾은 것 → 파일 보호의 더 지킬 경로로: `.gitignore` 에서 비밀·개인정보라고 주석을 단 묶음, 비밀 설정 파일(`*.env`·dbt `profiles.yml`), 원본 데이터 폴더(`/data/`)·데이터·체크포인트 파일(`.parquet`·`.ckpt` 등), 인프라 상태 파일(`*.tfstate*`·kubeconfig)
   - 커밋해 둔 결과·논문 폴더(데이터 파일만 든 `bench-results/`·`results/`, 논문 원고 `paper/**/*.tex`·`*.bib`, 그림 스크립트가 읽는 원자료) → 미리 넣지 않고 적용할 때 파일 보호에 넣을지 물어요. 화면에서는 칸 아래 「+ 값」 단추로 제안해요. 학위 논문 저장소처럼 원고가 저장소의 절반을 넘거나, 시험이 기대값으로 읽는 폴더면 묻지 않아요.
   - GitLab 저장소 → GitHub 전용인 「GitHub 은 gh 명령으로 읽기」·「PR 병합 방식」 훅과 PR 쓰기 스킬을 기본에서 빼요. 앱 코드 없이 인프라 코드만 있는 저장소 → 테스트 우선 스킬(테스트 먼저 쓰기·가벼운 테스트 우선)을 기본에서 빼요. 뺀 것마다 이유를 한 줄로 알려요.
-  - CLAUDE.md 지침 묶음: Claude API → 「LLM 앱」(모델에 보내기 전 개인정보 가리기, 루프 한도, 시험은 가짜 클라이언트, 바꾸면 평가 셋), Django → 「Django」(makemigrations, 커밋한 마이그레이션 안 고치기, 운영 설정은 묻기, 템플릿 `|safe`·csrf, Celery 인자는 id), Spring Boot → 「Spring Boot」(비밀값은 `${…}`, 주인 확인, 트랜잭션·N+1, 이벤트·응답 형식은 더하기만, 오류 응답에 내부 정보 없음), PyTorch·scikit-learn·XGBoost·MLflow·Optuna·Hydra·wandb → 「머신러닝 실험」(시드 고정, 실행마다 설정·커밋 해시 기록, 기준과 견주기, 체크포인트 덮어쓰지 않기), dbt → 「dbt」(바꾼 모델은 하위 모델까지 `dbt build`·`test`, `--target prod` 는 묻기, 테스트 약하게 하지 않기, seeds·snapshots 지키기), Terraform(OpenTofu 포함)·Ansible → 「인프라 코드」(반영 전 plan 요약, `prevent_destroy` 유지, `0.0.0.0/0`·공개 버킷 막기, state 커밋 안 함, 버전 고정), iOS → 「iOS 앱」(권한 문구, Core Data 는 새 모델 버전, 서명 설정은 묻기, 강제 언래핑 대신 `guard let`), Rust → 「Rust」(`unsafe` 는 묻고 `// SAFETY:` 주석, clippy·test 는 CI 와 같은 옵션으로, 라이브러리엔 `unwrap()` 대신 `?`), 결제 SDK 의존성(stripe·토스페이먼츠·포트원 등)이나 원장·결제·정산 코드 → 「결제·돈 계산」(금액은 최소 단위 정수, 반올림 규칙은 묻고 바꾸기, 멱등성 키·웹훅 중복 거르기, 원장은 반대 기록, 카드 번호 로그 안 남기기)
-- 브랜치 전략이 훅을 켜고 꺼요: GitHub Flow 는 보호 브랜치·브랜치 이름 규칙·PR 병합 방식을 켜고, Git Flow 는 PR 병합 방식을, 트렁크 기반은 브랜치 이름 규칙·PR 병합 방식을, 정하지 않음은 셋 다 꺼요.
+  - CLAUDE.md 지침 묶음: Claude API → 「LLM 앱」(모델에 보내기 전 개인정보 가리기, 루프 한도, 시험은 가짜 클라이언트, 바꾸면 평가 셋), Django → 「Django」(makemigrations, 커밋한 마이그레이션 안 고치기, 운영 설정은 묻기, 템플릿 `|safe`·csrf, Celery 인자는 id), Spring Boot → 「Spring Boot」(비밀값은 `${…}`, 주인 확인, 트랜잭션·N+1, 이벤트·응답 형식은 더하기만, 오류 응답에 내부 정보 없음), PyTorch·scikit-learn·XGBoost·MLflow·Optuna·Hydra·wandb → 「머신러닝 실험」(시드 고정, 실행마다 설정·커밋 해시 기록, 기준과 견주기, 체크포인트 덮어쓰지 않기), dbt → 「dbt」(바꾼 모델은 하위 모델까지 `dbt build`·`test`, `--target prod` 는 묻기, 테스트 약하게 하지 않기, seeds·snapshots 지키기), Terraform(OpenTofu 포함)·Ansible → 「인프라 코드」(반영 전 plan 요약, `prevent_destroy`·prod PDB 유지, `0.0.0.0/0`·공개 버킷·EKS 공개 엔드포인트 막기, state 커밋 안 함, 버전 고정, Argo CD 가 있으면 클러스터는 저장소와 Argo CD 로만), iOS → 「iOS 앱」(권한 문구, Core Data 는 새 모델 버전과 마이그레이션 시험, 서명 설정은 묻기, 강제 언래핑 대신 `guard let`), Next.js → 「Next.js」(비밀값은 서버 코드에서만, 클라이언트 컴포넌트에 props 로 넘기지 않기, 로그인이 있으면 route handler·server action 안에서도 검사, `dangerouslySetInnerHTML` 은 정화 함수 하나로), Rust → 「Rust」(`unsafe` 는 묻고 `// SAFETY:` 주석, clippy·test 는 CI 와 같은 옵션으로, 라이브러리엔 `unwrap()` 대신 `?`), 결제 SDK 의존성(stripe·토스페이먼츠·포트원 등)이나 원장·결제·정산 코드 → 「결제·돈 계산」(금액은 최소 단위 정수, 반올림 규칙은 묻고 바꾸기, 멱등성 키·웹훅 중복 거르기, 원장은 반대 기록, 카드 번호 로그 안 남기기)
+- 브랜치 전략이 훅을 켜고 꺼요: GitHub Flow 는 보호 브랜치·브랜치 이름 규칙·PR 병합 방식을 켜고, Git Flow 는 PR 병합 방식을, 트렁크 기반은 브랜치 이름 규칙·PR 병합 방식을, 정하지 않음은 셋 다 꺼요. GitHub Flow 에 작업 마치기 스킬(finishing-a-development-branch)이 들어가면 지침에 「작업을 마칠 때는 로컬 병합 대신 PR(GitLab 은 MR)을 연다」 줄이 붙어요(스킬이 내미는 「로컬 병합」 선택지를 고르지 않게).
 - **커밋 메시지 형식**은 최근 커밋 제목 30개 중 70% 이상이 그 형식일 때만, **브랜치 이름 규칙**은 main·develop 같은 기본 브랜치를 뺀 브랜치 이름 70% 이상이 그 전략의 형식일 때만 기본으로 켜요. 안 따르는 저장소에 켜면 첫 커밋부터 막혀서예요. 커밋이 5개·브랜치가 3개보다 적으면 지킬 기록이 없는 새 저장소로 보고 켜요.
 - **의존성 버전 고정**은 꼼꼼하게에서만, 그리고 라이브러리 패키지(package.json 에 `main`·`exports`·`types` 가 있고 `private: true` 가 아님)에는 켜지 않아요. 라이브러리가 정확한 버전으로 고정하면 쓰는 쪽에 같은 패키지가 여러 벌 깔려요.
 - 커밋 해시 알리기·작업 체크리스트·임시 폴더 쌓임 알림·문서 형식 검사·답 언어 맞추기·스쿼시 안 한 푸시 차단은 어느 조합에서도 기본으로 켜지 않아요(사람마다·팀마다 달라서). 직접 켤 수는 있어요.
@@ -200,7 +201,7 @@
 | 훅 | 옵션 |
 | --- | --- |
 | 비밀값 차단 | 허용 주석 받기(기본 꺼짐) |
-| 파일 보호 | 더 지킬 파일·폴더(`*`·`**` 글롭 가능) |
+| 파일 보호 | 더 지킬 파일·폴더(`*`·`**` 글롭 가능), 비밀 파일 읽기 전에 묻기(기본 켜짐) |
 | 실행 전에 묻기 | 실행 전에 물을 명령, 원격·운영 명령도 묻기(기본 켜짐) |
 | 보호 브랜치 | 지킬 브랜치, 바로 푸시도 차단, 바로 커밋은 허용 |
 | 커밋 메시지 형식 | 메시지 형식(type: 요약 / 보지 않음), 메시지 언어(보지 않음·한국어·영어), 첫 줄 최대 길이(50·72·100자), 더 받을 타입 |
@@ -213,6 +214,7 @@
 
 - 파일 훅은 Write·Edit 로 쓸 때 보고, 셸이나 다른 도구로 쓴 파일(`cat >`·`sed -i`·`npm install`)은 커밋할 때 같은 훅으로 다시 봐요. 적용하면 `.git/hooks/pre-commit` 에 작은 git 훅을 넣어, 커밋하는 순간 실제로 들어가는 내용을 봐요 — 사람이 Claude 밖에서 직접 커밋할 때도 같아요(되돌리기로 빠져요). git 훅은 저장소에 올라가지 않으니 팀원은 자기 PC 에서 `/harness-fit:setup` 을 열어 그대로 적용해야 생겨요.
 - 이미 다른 pre-commit 훅이나 `core.hooksPath`(husky·pre-commit·lefthook)가 있으면 덮어쓰지 않고, 그 훅에 이어 붙일 한 줄을 알려 줘요. 그때와 팀원이 새로 받은 저장소에서는 Claude Code 안에서 `git commit` 명령을 읽어 보는데, 같은 명령 앞부분에서 파일을 쓰고 바로 커밋하면 미리 볼 수 없어 나눠 실행하게 해요.
+- `.pre-commit-config.yaml` 이 있는 저장소에는 git 훅을 넣지 않아요. `pre-commit install` 은 있던 훅을 `pre-commit.legacy` 로 옮겨 함께 돌리는데, Windows 에서는 그 훅이 돌지 못해 모든 커밋이 막혀서예요(전에 넣은 harness-fit git 훅도 이때 빼요 — 손대지 않은 harness-fit 실행기 그대로일 때만이고, 되돌리기로 `pre-commit` 은 다시 들어가지만 `pre-commit.legacy` 는 같은 까닭으로 다시 넣지 않아요). 대신 `.claude/harness-fit-pre-commit.mjs` 를 넣고, 설정의 `repos:` 밑에 붙여 넣을 `id: harness-fit` 항목을 끝 화면에 보여 줘요(옛 항목이 있으면 바꿔 넣으라고 알려 줘요). 이 항목은 그 파일이 없거나(되돌린 뒤·파일을 커밋하지 않은 팀원 PC) 그 파일이 돌다 깨져도 커밋을 통과시켜요. 그때 남기는 한 줄 알림은 `pre-commit run -v` 로 돌릴 때만 보여요(통과하는 커밋마다 줄이 붙지 않게). Claude Code 안의 커밋 검사는 이와 상관없이 돌아요. 되돌린 뒤에는 그 항목을 지워도 돼요.
 
 ## 줄 하나만 넘기기
 
@@ -234,7 +236,7 @@ el.innerHTML = renderMarkdown(src); // lint:allow unsafe-html 렌더러가 DOMPu
 
 훅은 걸렸을 때만 Claude 에게 한 줄 남짓(약 20~100 토큰)을 보내요: 차단 이유, 「GitHub 은 gh 명령으로 읽기」 안내, 답을 끝낼 때(Stop) 되묻는 「커밋 해시 알리기」·「문서 형식 검사」·「답 언어 맞추기」, 세션을 시작할 때 하루 한 번까지 알리는 「임시 폴더 쌓임 알림」. 늘 드는 것은 「작업 체크리스트」 하나로, 켜면 세션을 시작할 때 약 100 토큰, 남은 항목이 있으면 메시지마다 약 50 토큰 + 항목이 더해져요. 체크리스트와 Stop 때 되묻는 셋은 기본 꺼짐이에요.
 
-README 의 토큰 표는 Next.js · TypeScript · Supabase · Vitest · GitHub Actions 예시 저장소(package.json 에 test(vitest)·lint·typecheck·build·dev 스크립트, 커밋한 사람 3명)에서 잰 값이에요(2026-11-13 에 빈 설정 폴더로 다시 잼 — 이미 있는 훅·스킬과 겹쳐서 빠진 것이 없어요). dev 스크립트는 「이 저장소 명령」의 「그 밖의 명령」 줄에 들어가요. 스킬 수에는 직접 설치할 스킬 1개(React 성능 규칙)가, 지침 수에는 「이 저장소 명령」이, 팀 협업·꼼꼼하게의 지침 6개에는 브랜치 전략(GitHub Flow) 지침도 들어 있어요.
+README 의 토큰 표는 Next.js · TypeScript · Supabase · Vitest · GitHub Actions 예시 저장소(package.json 에 test(vitest)·lint·typecheck·build·dev 스크립트, 커밋한 사람 3명)에서 잰 값이에요(2026-11-13 에 빈 설정 폴더로 다시 잼 — 이미 있는 훅·스킬과 겹쳐서 빠진 것이 없어요). dev 스크립트는 「이 저장소 명령」의 「그 밖의 명령」 줄에 들어가요. 스킬 수에는 직접 설치할 스킬 1개(React 성능 규칙)가, 지침 수에는 「이 저장소 명령」과 Next.js 지침이, 팀 협업·꼼꼼하게의 지침 7개에는 브랜치 전략(GitHub Flow) 지침도 들어 있어요.
 
 ## 스킬 목록 한도
 
@@ -277,3 +279,5 @@ Claude 가 스킬 목록(이름·설명)을 기억하는 자리에는 한도가 
 - 2026-11-13: 적용된 마이그레이션 고치기 막기에 goose·golang-migrate 를 적음(훅·감지는 이미 다룸).
 - 2026-11-13: 결제·돈 계산 지침 묶음과 커밋한 결과·논문 폴더를 적용 때 묻는 것을 적음.
 - 2026-11-13: v0.4.0 에 맞춤 — 옵션 칩·까닭·「+」 제안·「외 N개」, 확인 단계 옵션 표와 실패 안내, 「이 저장소 명령」 읽는 곳, 실행 전에 묻기의 원격 범위와 스택별 기본 명령(iOS·배포 플랫폼, ros2 run 은 뺌), 인프라 코드 지침은 Terraform·Ansible 만, 겹침 시험 캐시, 스킬 받기 방식, 훅의 git 줄이기, 토큰 표 다시 잼.
+- 2026-11-16: Next.js 지침 묶음, 인프라 지침의 Argo CD·EKS 공개 엔드포인트·prod PDB, Core Data 마이그레이션 시험, sqlc 생성 코드 줄, GitHub Flow 의 「로컬 병합 대신 PR」 줄을 적음.
+- 2026-11-16: 훅 27개로 맞춤 — 인프라 안전장치 끄기 전에 묻기 줄을 더하고, 파일 보호(비밀 파일 읽기 묻기)·실행 전에 묻기(키체인 비밀번호)·위험한 HTML(use client 환경 변수 알림) 줄과 옵션 표를 고침.

@@ -40,7 +40,9 @@ const installAll = async (all, items, onProgress, { lang = 'ko', net = makeNet(a
 };
 
 // 바뀐 파일 한 줄(결과 JSON·--dry-run): + 새로 만듦, ~ 고침
-export const lineOf = (root, c) => `${c.action === 'create' ? '+' : '~'} ${rel(root, c.path)}`;
+// - 지움(pre-commit 으로 바꾼 저장소의 옛 우리 git 훅 — plan.mjs gitHookPlan)
+const SIGN = { create: '+', remove: '-' };
+export const lineOf = (root, c) => `${SIGN[c.action] || '~'} ${rel(root, c.path)}`;
 
 // onProgress({ done, total, current }) — 스킬을 받는 동안 화면에 진행을 보여 주려고.
 // gh: GitHub 설정에 쓸 실행기(시험이 가짜를 넣는다). sel.github 가 true 일 때만 GitHub 을 건드린다.
@@ -51,6 +53,7 @@ export const apply = async (root, sel, onProgress = () => {}, { gh, listing, und
   const saved = backup(root, changes);
   try {
     for (const c of changes.filter((x) => !x.skill)) {
+      if (c.action === 'remove') { fs.rmSync(c.path, { force: true }); continue; }
       fs.mkdirSync(path.dirname(c.path), { recursive: true });
       fs.writeFileSync(c.path, c.content);
       if (c.mode) fs.chmodSync(c.path, c.mode); // git 훅은 실행 권한이 있어야 돈다(Windows 밖)

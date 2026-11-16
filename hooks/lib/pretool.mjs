@@ -12,6 +12,7 @@ export const RULE_MODULES = [
   { on: 'write', ids: ['migration-edit'], load: () => import('../rules/migration.mjs') },
   { on: 'write', ids: ['unsafe-html', 'pin-deps', 'gha-inject'], load: () => import('../rules/code.mjs') },
   { on: 'write', ids: ['swift-unsafe', 'python-unsafe'], load: () => import('../rules/lang.mjs') },
+  { on: 'write', ids: ['iac-edit'], load: () => import('../rules/iac.mjs') },
   { on: 'write', ids: ['docs-check'], load: async () => [(await import('../rules/docs.mjs')).docsWrite] },
   { on: 'shell', ids: ['danger-cmd', 'password-cli', 'protected-files', 'ask-cmd'], load: () => import('../rules/shell.mjs') },
   { on: 'shell', ids: ['migration-edit'], load: () => import('../rules/migration.mjs') },
@@ -20,10 +21,13 @@ export const RULE_MODULES = [
   { on: 'shell', ids: ['no-rewrite-pushed', 'pr-merge'], load: () => import('../rules/history.mjs') },
   { on: 'shell', ids: ['secrets', 'protected-files', 'file-size', 'unsafe-html', 'pin-deps', 'gha-inject', 'swift-unsafe', 'python-unsafe'], load: () => import('../rules/commit.mjs') },
   { on: 'fetch', ids: ['prefer-gh'], load: () => import('../rules/web.mjs') },
+  { on: 'read', ids: ['protected-files'], load: () => import('../rules/files.mjs') },
 ];
 
+// Read 는 비밀 파일 읽기 묻기(protected-files askRead)만 본다
+export const KINDS = ['shell', 'write', 'fetch', 'read'];
 export const kindOf = (tool) =>
-  /^(Bash|PowerShell)$/.test(tool) ? 'shell' : /^(Write|Edit|NotebookEdit)$/.test(tool) ? 'write' : tool === 'WebFetch' ? 'fetch' : null;
+  /^(Bash|PowerShell)$/.test(tool) ? 'shell' : /^(Write|Edit|MultiEdit|NotebookEdit)$/.test(tool) ? 'write' : tool === 'WebFetch' ? 'fetch' : tool === 'Read' ? 'read' : null;
 
 const rulesOf = (mod) => (Array.isArray(mod) ? mod : mod.default);
 

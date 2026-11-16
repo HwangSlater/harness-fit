@@ -9,6 +9,7 @@ import { rosPackages } from './stack-scan.mjs';
 import { makefileText, makeTargets, makeVars, makeRules, recipeOf, expandVars } from './makefile.mjs';
 import { releaseFastlane, fastlaneLanes, readFastlane } from './fastlane.mjs';
 import { docCommands } from './doc-commands.mjs';
+import { sqlcCommand } from './sqlc.mjs';
 
 // testOne: 시험 파일(또는 이름) 하나만 돌리는 명령. 자리표시 `<file>`·`<name>` 은 지침 글이 그 언어 말로 바꾼다.
 // tools: 이 저장소가 설치해 쓰게 하는 명령(pyproject [project.scripts]·[tool.poetry.scripts] — 평가·수집 명령이 빠지던 일, 역할극 4 회차 2차)
@@ -379,9 +380,12 @@ export const detectCommands = (root, { home, protect = [] } = {}) => {
   const own = ownClaudeText(root, home);
   const commands = {};
   const listed = [];
+  // sqlc 로 다시 만드는 명령은 「생성 코드」 줄에만 — 「그 밖의 명령」에서는 빼서 자리를 먹지 않게(sqlc.mjs)
+  const sqlc = sqlcCommand(root, rules, (l) => expandVars(l, vars));
+  if (sqlc) commands.sqlc = sqlc;
   for (const kind of COMMAND_KINDS) {
     // 이미 CLAUDE.md 에 있는 것을 먼저 거른 뒤 자른다 — 거르기 전에 자르면 적어 둔 명령이 자리를 먹어 make migrate-new 가 밀려났다(역할극 14 회차)
-    const all = [...new Set([...found.flatMap((f) => f[kind] || []), ...(kind === 'tools' ? found.flatMap((f) => f.toolsLate || []) : [])])];
+    const all = [...new Set([...found.flatMap((f) => f[kind] || []), ...(kind === 'tools' ? found.flatMap((f) => f.toolsLate || []) : [])])].filter((c) => !sqlc?.includes(c));
     const unlisted = all.filter((c) => !mentioned(own, c));
     const fresh = kind === 'tools' ? keepChecksFirst(unlisted, MAX_TOOLS) : unlisted.slice(0, MAX_PER_KIND);
     listed.push(...all.filter((c) => mentioned(own, c)));

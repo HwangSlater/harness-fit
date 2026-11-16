@@ -1,6 +1,6 @@
 # 결정 — 추천·감지
 
-> 최종 수정: 2026-11-13 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-16 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다.
 
@@ -125,11 +125,29 @@
 - 추천이 고르지 않은 지침 묶음·훅·스킬은 사용자가 그 이야기를 꺼낼 때만 말한다(13 회차 4차, 2026-11-13: overlap 출력의 결제 묶음 줄과 커밋 메시지의 lib/payment.ts 를 보고 세션이 감지가 뺀 결제 묶음을 스스로 물어 넣었다). overlap.mjs 의 rules 도 이 저장소가 받을 수 있는 묶음(어느 조합에든 든 것 + 감지한 스택에 딸린 것, `lib/catalog.mjs` reachableRules — expandCombo 와 같은 조건)과 지난번에 적용한 것만. `scripts/overlap.mjs`, 시험 `scripts/test/record-payments.test.mjs`.
 - 점검 도구는 같은 명령 안에서 앞서 담은 셸 변수(NAME="…"·'…'·…)를 펼친 뒤 맞춘다 — `P=".../apply.mjs"; node "$P" … --dry-run` 을 「dry-run 빠짐」으로 읽었다(14·15 회차). github-settings 판정은 조각마다.
 
+### v0.4.1 지침 쪽 (역할극 13~16 회차에서 미룬 것, 2026-11-16)
+- Next.js 지침 묶음(`rules/nextjs.*.md`, 스택 Next.js 에 딸림 — 13 회차): 비밀값은 서버 코드에서만·`NEXT_PUBLIC_*` 만 브라우저로, 클라이언트 컴포넌트에 비밀값 props 금지, 로그인·주인 검사는 middleware 밖 route handler·server action 에서도(`{{kind:backend|auth}}` — 로그인 없는 화면엔 안 넣음), `dangerouslySetInnerHTML` 은 정화 함수 하나로. 보안 조각의 「키는 코드에 쓰지 않기」·「서버에서 주인 검사」와 말이 겹치지 않게 Next.js 에서 「어디서」만 적었다. 정화 함수가 같은 줄에 있는지는 unsafe-html 훅이 보지만 「하나로」는 훅이 못 봐 {{judge}}.
+- 인프라 지침: 「클러스터는 저장소와 Argo CD 로만, prod 에 kubectl apply 직접 금지」 줄은 kinds 의 argocd(Argo CD 앱 정의 감지 — helm 과 같은 증거 종류, general 이어도 안 넣음)일 때만. EKS 공개 엔드포인트는 공개 범위 줄에, prod PDB 는 보호 장치 줄에 넣었다(15 회차 4c~e). 8줄·1500자 한도를 지키려고 버전 고정 줄을 fmt·validate 줄에 합쳤다. 새 줄은 조각 끝에 둬 이미 적용한 저장소의 「뺀 줄 번호」(skipLines)가 덜 밀리게.
+- sqlc(14 회차 M6): `sqlc.yaml`·`.yml`·`.json` 을 맨 위와 흔한 DB 폴더(db·sql·internal/db…)에서 찾아 스택 sqlc. 「이 저장소 명령」 끝에 「생성 코드는 손으로 고치지 않고 쿼리를 고친 뒤 다시 만든다」 줄({{cmd:sqlc}}): sqlc generate 를 부르는 Makefile 대상이 있으면 `make <대상>`, 없으면 `sqlc generate`(설정이 폴더 안이면 `-f`). 그 make 대상은 「그 밖의 명령」에서 뺀다. 손 고치기 막기 훅은 하지 않았다(protected-files 는 git add 까지 막음 — 쓰기만 막는 옵션이 필요). `scripts/lib/sqlc.mjs`.
+- iOS: 새 줄 대신 Core Data 줄에 「옛 버전에서 옮겨 오는 마이그레이션 시험을 기존 시험 타깃(`<앱>Tests`)에」를 이었다(16 회차).
+- finishing-a-development-branch(15 회차 9): 팀 조합에서 빼지 않고(작업 마치기 확인 단계가 쓸모 있다) GitHub Flow 조각에 「작업을 마칠 때는 로컬 병합 대신 PR(GitLab 은 MR)을 연다」 줄을 `{{skill:finishing-a-development-branch}}`(그 스킬이 들어갈 때만)로 넣었다.
+- `.terraform/` 은 그대로 보호 경로로 제안하지 않는다(위 「묻는 명령·보호 경로」, 15 회차 7).
+- 시험: `scripts/test/rules-v041.test.mjs`.
+
+### v0.4.1 독립 검토 반영 (2026-11-16)
+- 인프라 지침은 Argo CD 만 있는 저장소(k8s + Argo CD · Helm + Argo CD)에도 붙인다 — 「Argo CD 로만」 줄이 GitOps 저장소에 닿지 않았다. Terraform 줄(fmt·validate·tflint)은 `{{kind:terraform}}`(.tf 감지, helm·argocd 와 같은 증거 종류)일 때만. 0.0.0.0/0·공개 버킷·publicly_accessible·EKS 엔드포인트 줄은 `{{kind:terraform|ansible}}` — 처음에 terraform 만으로 묶어 Ansible 만 있는 저장소에서 빠졌다(두 번째 검토, 2026-11-16). 그래서 종류에 ansible(Ansible 감지)을 더했다. `catalog/combos.json`, `scripts/detect.mjs` kindsOf, `scripts/lib/rule-files.mjs` EVIDENCE. 시험 `scripts/test/review-v041b.test.mjs`.
+- Next.js: `next` 가 devDependencies 에만 있으면(@storybook/nextjs 를 쓰는 React UI 라이브러리) next.config.*·app/·pages/(src/ 밑 포함)가 있을 때만 센다. 없으면 React 로 본다. dependencies 의 next 는 그대로.
+- sqlc: `sqlc/sqlc.yaml` 도 찾는다. generate 찾기를 정규식에서 낱말 훑기로 바꿨다(`'sqlc '` × 5만 줄에 743ms).
+- 시험: `scripts/test/review-v041.test.mjs`.
+
 ### 남은 것
 - 남은 것: 받아 넣은 스킬의 다른 언어 부속 파일(npm·jest 예시), 이미 있는 위험한 줄(|safe·로그 속 개인정보)을 처음 보고에서 세기, csrf_token 이 빠진 POST 폼 검사, `churn-eval --baseline <다른 파일>` 같은 우회.
-- 남은 것: 「Argo CD 가 있으면 클러스터는 저장소 → Argo CD 로만」 지침 줄(스택은 이제 안다), sqlc 생성 코드 지침.
+- 남은 것: sqlc 생성 파일 손 고치기 막기(쓰기만 막는 보호 옵션), Argo CD 없이 매니페스트만 있는 저장소의 지침(인프라 지침은 Terraform·Ansible·Argo CD 에만 붙는다).
 
 ## 바뀐 이력
+- 2026-11-16: v0.4.1 두 번째 검토 — 인프라 지침의 인바운드·공개 버킷 줄을 terraform|ansible 로(Ansible 만 있는 저장소에서 빠지던 회귀), 종류에 ansible.
+- 2026-11-16: v0.4.1 독립 검토 — GitOps 만 있는 저장소에 인프라 지침(Terraform 줄은 빼고), devDependencies 의 next 만으로는 Next.js 아님, sqlc/sqlc.yaml·generate 찾기 속도.
+- 2026-11-16: v0.4.1 지침 쪽 — Next.js 지침 묶음, 인프라 지침의 Argo CD 줄·EKS 공개 엔드포인트·prod PDB, sqlc 감지와 생성 코드 줄, Core Data 마이그레이션 시험, GitHub Flow 에 「로컬 병합 대신 PR」.
 - 2026-11-13: 역할극 13 회차 4차 — overlap 은 받을 수 있는 지침 묶음만, 추천이 고르지 않은 것은 사용자가 꺼낼 때만.
 - 2026-11-13: 다시 한 독립 검토 — 로그인 낱말에서 session 홀로 빼기, 나뉜 낱말은 대소문자 경계로만 잇기. 「사람이 직접 실행」 줄은 막는 명령을 먼저(역할극 16 회차 다시: make release·release.sh 가 앞 5개에 들지 못했다).
 - 2026-11-13: 독립 검토 반영 — 로그인 단서(낱말 조각·토큰·해시·Amplify·firebase/auth), 고정 판정(넷 미만·catalog:·=판), 줄이기의 저장소 맞춤은 맞는 스택만, 막는 명령도 「사람이 직접 실행」 줄에, 점검 도구 변수 펼치기 길이 한도.
