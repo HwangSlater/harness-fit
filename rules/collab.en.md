@@ -1,5 +1,5 @@
 ## Collaboration
-- Commits use `type: description`. {{!hook:commit-msg}}
+- Commits use `type: description`. {{!hook:commit-msg}} {{!fmt:commit}}
 - Split changes with different reasons (feature, bug fix, cleanup, rename) into separate commits. {{judge}}
 - PR (MR on GitLab) descriptions give the reason for the change and the commands used to verify it, with their results. {{!skill:pr-writer}}
 - Never rewrite commits that are already pushed. {{!hook:no-rewrite-pushed}}

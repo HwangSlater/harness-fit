@@ -17,6 +17,7 @@ import { dupsFor, defaultsFor, matesFor, flowBy, blockingHooks } from './stats.j
 import { hookKey, fromCombo, fromRecommended, snapshot, startSelection, sameSel } from './selection.js';
 import { applyActions } from './apply-flow.js';
 import { budgetActions } from './budget-view.js';
+import { mineHooks, withChoice, followHook, conflictKey, shareSplit } from './conflict.js';
 
 const PREVIEW_DELAY_MS = 250;
 const TOAST_MS = 3200;
@@ -39,8 +40,10 @@ const ctx = (x = sel, extra = {}) => ({ S, sel: x, ui: { ...ui, ...extra }, t, a
 const payload = (x) => ({
   lang: S.lang, combo: x.combo, flow: x.flow, skills: [...x.skills], hooks: [...x.hooks], rules: [...x.rules],
   explore: [...x.explore], note: x.note, share: x.share, github: githubOn(ui, x), githubChoice: choiceOf(ui, x), hookOpts: sentOpts(x.baseOpts, S.prevRules, x.hookOpts),
-  covered: [...dupsFor(S, x).hooks.keys()], skipLines: S.detected.skipLines || {},
+  covered: [...dupsFor(S, x).hooks.keys()], skipLines: S.detected.skipLines || {}, conflicts: x.conflicts || [],
 });
+// 「내 규칙」을 고른 훅은 브랜치 방식·추천대로·차단하는 것만이 다시 켜지 않는다(picker/conflict.js)
+const notMine = (ids) => { const m = mineHooks(sel); return [...ids].filter((id) => !m.has(id)); };
 
 // 미리보기: 요청마다 번호를 붙이고, 마지막에 보낸 것의 답만 받는다(늦게 온 옛 답이 새 선택을 덮지 않게).
 let previewTimer;
@@ -113,7 +116,7 @@ const act = {
     if (!f || id === sel.flow) return;
     sel.flow = id;
     const dup = dupsFor(S, sel).hooks;
-    f.hooksOn.filter((x) => !dup.has(x)).forEach((x) => sel.hooks.add(x)); // 이미 있는 훅이 같은 일을 하면 다시 켜지 않는다
+    notMine(f.hooksOn.filter((x) => !dup.has(x))).forEach((x) => sel.hooks.add(x)); // 이미 있는 훅이 같은 일을 하면 다시 켜지 않는다
     f.hooksOff.forEach((x) => sel.hooks.delete(x));
     edited();
   },
@@ -121,13 +124,24 @@ const act = {
     const set = sel[kind];
     set.has(id) ? set.delete(id) : set.add(id);
     if (kind === 'skills') ui.touched.add(id);
-    if (kind === 'hooks') ui.touched.add(hookKey(id));
+    // 내 규칙과 반대인 훅을 켜면 harness-fit 쪽, 끄면 내 규칙 쪽으로 기록도 바꾼다
+    if (kind === 'hooks') ui.touched.add(hookKey(id)), (sel.conflicts = followHook(sel.conflicts, id, set.has(id)));
     if (kind === 'explore') return changed();
     edited();
   },
   // 묶음 모두 켜기·끄기(전체 보기 창)
   setHooks(ids, on) {
-    for (const id of ids) (on ? sel.hooks.add(id) : sel.hooks.delete(id)), ui.touched.add(hookKey(id));
+    for (const id of ids) (on ? sel.hooks.add(id) : sel.hooks.delete(id)), ui.touched.add(hookKey(id)), (sel.conflicts = followHook(sel.conflicts, id, on));
+    edited();
+  },
+  // 내 규칙과 반대인 것 하나의 고른 쪽 바꾸기(작은 창의 스위치): 훅이면 켜고 끄기도 함께, 줄이면 미리 보기에서 들고 난다.
+  // 이미 있는 훅이 같은 일을 하면(dup) harness-fit 쪽으로 바꿔도 켜지 않는다 — 다른 길(브랜치 방식·추천대로)과 같게
+  flipConflict(key) {
+    const x = sel.conflicts.find((k) => conflictKey(k) === key);
+    if (!x) return;
+    const choice = x.choice === 'mine' ? 'harness' : 'mine';
+    sel.conflicts = withChoice(sel.conflicts, key, choice);
+    if (x.kind === 'hook') (choice === 'harness' && !dupsFor(S, sel).hooks.has(x.id) ? sel.hooks.add(x.id) : sel.hooks.delete(x.id)), ui.touched.add(hookKey(x.id));
     edited();
   },
   // 「추천대로」: 지금 조합·브랜치 방식이 켜는 훅으로(이미 있는 훅과 같은 일을 하는 것은 빼고)
@@ -135,14 +149,14 @@ const act = {
     const dup = dupsFor(S, sel).hooks;
     const d = defaultsFor(S, sel).hooks;
     for (const id of flowBy(S, sel.flow)?.hooksOff || []) d.delete(id);
-    sel.hooks = new Set([...d].filter((id) => !dup.has(id)));
+    sel.hooks = new Set(notMine([...d].filter((id) => !dup.has(id))));
     [...ui.touched].filter((k) => k.startsWith('hook:')).forEach((k) => ui.touched.delete(k));
     toast(t('hooksDefaultDone', { n: sel.hooks.size }));
     edited();
   },
   // 「차단하는 것만」: 막는 훅만 켜고 알려 주기만 하는 훅은 끈다(stats.js blockingHooks)
   hooksBlockOnly() {
-    sel.hooks = blockingHooks(S, sel);
+    sel.hooks = new Set(notMine(blockingHooks(S, sel)));
     S.hooks.forEach((x) => ui.touched.add(hookKey(x.id)));
     toast(t('hooksBlockOnlyDone', { n: sel.hooks.size }));
     edited();
@@ -160,13 +174,17 @@ const act = {
 function setShare(v) {
   const before = dupsFor(S, sel);
   sel.share = v;
+  // 팀원 공유면 ~/ 파일 기록(사람마다 다른 전역 글)은 빼 두고 그 「내 규칙」 훅은 추천대로, 공유를 끄면 되살린다(서버 cleanSelection 과 같게)
+  const r = shareSplit(sel.conflicts, ui.globalConflicts, v);
+  (sel.conflicts = r.list), (ui.globalConflicts = r.aside), r.off.forEach((id) => sel.hooks.delete(id));
+  r.back.filter((id) => defaultsFor(S, sel).hooks.has(id) && !dupsFor(S, sel).hooks.has(id)).forEach((id) => sel.hooks.add(id));
   syncDups(before);
 }
 // 겹침이 바뀐 뒤(팀원 공유를 바꿈·기존 훅 시험 결과가 옴): 새로 겹치는 기본 항목은 빼고, 더는 겹치지 않는 것은 다시 넣는다.
 function syncDups(before) {
   const after = dupsFor(S, sel);
   const d = defaultsFor(S, sel);
-  for (const id of d.hooks) {
+  for (const id of notMine(d.hooks)) {
     if (ui.touched.has(hookKey(id))) continue;
     if (after.hooks.has(id)) sel.hooks.delete(id);
     else if (before.hooks.has(id)) sel.hooks.add(id);

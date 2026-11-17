@@ -4,22 +4,25 @@ import { h } from './dom.js';
 import { lrow, toggleSwitch, btn } from './parts.js';
 import { moreToggle } from './review-notes.js';
 
-// 저장소에 올라가 팀원에게 가는 것(apply.mjs plan 의 kind). git 훅(.git/hooks)·백업은 올라가지 않는다.
-export const SHARED_KINDS = new Set(['config', 'claude-md', 'share', 'gitignore', 'skill']);
+// 저장소에 올라가 팀원에게 가는 것(apply.mjs plan 의 kind). git 훅(.git/hooks)·백업은 올라가지 않는다. 고르지 않게 된 스킬을 뺀 것(skill-remove)도 커밋해야 팀원에게서도 빠진다.
+export const SHARED_KINDS = new Set(['config', 'claude-md', 'share', 'gitignore', 'skill', 'skill-remove']);
+const FOLDER_KINDS = new Set(['skill', 'skill-remove']);
 export const mustAsk = (sel) => sel.flow !== 'none';
 export const shareOpen = (sel, ui) => mustAsk(sel) && !ui.shareAnswered;
 
 // 커밋하고 푸시할 파일(스킬은 폴더 하나씩). p = 미리보기
 // 이번에 바뀌는 공유 파일 + 아직 커밋하지 않은 공유 파일(전에 적용하고 커밋하지 않은 것 — scripts/lib/shared-files.mjs)
-export const sharedPaths = (p) => [...new Set([...(p?.changes || []).filter((x) => SHARED_KINDS.has(x.kind)).map((x) => (x.kind === 'skill' ? `${x.path}/` : x.path)), ...(p?.uncommittedShared || [])])];
+export const sharedPaths = (p) => [...new Set([...(p?.changes || []).filter((x) => SHARED_KINDS.has(x.kind)).map((x) => (FOLDER_KINDS.has(x.kind) ? `${x.path}/` : x.path)), ...(p?.uncommittedShared || [])])];
 
 // 팀원이 할 일. done = 끝 화면(이미 적용함)
 export function teamHowTo(c, p, done = false) {
   const { S, t } = c;
   const files = sharedPaths(p);
+  // 지운 스킬 폴더도 커밋해야 팀원에게서 빠진다 — 새로 들어가는 파일로 읽히지 않게 「지움」을 붙인다(화면 확인 2026-11-16)
+  const removed = new Set((p?.changes || []).filter((x) => x.kind === 'skill-remove').map((x) => `${x.path}/`));
   const [more4, body4] = moreToggle(c, 'team4', t('teamStep4D'));
   const steps = [
-    [t(done ? 'teamStep1Done' : 'teamStep1'), files.length ? h('ul.files', {}, files.map((f) => h('li.mono', {}, f))) : null],
+    [t(done ? 'teamStep1Done' : 'teamStep1'), files.length ? h('ul.files', {}, files.map((f) => h('li.mono', {}, f, removed.has(f) ? h('span.d', {}, ` — ${t('teamRemoved')}`) : null))) : null],
     [t('teamStep2', { repo: S.pluginRepo, ref: S.pluginRef })],
     [t('teamStep3')],
     [[t('teamStep4'), ' ', more4], body4],

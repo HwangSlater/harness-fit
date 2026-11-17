@@ -52,12 +52,27 @@ test('커밋·push 는 저장소 맨 위·브랜치·HEAD 를 git 에게 묻지 
   const commit = await bash('git commit -m "feat: 더하기"');
   assert.equal(commit.out, '{}');
   // 전에는 9번(맨 위 1 · symbolic-ref 2 · rev-parse HEAD 2 · 커밋 계획 4). 새 파일이 있는 커밋은 무시 파일 검사(check-ignore) 한 번 더 — 2026-11-13
-  assert.ok(commit.calls.length <= 5, commit.calls.join(' | '));
+  // 오래 산 브랜치 알림(branch-age)은 세션마다 브랜치마다 처음 한 번만 git 두 번(rev-list --count 로 뒤처진 수, log --format=%at 로 나이)을 더한다.
+  // 전에는 log --left-right 한 번이었지만 뒤처진 커밋마다 줄을 만들어 5만 커밋 뒤면 1초 가까이 걸렸다 — 두 번이 commit-graph 가 있는 저장소에서 3배 빠르다.
+  // 그 뒤 같은 세션의 커밋·push 는 0번(표시 파일만 읽는다)이라 한 세션에서는 전보다 적게 부른다(2026-11-17 검토)
+  assert.ok(commit.calls.length <= 7, commit.calls.join(' | '));
   assert.ok(!commit.calls.some((c) => /^(?:rev-parse --show-toplevel|symbolic-ref|rev-parse --verify --quiet HEAD)/.test(c)), commit.calls.join(' | '));
+  const ageCalls = (r) => r.calls.filter((c) => c.startsWith('log ') || c.startsWith('rev-list ')).length;
+  assert.equal(ageCalls(commit), 2, `branch-age 는 처음에 git 두 번: ${commit.calls.join(' | ')}`);
   const push = await bash('git push');
+  assert.equal(ageCalls(push), 0, `같은 세션(세션 id 가 없어 같은 날)에 이미 본 브랜치는 git 을 부르지 않는다: ${push.calls.join(' | ')}`);
   assert.ok(push.calls.length <= 1, push.calls.join(' | '));
   const nested = await bash('bash -c "git commit -m \'feat: 더하기\'"');
-  assert.ok(nested.calls.length <= 5, `bash -c 속 명령도 같은 저장소 상태를 나눠 쓴다: ${nested.calls.join(' | ')}`);
+  assert.ok(nested.calls.length <= 6, `bash -c 속 명령도 같은 저장소 상태를 나눠 쓴다: ${nested.calls.join(' | ')}`);
+});
+
+test('Git Flow 합치기 방향(merge-flow)은 브랜치를 파일로 읽어 git 을 띄우지 않는다', async () => {
+  const blocked = await bash('git switch main && git merge feature/x');
+  assert.match(blocked.out, /deny/);
+  assert.deepEqual(blocked.calls, [], blocked.calls.join(' | '));
+  const fine = await bash('git merge develop');
+  assert.equal(fine.out, '{}', '기능 브랜치에 develop 받기');
+  assert.deepEqual(fine.calls, [], fine.calls.join(' | '));
 });
 
 test('버전 꼴 이름 push 는 태그·브랜치를 ref 파일로 찾는다(git 0번, 판정은 그대로)', async () => {

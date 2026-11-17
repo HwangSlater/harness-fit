@@ -1,6 +1,6 @@
 # 결정 — 훅
 
-> 최종 수정: 2026-11-16 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-17 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다 — 고쳐 온 차례는 git 기록과 archive 에 있다.
 
@@ -282,6 +282,28 @@
 - 넘겨쓰기: 2>&1·>&2·2>&- 는 낱말 안에서 끝나 다음 낱말을 건너뛰지 않는다(`redirectWord`). 알려진 놓침은 그대로: & 가르기가 `2>&1` 을 두 조각으로 나눠 `cat x 2>&1 ~/.ssh/id_rsa` 의 뒤 파일은 읽기 명령 밖으로 떨어진다.
 - 시험: `hooks/test/strict-cases/v041-review2.mjs`, `hooks/test/review6.test.mjs`, `scripts/test/review-v041b.test.mjs`, `scripts/test/pre-commit-apply.test.mjs`(진짜 pre-commit 4.7.0 으로 깨진 실행 파일 세 꼴까지).
 
+### Git Flow 합치기 방향 merge-flow (사용자 결정, 2026-11-17)
+- 결정: 새 훅(kind block, git 기록 묶음). Git Flow 브랜치 전략의 hooksOn 으로만 켜고 다른 전략은 hooksOff. 지금 브랜치(합쳐지는 쪽)와 합칠 브랜치의 종류가 Git Flow 를 깨면 `git merge` 를 막는다 — main·master 에 feature/*·bugfix/*·develop, release/* 에 feature/*, hotfix/* 에 develop·feature/*. main 에 release/*·hotfix/*, develop 에는 무엇이든(hotfix 뒤 main 되합치기가 흔하다) 통과. 막는 글은 규칙과 갈 길(「develop 으로 합치고 release/* 를 거쳐 main 으로」, develop→main 은 「release/<버전> 을 만들어」, hotfix 는 「고침만 커밋하거나 cherry-pick」)을 함께 적는다.
+- 범위: Bash·PowerShell, `git -C`·`cd … &&`·`Set-Location`, `--no-ff`·`--squash`·`--no-commit`, 같은 명령에서 switch·checkout 으로 옮긴 브랜치(timelineOf), `bash -c` 안. 합칠 이름은 refs/heads/ 를 떼고, `origin/feature/x` 처럼 원격 추적 브랜치는 그 ref 파일이 있을 때만 원격 이름을 뗀다. `git pull` 은 브랜치를 적었을 때만(`git pull origin feature/x`, --rebase 도) 같은 표로 본다 — 원격만 주거나 아무것도 안 주면 upstream 을 받는데 무엇이 들어오는지 파일만으로는 모른다.
+- 이름: 보호 브랜치(protect-branch) 옵션의 branches 를 따른다. 그 목록에서 main·master·production·prod·trunk·stable 꼴은 배포 브랜치, 나머지는 통합 브랜치(develop·dev·integration 등 — 이름 꼴로 고르지 않는다). 다만 staging·stage·qa·uat·test·preprod·sandbox·demo·preview 같은 환경 브랜치와 / 가 든 이름은 모르는 이름이라 통과(그런 브랜치에 feature 를 합치거나 그것을 main 에 합치는 팀이 있다). 목록이 없으면 main·master 와 develop, 목록이 있는데 배포 꼴이 없으면 배포만 main·master. 목록에 통합 브랜치가 없으면 develop 을 채워 넣지 않는다(그때 `git merge develop` 은 모르는 이름). 막는 글의 갈 곳도 목록에 적은 통합 브랜치 이름으로(없으면 이름 없이 「통합 브랜치」). 옵션을 따로 두지 않은 까닭: 같은 이름을 두 곳에 적게 하면 어긋난다. git-flow 도구가 .git/config 에 적는 `gitflow.branch.*`·`gitflow.prefix.*` 는 읽지 않았다(대부분 기본값, 읽을 곳이 늘면 애매한 경우도 늘어서).
+- 대소문자: 윈도(NTFS)는 ref 파일 이름의 대소문자를 가리지 않아 `git merge FEATURE/a`·`git switch Develop` 도 진짜 브랜치를 가리킨다 — win32 에서는 종류를 가를 때 대소문자 없이 견주고, POSIX 는 그대로 가린다(`FOLD_CASE`).
+- 태그: 짧은 이름은 git 이 태그를 브랜치보다 먼저 고른다. refs/tags/<이름> 이 ref 파일이나 packed-refs 에 있으면(같은 이름 브랜치가 있어도) 모르는 이름으로 통과. `refs/heads/feature/x` 처럼 브랜치로 적었으면 그대로 본다.
+- 확실할 때만 막는다(헛막음이 놓침보다 나쁘다): 지금 브랜치나 합칠 브랜치가 모르는 이름이면 통과 — 태그·커밋 해시·`HEAD~1`·`-`(직전 브랜치)·`FETCH_HEAD`·분리된 HEAD·support/*. release ← develop 은 막지 않았다(release 를 develop 에서 다시 만드는 팀이 있다).
+- git 수: 보통 0번 — 지금 브랜치는 HEAD 파일, 원격 추적 브랜치·태그는 ref 파일로(repo-files.mjs). 같은 명령 안의 `git checkout <이름>`(브랜치인지 묻는다)·`git checkout -`(직전 브랜치를 묻는다)이 있을 때만 git 을 부른다(lib/branches.mjs branchTimeline — 다른 git 훅과 같이 쓰는 것). merge·pull 조각이 없으면 아무것도 읽지 않는다. `hooks/test/git-calls.test.mjs` 에 0번 시험.
+- 하지 않는 것: GitHub 웹·`gh pr merge`·`gh api` 로 하는 병합(저장소 설정의 브랜치 보호로), rebase·cherry-pick 으로 옮기는 커밋, push refspec 으로 바로 올리기(`git push origin feature/a:main`), `git reset --hard <브랜치>`·`git update-ref` 로 브랜치 옮기기, git 별칭·스크립트·`xargs git merge` 속 merge, `remotes/origin/...` 처럼 refs/ 없이 적은 원격 이름.
+- 어디서: `hooks/rules/flow.mjs`, 문구 `mergeFlow.*`, 시험 `hooks/test/strict-cases/flow.mjs`·`hooks/test/flow-hooks.test.mjs`, 겹침 시험 `catalog/probes.json`
+
+### 트렁크 기반의 오래 산 브랜치 알림 branch-age (사용자 결정, 2026-11-17)
+- 결정: 새 훅(kind notice — 막지 않는다, git 기록 묶음). 트렁크 기반 전략의 hooksOn 으로만 켜고 다른 전략은 hooksOff. main·master 가 아닌 브랜치에서 `git commit`·`git push` 를 할 때, main 에 없는 첫 커밋의 작성 시각이 옵션 hours(기본 24)보다 오래됐거나 main 보다 옵션 commits(기본 20)보다 많이 뒤처졌으면 additionalContext 로 한 줄(「이 브랜치가 하루 넘게 살았어요(main 보다 32커밋 뒤). 트렁크 기반에서는 작게 자주 main 에 합쳐요」).
+- 왜 알림: 오래 산 브랜치는 나쁜 습관이지 사고가 아니다. 막으면 마무리 커밋도 못 한다.
+- 견줄 트렁크: 보호 브랜치 목록의 배포 브랜치 꼴(merge-flow 와 같은 flowNames) 가운데 로컬 refs/heads/<트렁크> 나 원격 refs/remotes/origin/<트렁크> 가 있는 첫 이름. 있는 것을 둘 다 쓴다 — origin/main 만 쓰면 fork 의 옛 origin 이나 아직 안 올린 로컬 main 커밋을 브랜치 것으로 세어 사흘 된 브랜치로 잘못 알렸고(검토 2026-11-17), 로컬 main 만 쓰면 오래 안 받아 온 main 과 견준다. 로컬 main 을 지우고 origin/main 만 있어도 된다.
+- git 두 번: `git rev-list --count <트렁크들> ^refs/heads/<브랜치>` 로 뒤처진 수(두 트렁크 어느 쪽에든 있고 브랜치에 없는 커밋 — 한쪽이 다른 쪽을 품으면 새것과의 차이와 같다), `git log --format=%at refs/heads/<브랜치> ^<트렁크들>` 로 두 트렁크 어디에서도 닿지 않는 브랜치 커밋의 가장 이른 작성 시각(rebase 해도 남는다, 차례가 섞일 수 있어 가장 작은 것). 전에는 `git log --format=%m%at --left-right A...B` 한 번이었는데 뒤처진 커밋마다 줄을 만들어 5만 커밋 뒤면 이 PC 에서 0.4초(검토한 PC 에서 1초), 40만이면 시간 초과였다. 5만 커밋 저장소 측정(2026-11-17): commit-graph 가 있으면 두 번 합쳐 0.15초(전 0.4초), 없으면 0.46초(전 0.37초 — 둘 다 걸어야 하는 커밋 수가 같아서). `--reverse -1` 은 쓰지 않았다(git 은 -1 을 --reverse 전에 적용해 가장 새 커밋이 나온다). 두 번 합쳐 1.5초 한도(core.mjs git() 의 timeout 칸 — timeout 만은 54→55ms, windowsHide 가 느린 쪽이었다). 실패·시간 초과·출력 4MB 넘음·커밋 없는 새 브랜치·분리된 HEAD 는 아무 말도 하지 않는다.
+- 세션마다 브랜치마다 한 번: `<CLAUDE_CONFIG_DIR>/harness-fit/branch-age/<sha256(저장소+브랜치) 앞 12자>.txt` 에 훅 입력의 session_id(없으면 오늘 날짜)를 적고, 같으면 git 을 부르기 전에 끝낸다. 알렸든 안 알렸든, 시간 초과여도 적는다(아주 큰 저장소에서 커밋마다 1.5초를 기다리지 않게). 아직 ref 가 없는 새 브랜치는 적지 않는다. 적지 못하면 그냥 넘어간다(다음에 또 알릴 뿐). 표시 파일 읽기·쓰기는 stale-scratch 와 같이 쓰는 `hooks/lib/stamp.mjs`. 처음 한 번 뒤로 그 세션에서 그 브랜치가 더 오래돼도 다시 알리지 않는다 — 한 세션 안에서 하루 넘게 사는 일은 드물다.
+- git 수 예산: 모든 훅을 켠 기능 브랜치에서 세션의 첫 커밋 5→7번(이 훅이 두 번), 그 뒤 같은 세션의 커밋·push 는 이 훅 몫이 0번이라 push 한도는 1번 그대로(`git-calls.test.mjs`). 이 훅은 트렁크 기반에서만 켜고 커밋·push 조각이 있을 때만 돈다. 브랜치 나이는 파일로 구할 길이 없다(reflog 는 만든 시각이라 main 에서 받은 커밋까지 섞이고, 뒤처진 수는 커밋을 걸어야 안다).
+- 알아 둘 점: 세션마다 브랜치마다 처음 커밋·푸시 때 한 줄(토큰 조금).
+- 어디서: `hooks/rules/flow.mjs`(branchAge·measure·oldestOf), `hooks/lib/stamp.mjs`, 문구 `branchAge.*`, 시험 `hooks/test/strict-cases/flow.mjs`·`hooks/test/flow-hooks.test.mjs`, 겹침 시험은 `setup.daysAgo`(그 커밋을 며칠 전 것으로 — `scripts/lib/probe-run.mjs`)
+- 문구: 이름 뒤에 바로 붙으면 끝소리에 따라 틀리는 조사(「main 를」·「develop 를」)를 쓰지 않는다 — 「이 브랜치(`{source}`)를」·「트렁크({trunk})의」처럼 앞 낱말에 조사를 붙인다. 시험 `flow-hooks.test.mjs` 가 mergeFlow·branchAge 문구를 본다.
+
 ## 이미 있는 훅과의 겹침
 
 ### 이미 있는 훅과 겹치면 끈다 (사용자 요청·선택, 2026-11-05)
@@ -302,6 +324,8 @@
 - 팀원 공유면 목록에서 못 찾은 이름(Claude 가 --similar 로 짚은 이 PC 의 스킬)도 겹침으로 치지 않는다. `picker/dup.js`.
 
 ## 바뀐 이력
+- 2026-11-17: merge-flow·branch-age 독립 검토 — branch-age 는 세션마다 브랜치마다 한 번(표시 파일), git 두 번(rev-list --count · log --format=%at)으로 바꾸고 로컬·origin 트렁크를 함께 견줌, 조사 안 틀리는 문구. merge-flow 는 보호 목록의 배포 꼴이 아닌 이름을 통합 브랜치로(develop 을 채워 넣지 않음), 윈도 대소문자, 같은 이름 태그는 통과, git 을 부르는 때와 하지 않는 것 바로잡음.
+- 2026-11-17: 새 훅 둘 — Git Flow 합치기 방향(merge-flow, 막음, Git Flow 에서만)과 오래 산 브랜치 알림(branch-age, 알림, 트렁크 기반에서만). git() 에 timeout 칸, 모든 훅 켠 커밋·push 의 git 한도 하나씩 올림.
 - 2026-11-16: v0.4.1 두 번째 검토 — git 훅은 글이 우리 실행기 그대로일 때만 지우고 되돌리기는 사본 그대로(.legacy 는 알리기만), 불러오기 글은 깨져도 통과·verbose 뺌·옛 항목 바꿔 넣기, askRead .pem 끝·../ 경로·kubeconfig.txt·틀 속 값·Chart.yaml, iac-edit _test·dev 이름·prd·live·JSON Argo CD.
 - 2026-11-16: v0.4.1 독립 검토 — pre-commit 항목은 실행 파일이 없어도 통과(불러오기 글·verbose)·옛 우리 git 훅 지우기·이미 붙여 넣으면 단계 숨김, "use client" 찾기 선형으로, iac-edit heredoc·시험·개발 자리·.tf.json·.tofu·Argo apiVersion, askRead kubeconfig 코드·문서·.pem 내용·시험 자료, 셸 넘겨쓰기·bash type·붙여 쓴 <.
 - 2026-11-16: v0.4.1 훅 쪽 — 새 훅 iac-edit(인프라 안전장치 끄기 묻기), 비밀 파일 읽기 묻기(protected-files askRead·Read 도구), 키체인 -w·-g 묻기, "use client" 비공개 env 알림, pre-commit 프레임워크 저장소는 git 훅 대신 붙여 넣을 항목, MultiEdit 도 쓰기로.

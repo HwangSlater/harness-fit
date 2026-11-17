@@ -5,6 +5,7 @@
 import { h } from './dom.js';
 import { toggleSwitch, withCode, btn } from './parts.js';
 import { skillBy, hookBy } from './stats.js';
+import { conflictKey } from './conflict.js';
 
 const $ = (id) => document.getElementById(id);
 const sec = (title, ...kids) => h('section.rsec', {}, h('h3', {}, title), ...kids);
@@ -73,6 +74,30 @@ function hookInfo(c, id) {
   };
 }
 
+// 사용자 규칙과 반대인 것(sel.conflicts 기록 하나 — picker/conflict.js): 내 규칙 줄과 파일 · harness-fit 이 넣으려던 것 · 고른 쪽.
+// 스위치를 켜면 harness-fit 쪽을 쓴다(훅은 켜지고, 줄은 다시 들어간다). 사용자 파일은 고치지 않는다. 글은 모두 textContent
+function conflictInfo(c, key) {
+  const { S, sel, t, act } = c;
+  const x = (sel.conflicts || []).find((k) => conflictKey(k) === key);
+  if (!x) return gone(c);
+  const hook = x.kind === 'hook' ? hookBy(S, x.id) : null;
+  const name = hook ? hook.name : S.conflictText?.[key] || x.id;
+  const harness = x.choice === 'harness';
+  return {
+    title: t('infoConflictTitle'), sub: t(hook ? 'infoConflictSubHook' : 'infoConflictSubRule'),
+    body: [
+      sec(t('infoConflictMine'), h('div.found', {}, h('p.quote', {}, x.userText), h('p.where', {}, t('infoConflictFile', { file: x.file })))),
+      sec(t('infoConflictHarness'), h('p', {}, h('b', {}, name)), hook ? h('p.rdesc', {}, hook.desc) : null),
+      sec(t('infoSo'), h('p', {}, t(harness ? 'infoConflictSoHarness' : 'infoConflictSoMine')), sel.share ? h('p.hint', {}, t('infoConflictTeam')) : null),
+    ],
+    foot: [h('span.muted', {}, t('infoConflictToggle')),
+      h('span.rtg', {}, toggleSwitch(t, { key: `info-tg:${key}`, on: harness, label: t('infoConflictToggle'), onToggle: () => act.flipConflict(key) })),
+      btn('infoDone', t('close'), act.closeInfo, '.lg.primary')],
+  };
+}
+
+const INFO_VIEWS = { skill: skillInfo, hook: hookInfo, conflict: conflictInfo };
+
 // 창을 그린다. → null(닫혀 있음) · { opening }(방금 엶) · { closed }(방금 닫음 — 연 링크로 초점을 돌려줄 때)
 export function renderInfo(c) {
   const dlg = $('info');
@@ -82,7 +107,7 @@ export function renderInfo(c) {
     dlg.close();
     return { closed: true };
   }
-  const p = (d.kind === 'skill' ? skillInfo : hookInfo)(c, d.id);
+  const p = (INFO_VIEWS[d.kind] || hookInfo)(c, d.id);
   $('infoTitle').textContent = p.title;
   $('infoSub').textContent = p.sub || '';
   $('infoClose').setAttribute('aria-label', c.t('close'));

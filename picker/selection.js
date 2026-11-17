@@ -1,15 +1,18 @@
 // 고르기 화면의 선택(sel) 만들기: 조합에서, 또는 지난번 적용한 선택에서. 상태는 app.js 가 갖는다.
+import { withoutMine } from './conflict.js';
 
 export const hookKey = (id) => `hook:${id}`; // ui.touched 에 훅도 적는다(스킬 id 와 섞이지 않게 앞에 붙임)
 
 // k = 조합(또는 그 꼴의 선택), cur = 지금 선택(사용자가 따로 고른 것은 조합을 바꿔도 그대로 둔다)
 export const fromCombo = (k, cur) => ({
-  combo: k.id, flow: k.flow, skills: new Set(k.skills), hooks: new Set(k.hooks), rules: new Set(k.rules),
+  combo: k.id, flow: k.flow, skills: new Set(k.skills), hooks: new Set(withoutMine(k, cur?.conflicts).hooks), rules: new Set(k.rules),
   explore: cur?.explore || new Set(), note: cur?.note || '', share: !!k.share, // 팀원 공유 기본값은 combos.json(auto 와 같은 값)
   // GitHub 저장소 설정(기본 꺼짐)·항목 선택·훅 옵션은 사용자가 고른 것이라 조합을 바꿔도 그대로 둔다
   // 조합이 저장소에 맞춰 정한 옵션(커밋 기록 언어 → commit-msg lang, ROS 2 → ask-cmd 명령 등, catalog.mjs expandCombo)은 baseOpts 로 따로 둔다 —
   // 사용자가 고친 것(hookOpts) > 지난번 harness.json > baseOpts 차례(hook-options.js optionValue·sentOpts, 검토 2026-11-11)
   github: !!cur?.github, githubChoice: cur?.githubChoice || {}, hookOpts: { ...(cur?.hookOpts || {}) }, baseOpts: k.hookOpts || {},
+  // 사용자 규칙과 반대라 고른 쪽(picker/conflict.js) — 조합을 바꿔도 사용자가 고른 것이라 그대로
+  conflicts: cur?.conflicts || [],
 });
 export const snapshot = (x) => ({ ...x, skills: new Set(x.skills), hooks: new Set(x.hooks), rules: new Set(x.rules), explore: new Set(x.explore) });
 
@@ -24,8 +27,11 @@ export const fromRecommended =(S, cur) => fromCombo({ ...S.recommended, id: S.re
 // (스킬은 카드 자리에 「빠짐」으로 남고, 팀원 공유를 바꿔도 다시 넣거나 빼지 않는다).
 export function startSelection(S, cur) {
   const p = S.previous;
+  // 처음 열 때는 setup 때 고른 쪽(서버 detected.conflicts)에서 시작한다
+  if (!cur) cur = { conflicts: S.detected?.conflicts || [] };
   if (!p) return { sel: fromRecommended(S, cur), custom: false, touched: new Set() };
-  const k = S.combos.find((x) => x.id === p.combo) || S.combos.find((x) => x.id === S.recommended.combo);
+  // 견줄 조합도 「내 규칙」 훅을 뺀 것으로(빼서 다른 것을 「직접 고침」으로 치지 않게)
+  const k = withoutMine(S.combos.find((x) => x.id === p.combo) || S.combos.find((x) => x.id === S.recommended.combo), cur.conflicts);
   const sel = fromCombo({ ...k, ...p, id: k.id }, cur);
   const same = (a, b) => a.size === b.length && b.every((x) => a.has(x));
   const custom = p.combo !== k.id || p.flow !== k.flow || !same(sel.skills, k.skills) || !same(sel.hooks, k.hooks) || !same(sel.rules, k.rules) || sel.share !== !!k.share;

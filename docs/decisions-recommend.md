@@ -1,6 +1,6 @@
 # 결정 — 추천·감지
 
-> 최종 수정: 2026-11-16 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-17 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다.
 
@@ -140,11 +140,42 @@
 - sqlc: `sqlc/sqlc.yaml` 도 찾는다. generate 찾기를 정규식에서 낱말 훑기로 바꿨다(`'sqlc '` × 5만 줄에 743ms).
 - 시험: `scripts/test/review-v041.test.mjs`.
 
+### 내 규칙과 반대인 것 (사용자 결정, 2026-11-17)
+- 결정: 겹침 단계(SKILL.md)에서 Claude 가 같은 말뿐 아니라 **반대 말**도 찾는다. 견줄 것은 overlap.mjs 의 `rules`(넣을 줄)와 새 `hooks`(켜질 훅마다 `enforces` 설명 한 줄 + `blocks` 막는 때 예 — 카탈로그 detail 은 최대 5천 자라 싣지 않음). 사용자 글이 그 반대를 **분명히** 시킬 때만 반대로 친다(말이 없으면 반대가 아님). 하나마다 짧은 질문 하나, 한 메시지에 모아 사용자 줄(파일 + 글)·harness-fit 이 넣을 것·두 선택(내 규칙 유지 / harness-fit 쪽 — 그때는 사용자가 자기 줄을 고침, harness-fit 은 사용자 파일을 고치지 않음)을 보이고 기본 추천은 하지 않는다. 화면 방식이면 화면을 열기 전에 대화에서 묻는다.
+- 이유: 지금까지는 같은 말만 뺐다. 반대 말은 그대로 들어가 「main 에 바로 커밋한다」(전역 규칙)와 GitHub Flow 줄·protect-branch 훅이 함께 남았다. 둘 다 맞을 수 있는 선택이라 harness-fit 이 정하지 않는다.
+- 넘기기: `--conflicts '<JSON 배열>'`(또는 그 JSON 파일 경로 — 따옴표가 든 줄) 을 recommend.mjs·picker.mjs 가 받는다. 기록 `{ kind: 'rule'|'hook', id, line·lang·hash(rule 만), choice: 'mine'|'harness', userText(공백을 모아 8~200자), file }`. 명령줄 값은 엄격히(아는 훅·지침·브랜치 방식 id, 있는 줄 번호, 40개·32KB 까지, 사용자 글이 지금 그 파일에 있어야 함 — 하나라도 틀리면 `bad-conflicts` 로 멈춤), 화면·harness.json 에서 온 값은 틀린 것만 조용히 뺀다. 내 규칙 쪽 줄은 `--skip` 과 같은 효과(뺀 줄 보기에 「내 규칙과 반대라 뺐어요」), 내 규칙 쪽 훅은 cleanSelection 이 끈다(선택 파일에 남아 있어도).
+- 기억: 적용하면 selection.conflicts 에 남는다(apply 는 선택을 거쳐). 다음 실행은 지난 기록을 그대로 붙이고, overlap.mjs 가 `knownConflicts` 로 줘 다시 묻지 않는다. 사용자 글이 그 파일(프로젝트 CLAUDE.md 는 관리 구역 밖만, `~/.claude/CLAUDE.md`, `.claude/rules/`)에서 바뀌었거나 없어지면 `goneConflicts` 로 알리고 기록을 버린다 — 여전히 반대면 Claude 가 다시 묻는다. 팀 저장소는 harness.json 이 커밋되므로 질문에 「팀원 모두에게 같게 적용」을 붙인다.
+- 화면: 훅 단계 알림 띠·칩 「내 규칙 따름」·전체 보기 이름표, 지침 단계 줄 끝 이름표(줄을 여는 단추 밖). 누르면 같은 「이미 있는 것」 작은 창(`info-dialog.js`)에 내 규칙 줄·파일·harness-fit 쪽·스위치. 훅을 다시 켜거나 스위치를 켜면 'harness' 로 바뀐다. 「추천대로」·「차단하는 것만」·브랜치 방식 바꾸기는 내 규칙 쪽 훅을 다시 켜지 않는다. 확인 단계에 짝마다 한 줄(지난번에 정한 것은 그렇다고).
+- 줄은 지문으로(검토 2026-11-17): 규칙 기록은 줄 번호가 아니라 그 줄 글의 지문(`hash` — 「- 」·줄 끝 표시·`{{cmd}}` 빼고 공백 모은 글의 sha256 앞 12자)과 `lang` 으로 다시 찾는다. 번호만 믿으면 플러그인 업데이트로 줄이 끼어들 때 엉뚱한 줄이 빠지고 고른 줄은 돌아왔다. `line` 은 지금 번호(표시·짝 이름용). 못 찾으면 `goneConflicts` 로 — 다시 묻는다. 지문 없는 옛 기록·명령줄 값은 읽을 때 그 번호의 지금 줄로 한 번 지문을 만든다. SKILL.md 는 kind+id+hash 로 견주고, 화면 「harness-fit 이 넣으려던 것」도 지문으로 찾은 줄.
+- 팀 저장소의 `~/` 기록(검토 2026-11-17): 사람마다 전역 글이 달라 팀원마다 다르게 돌았다. 팀원 공유면(이번 `--team` > 지난번 share > 작성자 여럿) 명령줄의 `~/` 기록은 `team-global` 오류, 지난 기록은 버린다(`goneConflicts`). 화면에서 공유를 켜면 빼 두었다가 끄면 되살린다. 같은-말 겹침 단계가 팀 저장소에서 전역 글을 보지 않는 것과 같다.
+- 되돌리기(검토 2026-11-17): 버린 「내 규칙」 기록(글이 바뀜·지움·팀 `~/`)의 훅은 꺼짐이 지난번 선택에서 이어져 이름표 없이 꺼진 채 남았다. 이제 그 훅은 이번 추천이 켜면 다시 켜고(recommend 이유 줄, 화면 지난번 선택), 줄은 기록이 없어지면 저절로 돌아온다. 사용자가 자기 규칙을 지운 때도 같다. overlap.mjs `restored` 로 Claude 가 한 줄 알린다.
+- file 칸(검토 2026-11-17): `CLAUDE.md`·`.claude/rules/**/*.md`·`~/.claude/CLAUDE.md`·`~/.claude/rules/**/*.md` 만 받는다(대소문자 무시, 역슬래시·`./` 맞춤 — `claude.md` 도 관리 구역을 뺀다). 그 밖(docs/·메모리·`..`·절대 경로·Windows 장치 이름 CON.md 등)은 명령줄이면 오류, 기록이면 버린다 — 「글이 아직 있나」로 다른 파일을 떠볼 수 없게, 확인 못 하는 기록이 영영 남지 않게. 파일은 실행마다 한 번, 앞 256KB 까지, 그 폴더 밖을 가리키는 링크는 읽지 않는다(`scripts/lib/conflict-files.mjs`).
+- 글 맞춤: 사용자 글은 C0·C1 제어 문자를 한 칸으로, 방향 바꾸는 글자(U+202A–202E·U+2066–2069 등)는 빼고 보이고 내보낸다. 파일 글도 같게 맞춰 견준다.
+- 화면·훅 목록(검토 2026-11-17): 서버가 처음 「내 규칙」 목록으로 추천·조합을 한 번 걸러, 작은 창에서 harness-fit 쪽으로 바꾼 뒤 조합을 다시 고르면 켜지지 않았다 — 이제 화면이 지금 고른 쪽으로 거른다(`withoutMine`). 작은 창에서 harness-fit 쪽으로 바꿔도 이미 있는 훅이 같은 일을 하면 켜지 않는다. overlap `hooks` 는 이미 있는 훅과 겹쳐 켜지지 않을 훅을 빼고(withExisting), 다른 브랜치 방식으로만 켜지는 훅도 `flows` 를 붙여 싣는다 — 화면에서 방식을 바꾸면 물은 적 없는 훅이 켜지던 일. 방식을 바꿀 때 다시 묻게 하는 것보다 미리 묻는 쪽이 단순하다.
+- 어디서: `scripts/lib/conflicts.mjs`·`conflict-files.mjs`, `scripts/lib/rule-files.mjs` lineHash, `picker/conflict.js`(서버·화면 공용), `scripts/overlap.mjs` overlapHooks, `skills/setup/SKILL.md`. 시험 `scripts/test/conflicts.test.mjs`·`conflicts-ui.test.mjs`·`conflicts-review.test.mjs`.
+
+### 커밋·PR 형식을 저장소 기록에서 (사용자 요청, 2026-11-17)
+- 결정: 대화에서 「커밋해 줘」·「PR 올려 줘」 할 때 이 저장소 꼴로 쓰게, 새 지침 조각 「커밋·PR 형식」(`rules/vcs-format.*.md`, 모든 조합)에 감지한 꼴만 적는다. 줄은 셋 + 하나 — 커밋 형식(꼴 + 실제 제목 2~3개), PR 본문 양식, PR 제목 형식, 그리고 pr-writer 를 골랐고 저장소에 양식이 있거나 제목 꼴이 pr-writer 꼴(`type(scope): 요약`)과 다를 때만 「저장소 형식이 스킬 기본 형식보다 앞선다」(`{{skill:pr-writer}}`).
+- 왜 새 조각인가: 「이 저장소 명령」은 명령 목록이라 제목이 맞지 않고, 명령을 못 찾은 저장소에서는 통째로 빠진다(형식은 명령과 상관없다). 협업 지침은 팀 조합에만 든다. 새 조각은 감지한 꼴이 없으면 고를 목록·글에서 빠진다(「이 저장소 명령」과 같은 방식 — `picker-state.mjs` keepRule). 순서는 협업 지침 바로 뒤.
+- 감지: 최근 merge 아닌 커밋 50개(봇 빼고)의 제목·본문을 git 한 번으로(`scripts/lib/vcs-format.mjs` readLog — 형식 훅 기본값을 정하는 history 도 같은 읽기의 앞 30개를 쓴다, 부르기 둘이 하나로). 본문은 커밋마다 앞 400·끝 600자, 출력 상한 16MB. 타입·범위(자주 쓴 범위 넷, 두 번 이상), Go 식 영역 이름표(`net/http:`), 이슈 번호(앞 `[ABC-1]`·`ABC-1:`·`ABC-1 `·`#1`, 끝 `[ABC-1]`·`(ABC-1)`·`ABC-1`·`#1`, 타입 바로 뒤도 앞으로 침), gitmoji(`:sparkles:`·그림 글자), 언어(history 와 같은 세기), 첫 글자 대소문자(라틴 글자로 시작하는 제목만), 끝 마침표, 꼬리 줄(Co-authored-by·Signed-off-by·Reviewed-by·Refs·Closes·Fixes·Change-Id). 표본 8개 이상에서 60% 이상일 때만 말한다. 「마침표 없음」 하나만으로는 꼴이 아니다(거의 모든 저장소).
+- 자유 꼴: 앞붙이(타입·영역·이슈 번호·그림 글자) 꼴이 없으면, 앞붙이 없는 제목이 80% 이상일 때만 언어·대소문자 같은 약한 꼴을 말한다 — `feat:`·`[ABC-1]`·`:bug:` 이 섞인 기록에 「영어로, 소문자로」 와 제각각인 예가 나왔다. 예도 앞붙이 없는 제목에서만.
+- 끝의 `(#123)` 는 GitHub squash 가 붙이는 번호라 커밋 꼴·예에서 떼고 PR 제목 감지에 쓴다. PR 제목은 그 squash 제목, 또는 첫 부모 줄 merge 커밋 30개(GitHub 「Merge pull request #N from」, GitLab 「See merge request …!N」)의 본문 첫 줄 — 많은 쪽 하나로. 네트워크는 쓰지 않는다.
+- PR·MR 양식: `.github/`·`docs/`·맨 위의 `pull_request_template.md`(대소문자 상관없이)와 그 자리의 `PULL_REQUEST_TEMPLATE/*.md`, `.gitlab/merge_request_templates/*.md`. 빈 파일은 빼고 다섯까지. 파일 내용은 읽지 않는다(경로만 적고 Claude 가 그때 읽는다). 하위 폴더에서 적용해도 저장소 맨 위에서 찾는다.
+- 예: 말한 꼴을 모두 따르는 최근 제목 셋까지. 비밀값처럼 보이면(hooks/lib/secrets.mjs 꼴, 숫자·글자가 섞인 32자 넘는 조각, `password=`·`token:` 꼴, 주소 속 비밀번호) 쓰지 않고, 백틱은 따옴표로, `{{…}}`·`<!-- -->`·제어 글자는 지우고 72자로 자른다(관리 구역·지침 표시를 깨지 않게). 감지 결과는 화면이 보낸 값을 받지 않고 서버·apply 가 저장소에서 다시 읽는다(명령과 같은 까닭 — CLAUDE.md 에 들어갈 글).
+- 커밋 형식 훅과: 우리 commit-msg 훅이 켜져 있으면 훅이 막는 것(style 이 free 가 아니면 타입, lang 이 ko·en 이면 언어)은 줄에서 빼고 범위·이슈 번호·예만 남긴다(다 맡으면 「최근 기록과 같은 꼴 — 예: …」). 협업 지침의 「커밋은 `타입: 설명`」 줄은 새 끝 표시 `{{!fmt:commit}}` 으로 커밋 형식 줄이 들어갈 때 뺀다(자유 꼴 한국어 저장소에 「타입: 설명」 이 함께 들어가던 일). 표시는 `rule-files.mjs` TAG 의 맨 뒤 조건(fmtFits), 자리 `{{fmt:…}}` 는 `claude-md.mjs` fillCmd 가 채운다.
+- 훅으로 막지 않은 것: 이슈 번호·범위를 commit-msg 의 새 옵션으로 막기는 하지 않았다. 번호를 모르는 Claude 가 막히면 번호를 지어내거나 매번 물어야 하고, 범위 목록은 새 영역이 생기면 틀린다. 지침 줄과 예로 충분하다고 봤다(헛막음이 더 나쁘다 — 형식 훅 기본값과 같은 생각).
+- pr-writer: 양식·제목 꼴이 있어도 빼지 않고 그대로 추천한다(GitHub 전용 조건은 그대로). 대신 앞섬 줄을 넣고, 「알아 둘 점」(`catalog/titles.json` downside)에 「저장소가 정하지 않으면 Sentry 식 제목·본문으로 쓴다」를 두 언어로 더했다.
+- 어디서: `scripts/lib/vcs-format.mjs`(감지)·`vcs-text.mjs`(글), `scripts/detect.mjs` vcs, `scripts/apply.mjs`, `scripts/lib/picker-state.mjs`, `scripts/lib/claude-md.mjs`, `rules/vcs-format.*.md`·`rules/collab.*.md`. 시험 `scripts/test/vcs-format.test.mjs`.
+- 알려진 빈틈: overlap.mjs 는 형식 글을 받지 않아 「커밋·PR 형식」 줄을 겹침 견주기에 보이지 않고, 협업 지침 첫 줄의 `{{!fmt:commit}}` 조건도 보지 않는다(다른 갈래가 고치는 파일이라 손대지 않음 — 형식 줄은 감지한 꼴이라 사용자 글과 겹칠 일이 드물다).
+
 ### 남은 것
 - 남은 것: 받아 넣은 스킬의 다른 언어 부속 파일(npm·jest 예시), 이미 있는 위험한 줄(|safe·로그 속 개인정보)을 처음 보고에서 세기, csrf_token 이 빠진 POST 폼 검사, `churn-eval --baseline <다른 파일>` 같은 우회.
 - 남은 것: sqlc 생성 파일 손 고치기 막기(쓰기만 막는 보호 옵션), Argo CD 없이 매니페스트만 있는 저장소의 지침(인프라 지침은 Terraform·Ansible·Argo CD 에만 붙는다).
 
 ## 바뀐 이력
+- 2026-11-17: 사용자 요청 — 커밋·PR 형식을 기록·PR 양식에서 읽어 「커밋·PR 형식」 지침으로(이슈 번호·범위를 막는 훅 옵션은 두지 않음), pr-writer 앞섬 줄과 알아 둘 점.
+- 2026-11-17: 반대 기록 독립 검토 — 줄 지문으로 다시 찾기, 팀 저장소 `~/` 기록 거절·버림, 버린 「내 규칙」 훅 되돌리기(`restored`), file 칸 네 꼴만·256KB·장치 이름, 명령줄 글 확인·8자, 화면 동적 거르기·겹치는 훅, bidi·C1 빼기.
+- 2026-11-17: 사용자 결정 — 내 규칙과 반대인 줄·훅을 묻고 고른 쪽만 남김(overlap hooks·knownConflicts·goneConflicts, `--conflicts`, selection.conflicts, 화면 이름표).
 - 2026-11-16: v0.4.1 두 번째 검토 — 인프라 지침의 인바운드·공개 버킷 줄을 terraform|ansible 로(Ansible 만 있는 저장소에서 빠지던 회귀), 종류에 ansible.
 - 2026-11-16: v0.4.1 독립 검토 — GitOps 만 있는 저장소에 인프라 지침(Terraform 줄은 빼고), devDependencies 의 next 만으로는 Next.js 아님, sqlc/sqlc.yaml·generate 찾기 속도.
 - 2026-11-16: v0.4.1 지침 쪽 — Next.js 지침 묶음, 인프라 지침의 Argo CD 줄·EKS 공개 엔드포인트·prod PDB, sqlc 감지와 생성 코드 줄, Core Data 마이그레이션 시험, GitHub Flow 에 「로컬 병합 대신 PR」.

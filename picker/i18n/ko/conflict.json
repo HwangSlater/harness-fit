@@ -1,0 +1,22 @@
+{
+  "conflictLabel": "내 규칙과 반대라 뺐어요",
+  "conflictLabelKept": "내 규칙과 반대 · harness-fit 쪽을 써요",
+  "chipConflict": "내 규칙 따름",
+  "conflictHooksTitle": "내 규칙과 반대인 검사",
+  "conflictHooksD": "setup 때 고른 쪽대로예요. 이름표를 누르면 내 규칙 줄과 파일을 보여 줘요.",
+  "dropConflict": "내 규칙과 반대라 뺐어요",
+  "infoConflictTitle": "내 규칙과 반대예요",
+  "infoConflictSubHook": "harness-fit 이 켜려던 검사가 내가 쓴 규칙과 거꾸로예요",
+  "infoConflictSubRule": "harness-fit 이 넣으려던 줄이 내가 쓴 규칙과 거꾸로예요",
+  "infoConflictMine": "내 규칙",
+  "infoConflictFile": "{file} 에 있어요",
+  "infoConflictHarness": "harness-fit 이 넣으려던 것",
+  "infoConflictSoMine": "내 규칙을 따라 넣지 않아요. 다음에 다시 적용해도 그대로예요. 내 규칙 줄을 고치거나 지우면 그때 다시 물어요.",
+  "infoConflictSoHarness": "harness-fit 쪽을 써요. harness-fit 은 내 파일을 고치지 않으니, 두 말이 함께 남지 않게 내 규칙 줄을 직접 고치거나 지워 주세요.",
+  "infoConflictTeam": "팀원 공유를 켰어요. 이 선택은 .claude/harness.json 에 남아 팀원 모두에게 같게 적용돼요.",
+  "infoConflictToggle": "harness-fit 쪽 쓰기",
+  "rvConflictsHead": "내 규칙과 반대인 것",
+  "rvConflictMine": "내 규칙을 따름 · {file}",
+  "rvConflictHarness": "harness-fit 쪽을 씀 · {file}",
+  "rvConflictSaved": "지난번에 정함"
+}

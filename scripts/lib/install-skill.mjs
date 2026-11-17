@@ -116,10 +116,11 @@ export const installSkill = async ({ sources, skill, repo, dest, net = makeNet(s
       fs.writeFileSync(out, bytes);
       hashes[rel] = crypto.createHash('sha256').update(bytes).digest('hex');
     }
+    // id: 받은 스킬 id(= 폴더 이름) — 다른 이름으로 복사한 폴더를 지우기가 우리 것으로 보지 않게(owned.mjs namedAs)
     // files: 받은 파일마다 해시 — 받은 그대로인 파일은 harness-fit 의 코드 검사(커밋 때)가 남의 코드로 보고 넘긴다(hooks/rules/commit.mjs withoutVendored)
     fs.writeFileSync(
       path.join(tmp, '.harness-source.json'),
-      JSON.stringify({ repo: skill.repo, path: dir, sha: repo.sha, license: skill.license || repo.license, installedAt: new Date().toISOString().slice(0, 10), ...(renamedFrom !== null ? { renamedFrom } : {}), files: hashes }, null, 2) + '\n',
+      JSON.stringify({ id: skill.id, repo: skill.repo, path: dir, sha: repo.sha, license: skill.license || repo.license, installedAt: new Date().toISOString().slice(0, 10), ...(renamedFrom !== null ? { renamedFrom } : {}), files: hashes }, null, 2) + '\n',
     );
     // 원래 폴더는 옆으로 치워 두었다가, 새 폴더가 자리를 잡은 뒤에 지운다.
     // (Windows 에서 백신 등이 잡고 있어 바꿔 넣기가 실패하면 원래 폴더를 되돌려 놓는다.)

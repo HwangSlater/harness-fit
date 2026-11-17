@@ -3,13 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { loadAll, catalogIds } from './catalog.mjs';
-import { buildClaudeMd } from './claude-md.mjs';
+import { buildClaudeMd, blockBroken } from './claude-md.mjs';
 import { GITIGNORE_LINE } from './backup.mjs';
 import { pluginActive } from './installed.mjs';
 import { currentListing, planBudget } from './skill-budget.mjs';
-import { COMMIT_HOOK_IDS, MARKER, gitHookState, ownHookPath, launcherText, chainCommand, PLUGIN_DIR, PRE_COMMIT_CONFIG, PRE_COMMIT_RUNNER, preCommitSnippet, preCommitPasted, runnerText, isOurLauncher, isPreCommitFrameworkHook } from '../../hooks/lib/git-hook.mjs';
+import { COMMIT_HOOK_IDS, MARKER, gitHookState, ownHookPath, launcherText, chainCommand, PLUGIN_DIR, PRE_COMMIT_CONFIG, PRE_COMMIT_ENTRY, PRE_COMMIT_RUNNER, preCommitSnippet, preCommitPasted, runnerText, isOurLauncher, isPreCommitFrameworkHook } from '../../hooks/lib/git-hook.mjs';
 import { localDate } from '../../hooks/lib/dates.mjs';
 import { readJson } from './paths.mjs';
+import { ownedSkills } from './owned.mjs';
 import { detect } from '../detect.mjs';
 
 // git 이 이 경로를 무시하는지(.gitignore 에 .claude/ 가 있으면 팀원에게 설정이 가지 않는다)
@@ -28,7 +29,18 @@ export const mdSelection = (sel, active) => (active ? sel : { ...sel, hooks: [] 
 const HOOK_MODE = 0o755;
 const HOOK_WARNING = { other: 'git-hook-exists', 'hooks-path': 'git-hook-exists', elsewhere: 'git-hook-elsewhere' };
 export const gitHookPlan = (root, sel, active) => {
-  if (!active || !sel.hooks.some((id) => COMMIT_HOOK_IDS.includes(id))) return {};
+  // 커밋 때 다시 보는 훅을 다 껐으면 전에 넣은 우리 git 훅(우리 실행기 그대로인 것만 — gitHookState 'ours')을 뺀다.
+  // 두면 커밋마다 플러그인을 찾아 아무것도 보지 않는 검사를 돌린다. 백업이 사본을 남겨 되돌리기가 되살린다(backup.mjs undoGitHook)
+  // pre-commit 프레임워크 저장소면 그 설정이 부르는 우리 실행 파일(.claude/harness-fit-pre-commit.mjs, 표시가 있는 것만)도 뺀다 —
+  // 남으면 커밋마다 계속 돈다(검토 2026-11-16). 붙여 넣은 항목(id: harness-fit)은 남의 설정이라 고치지 않고 지우라고 알린다(entryLeft)
+  if (!sel.hooks.some((id) => COMMIT_HOOK_IDS.includes(id))) {
+    const { state, file } = gitHookState(root);
+    const runner = path.join(root, PRE_COMMIT_RUNNER);
+    const off = [state === 'ours' ? file : null, (read(runner) || '').includes(MARKER) ? runner : null].filter(Boolean);
+    const entryLeft = PRE_COMMIT_ENTRY.test(read(path.join(root, PRE_COMMIT_CONFIG)) || '');
+    return { ...(off.length ? { off } : {}), ...(entryLeft ? { entryLeft } : {}) };
+  }
+  if (!active) return {};
   // pre-commit 프레임워크를 쓰면 git 훅을 넣지 않고, 설정에 붙여 넣을 항목을 손으로 할 일(manual)로 준다(hooks/lib/git-hook.mjs preCommitSnippet).
   // 지금 항목 그대로 붙여 넣었으면 붙여 넣기 단계는 다시 보이지 않는다(실행 파일은 넣는다). id: harness-fit 만 있고 글이 옛것이면
   // 단계를 보이고 「있는 항목을 바꿔 넣으세요」라고 덧붙인다(replace).
@@ -73,9 +85,20 @@ export const buildConfig = (all, sel, previous = null, date = localDate()) => {
   return {
     lang: sel.lang,
     rules,
-    selection: { combo: sel.combo, flow: sel.flow, skills: sel.skills, rules: sel.rules, share: sel.share === true, at: date },
+    // conflicts: 사용자 규칙과 반대인 것마다 고른 쪽(lib/conflicts.mjs) — 다음 적용 때 다시 묻지 않고 그대로 따른다. 팀 저장소면 이 파일이 커밋돼 팀원 모두에게 같다
+    selection: { combo: sel.combo, flow: sel.flow, skills: sel.skills, rules: sel.rules, share: sel.share === true, at: date, ...(sel.conflicts?.length ? { conflicts: sel.conflicts } : {}) },
     known: catalogIds(all),
   };
+};
+
+// .gitignore 의 백업 폴더 줄을 누가 넣었나 → { gitignore: 'added' | 'existing' } — 지우기(remove.mjs)가 우리가 넣은 줄만 빼려고 harness.json 에 남긴다
+// (harness.json 은 커밋되므로 다른 PC·새 clone 에서도 안다). 이번에 넣으면 added, 이미 있으면 지난 기록 그대로,
+// 처음 적용인데 이미 있으면 사용자 줄(existing). 지난 harness.json 에 기록이 없으면(v0.4.1 까지) 모른다 — 적지 않는다.
+const GI_OWNERS = new Set(['added', 'existing']);
+export const gitignoreOwner = (has, previous) => {
+  if (!has) return { gitignore: 'added' };
+  if (!previous) return { gitignore: 'existing' };
+  return GI_OWNERS.has(previous.gitignore) ? { gitignore: previous.gitignore } : {};
 };
 
 // 팀원도 같은 플러그인을 쓰게: 프로젝트 .claude/settings.json 에 마켓과 플러그인을 적는다.
@@ -112,6 +135,7 @@ export const requestFile = (note, date) =>
 //   git-hook-elsewhere 훅 폴더가 프로젝트 밖이라(git worktree·submodule) git 훅을 넣지 않았다
 //   — 둘 다 커밋 검사는 Claude Code 안(PreToolUse)에서 계속 돌고, gitHookCmd 를 그 훅에 이어 붙이면 git 훅으로도 돈다.
 //   skill-budget  늘 보는 스킬 목록이 예산의 80% 이상이 될 수 있다(새 스킬 설명이 먼저 빠짐) — 숫자와 줄일 스킬은 skillBudget
+//   skill-kept-edited  고르지 않게 된 harness-fit 스킬인데 받은 뒤 고쳤거나 받은 그대로인지 알 수 없어 빼지 않았다 — 이름은 keptSkills
 // listing: 지금 스킬 목록(scripts/lib/skill-budget.mjs currentListing). 고르기 화면은 한 번 읽어 둔 것을 넘긴다.
 // skipped: 같은 이름의 폴더가 이미 있고 harness-fit 이 넣은 것이 아니라 건드리지 않은 스킬(retry 와 같은 규칙)
 export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), listing, home } = {}) => {
@@ -120,10 +144,16 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   const add = (p, kind, content) => changes.push({ path: p, kind, action: fs.existsSync(p) ? 'change' : 'create', content });
 
   const cfgPath = path.join(root, '.claude', 'harness.json');
-  add(cfgPath, 'config', JSON.stringify(buildConfig(all, sel, readJson(cfgPath)), null, 2) + '\n');
+  const gi = path.join(root, '.gitignore');
+  const giText = read(gi);
+  const giHas = !!giText && giText.split(/\r?\n/).includes(GITIGNORE_LINE);
+  const prevCfg = readJson(cfgPath);
+  add(cfgPath, 'config', JSON.stringify({ ...buildConfig(all, sel, prevCfg), ...gitignoreOwner(giHas, fs.existsSync(cfgPath) ? prevCfg || {} : null) }, null, 2) + '\n');
   if (!active) warnings.push('plugin-missing');
   const mdPath = path.join(root, 'CLAUDE.md');
   const md = read(mdPath);
+  // 관리 구역 표시가 짝이 안 맞으면(시작이 둘·끝이 없음 등) CLAUDE.md 는 건드리지 않고 알린다(setBlock 이 그대로 돌려준다)
+  if (blockBroken(md)) warnings.push('claude-md-markers');
   const nextMd = buildClaudeMd(md, mdSelection(sel, active));
   if (nextMd !== md && nextMd !== undefined) add(mdPath, 'claude-md', nextMd);
   if (sel.share) {
@@ -135,9 +165,9 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
     if (gitIgnores(root, '.claude/harness.json')) warnings.push('claude-ignored');
   }
   if (sel.note?.trim()) add(path.join(root, '.claude', 'harness-request.md'), 'request', requestFile(sel.note, localDate()));
-  const gi = path.join(root, '.gitignore');
-  const giText = read(gi);
-  if (!giText || !giText.split(/\r?\n/).includes(GITIGNORE_LINE)) add(gi, 'gitignore', `${giText ? giText.replace(/\s*$/, '\n') : ''}${GITIGNORE_LINE}\n`);
+  // 줄바꿈은 파일 것(CRLF 도)을 따른다 — 지우기가 우리 줄을 빼면 처음 글 그대로가 되게
+  const giEol = giText?.includes('\r\n') ? '\r\n' : '\n';
+  if (!giHas) add(gi, 'gitignore', `${giText ? giText.replace(/\s*$/, giEol) : ''}${GITIGNORE_LINE}${giEol}`);
   const hook = gitHookPlan(root, sel, active);
   if (hook.content) {
     add(hook.file, 'git-hook', hook.content);
@@ -152,6 +182,8 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
     // 지우는 것도 바꿀 목록에 넣는다(백업이 사본을 남기고 되돌리기가 다시 만든다 — scripts/lib/backup.mjs undoGitHook)
     for (const f of hook.remove) changes.push({ path: f, kind: 'git-hook-remove', action: 'remove', content: null });
   }
+  for (const f of hook.off || []) changes.push({ path: f, kind: 'git-hook-off', action: 'remove', content: null });
+  if (hook.entryLeft) warnings.push('pre-commit-entry-left');
 
   const skills = sel.skills.map((id) => all.catalog.skills.find((s) => s.id === id)).filter(Boolean);
   const skipped = [];
@@ -162,15 +194,26 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
     add(dir, 'skill');
     changes.at(-1).skill = s.id;
   }
+  // 다시 적용: harness-fit 이 받은 스킬(.harness-source.json)인데 이번에 고르지 않았으면 뺀다 — 받은 그대로일 때만(owned.mjs skillState).
+  // 백업이 폴더 사본을 남겨 되돌리기가 되살린다. 받을 스킬로 오해하지 않게 skill 이 아니라 removedSkill 에 id 를 둔다(apply-run 이 skill 로 받을 것을 고른다).
+  // 고친 폴더(지문 없는 옛 폴더·연결 포함)는 두고 알린다(skill-kept-edited · keptSkills). 폴더 이름이 받은 스킬 id 와 다르면(not-ours) 건드리지 않는다.
+  const chosen = new Set(sel.skills);
+  const keptSkills = [];
+  for (const s of ownedSkills(root, chosen) || []) {
+    if (s.state === 'clean') changes.push({ path: s.abs, kind: 'skill-remove', action: 'remove', content: null, removedSkill: s.id });
+    else if (s.state !== 'not-ours') keptSkills.push(s.id); // 받은 스킬을 다른 이름으로 복사한 사용자 폴더는 우리 것이 아니다(알리지도 않는다)
+  }
+  if (keptSkills.length) warnings.push('skill-kept-edited');
   const manual = skills.filter((s) => s.install === 'plugin').map((s) => {
     const repo = all.catalog.repos.find((r) => r.repo === s.repo);
     return { skill: s.id, repo: s.repo, how: repo?.install || `claude plugin marketplace add ${s.repo}` };
   });
   // 스킬이 아닌 손으로 할 일은 kind 로 가른다(화면은 이름 대신 할 일과 붙여 넣을 글을 보여 준다 — picker/changes.js manualName)
+  if (hook.entryLeft) manual.push({ kind: 'pre-commit-entry', file: PRE_COMMIT_CONFIG });
   if (hook.preCommit && !hook.pasted) manual.push({ kind: 'pre-commit', file: PRE_COMMIT_CONFIG, how: hook.preCommit, ...(hook.replace ? { replace: true } : {}) });
   // 목록 예산: 새로 생기는 스킬 폴더만 더한다(있던 폴더를 고치는 것은 이미 지금 크기에 들어 있다)
   const fresh = changes.filter((c) => c.kind === 'skill' && c.action === 'create').map((c) => c.skill);
   const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}), () => (Array.isArray(sel.stack) ? sel.stack : detect(root).stack));
   if (skillBudget.level !== 'ok') warnings.push('skill-budget');
-  return { changes, manual, warnings, skipped, skillBudget, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
+  return { changes, manual, warnings, skipped, keptSkills, skillBudget, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
 };

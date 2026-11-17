@@ -12,7 +12,7 @@ It reads your repo and walks you through picking the skills, hooks and CLAUDE.md
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.139-d97757.svg)](#claude-code)
 ![Skills](https://img.shields.io/badge/skills-81%20from%2024%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
-![Hooks](https://img.shields.io/badge/hooks-27-555.svg)
+![Hooks](https://img.shields.io/badge/hooks-29-555.svg)
 ![Languages](https://img.shields.io/badge/UI-KO%20%C2%B7%20EN-555.svg)
 [![Local first](https://img.shields.io/badge/runs-locally-555.svg)](#your-data-stays-on-your-machine)
 
@@ -53,6 +53,7 @@ No need to describe your project: it reads the repo (package.json, recent commit
 | `/harness-fit:setup` | Open the picker |
 | `/harness-fit:setup auto` | No browser: review the recommendation and apply (remote/SSH) |
 | `/harness-fit:setup undo` | Undo the last apply |
+| `/harness-fit:setup remove` | When the project ends, remove every skill, hook and rule harness-fit added |
 
 To just look around without the plugin, run `npx github:HwangSlater/harness-fit`. Hooks only run through the plugin, though, so applying this way writes the settings file but blocks nothing.
 
@@ -60,8 +61,8 @@ To just look around without the plugin, run `npx github:HwangSlater/harness-fit`
 
 1. **How much should Claude help?** Pick Light · Solo · Team · Thorough and a branch strategy (GitHub Flow · Git Flow · Trunk-based · None), each drawn as a git graph. Stack-specific skills are added automatically.
 2. **Which skills should go in?** Click chips to turn skills on or off in each stage, from planning to shipping. "Details" gives each skill a plain one-line effect and a "Keep in mind" note.
-3. **Which mistakes should be blocked?** The 27 hooks in 6 groups. "Details" shows what each one blocks. Commit message format and branch naming are only on by default when the repo's history already follows them. Commands to confirm first (deploy or training scripts, …) and paths to protect that it finds in the repo are filled into the options, each with the reason it was found.
-4. **Which instructions go into CLAUDE.md?** The exact text that will be written is previewed. The top block, "Commands in this repo", holds the test, lint and build commands read from your repo. Click an instruction to see all of its lines in a small dialog.
+3. **Which mistakes should be blocked?** The 29 hooks in 6 groups. "Details" shows what each one blocks. Commit message format and branch naming are only on by default when the repo's history already follows them. Commands to confirm first (deploy or training scripts, …) and paths to protect that it finds in the repo are filled into the options, each with the reason it was found.
+4. **Which instructions go into CLAUDE.md?** The exact text that will be written is previewed. A "Commit and PR format" read from your commit history and PR template is included too, so "commit this" or "open a PR" follows this repo's style. The top block, "Commands in this repo", holds the test, lint and build commands read from your repo. Click an instruction to see all of its lines in a small dialog.
 5. **Anything else?** Write "commit messages in English" and Claude applies it after setup.
 6. **Apply this?** See what gets added where and which hook options differ from the defaults, then press "Apply".
 
@@ -83,7 +84,7 @@ Reopening starts from your previous selection. Each step is explained in the [gu
 | Request note | `.claude/harness-request.md` | What you typed on the screen; Claude reads and applies it. |
 | Backup | `.claude/harness-backup/` | The original of every changed file, used for undo. |
 
-Nothing you already have (hooks, skills, CLAUDE.md) is added twice ([how it compares](docs/guide.en.md#when-you-already-have-something)).
+Nothing you already have (hooks, skills, CLAUDE.md) is added twice, and anything that contradicts your own rules is asked about first ([how it compares](docs/guide.en.md#when-you-already-have-something)).
 
 ## How many tokens?
 
@@ -106,6 +107,8 @@ The percentage is the share of what Claude can hold at once (200k tokens). If yo
 
 Or `npx github:HwangSlater/harness-fit --undo`. Restores the state before the last apply. Files you edited after setup are not wiped; your edits are kept in the backup folder ([details](docs/guide.en.md#undo-in-detail)).
 
+When the project ends, `/harness-fit:setup remove` takes out everything harness-fit added. It works without a backup (another PC, a fresh clone), and skills you edited after download are kept and listed ([details](docs/guide.en.md#when-the-project-ends)).
+
 ## Your data stays on your machine
 
 The picker runs only on your machine (`127.0.0.1`) and checks a one-time token on every data request. The only outgoing requests are downloading skill files, searching GitHub for new repositories, and — if origin is on GitHub and `gh` is logged in — reading the repository settings when the picker opens (`gh api`, read-only). Requests that change settings are sent only when "Also turn on GitHub repository settings" is on. No code or file contents are sent anywhere.
@@ -123,7 +126,7 @@ No. A hook blocks the command and tells Claude why in one line (Block git add -A
 
 ## Learn more
 
-- [Mistakes it blocks — the 27 hooks](docs/guide.en.md#the-27-hooks)
+- [Mistakes it blocks — the 29 hooks](docs/guide.en.md#the-29-hooks)
 - [Hook options](docs/guide.en.md#hook-options)
 - [Git pre-commit hook](docs/guide.en.md#git-pre-commit-hook)
 - [Letting one line through (`lint:allow`)](docs/guide.en.md#letting-one-line-through)

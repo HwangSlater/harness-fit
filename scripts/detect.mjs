@@ -13,24 +13,25 @@ import { suggest } from './lib/suggest.mjs';
 import { paymentSignal } from './lib/payments.mjs';
 import { sqlcConfig } from './lib/sqlc.mjs';
 import { authSignal, depRanges, rangesWide, toolStacks, TOOL_STACKS } from './lib/signals.mjs';
+import { readLog, vcsOf, isKorean, isEnglish, BOT } from './lib/vcs-format.mjs';
 
 // 형식 훅(commit-msg·branch-name) 기본값을 정하려고 보는 기록 크기(scripts/lib/catalog.mjs fitOff)
 const HISTORY_SUBJECTS = 30;
 const HISTORY_BRANCHES = 200;
-const BOT = /\[bot\]|dependabot|renovate|github-actions|greenkeeper/i;
 
 // 최근 merge 아닌 커밋 제목 중 conventional 꼴 수, 로컬·원격 브랜치 이름(원격 이름 앞붙이는 뗌, HEAD 는 뺌)
-const historyOf = (root) => {
-  const subjects = git(root, ['log', '-n', String(HISTORY_SUBJECTS), '--no-merges', '--format=%s']).split('\n').filter(Boolean);
+// rows: 최근 merge 아닌 커밋(lib/vcs-format.mjs readLog — 커밋·PR 형식 감지와 git 부르기 하나를 같이 쓴다). 여기서는 앞 HISTORY_SUBJECTS 개만 센다
+const historyOf = (root, rows) => {
+  const recent = rows.slice(0, HISTORY_SUBJECTS);
+  const subjects = recent.map((r) => r.s).filter(Boolean);
   const refs = git(root, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']).split('\n').filter(Boolean);
   const names = refs.map((r) => (r.startsWith('refs/heads/') ? r.slice('refs/heads/'.length) : r.replace(/^refs\/remotes\/[^/]+\//, '')));
   const branches = [...new Set(names.filter((n) => n && n !== 'HEAD'))].slice(0, HISTORY_BRANCHES);
   // 메시지 언어(커밋 메시지 언어 검사 기본값 — catalog.mjs commitLang). 봇(dependabot·renovate 등) 커밋은 세지 않는다.
   // 한국어는 제목에 한글이 있으면, 영어는 제목·본문 어디에도 한글이 없을 때만 센다 — commit-msg 의 en 은 본문의 한글도 막아서(검토 2026-11-11).
-  const msgs = git(root, ['log', '-n', String(HISTORY_SUBJECTS), '--no-merges', '--format=%an%x1f%ae%x1f%s%x1f%b%x1e']).split('\x1e').map((x) => x.trim()).filter(Boolean)
-    .map((x) => x.split('\x1f')).filter(([name, mail]) => !BOT.test(`${name} ${mail}`));
-  const korean = msgs.filter(([, , s]) => /[가-힣]/.test(s)).length;
-  const english = msgs.filter(([, , s, b = '']) => !/[가-힣]/.test(s + b) && /[A-Za-z]{3,}/.test(s)).length;
+  const msgs = recent.filter((r) => !BOT.test(`${r.name} ${r.mail}`));
+  const korean = msgs.filter(isKorean).length;
+  const english = msgs.filter(isEnglish).length;
   // 표준 밖 타입이라도 저장소가 쓰면(bench:·deps:) 그 저장소의 꼴로 본다 — 커밋 형식 훅의 types 기본값(catalog.mjs)
   const counts = {};
   for (const s of subjects) {
@@ -315,6 +316,7 @@ export const detect = (dir) => {
 
   const authors = git(root, ['shortlog', '-sne', '--since=6.months', 'HEAD']).split('\n').filter(Boolean).length;
   const remote = git(root, ['remote', 'get-url', 'origin']);
+  const log = readLog(root);
   // 지킬 경로를 먼저 — README·CI 명령 가운데 결과를 그리로 쓰는 것을 빼려고(doc-commands.mjs)
   const sug = suggest(root);
   const cmds = detectCommands(root, { protect: sug.protect });
@@ -359,7 +361,9 @@ export const detect = (dir) => {
     suggest: sug,
     commandsListed: cmds.listed,
     // 형식 훅을 기본으로 켤지(저장소가 이미 그 꼴을 따르는지), 의존성 고정 훅을 기본에서 뺄지
-    history: historyOf(root),
+    history: historyOf(root, log),
+    // 커밋·PR 형식(지침 「커밋·PR 형식」 — lib/vcs-format.mjs). 분명히 많은 꼴만, 없으면 commit·pr.title 이 null
+    vcs: vcsOf(root, log),
     library: isLibrary(pkg),
     existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') },
   };

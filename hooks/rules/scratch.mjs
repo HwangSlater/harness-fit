@@ -5,9 +5,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
-import { claudeHome } from '../lib/claude-home.mjs';
 import { localDate } from '../lib/dates.mjs';
+import { stampFile, readStamp, writeStamp } from '../lib/stamp.mjs';
 
 export const STALE_DAYS = 3; // 이만큼 손대지 않은 폴더를 지난 것으로 본다
 export const MANY = 20; // 무거운 것이 없어도 이보다 많이 쌓이면 알린다
@@ -89,32 +88,14 @@ export const scanScratch = (root, sessionId, now = Date.now()) => {
   return { old, partial: partial || Date.now() > deadline };
 };
 
-// 하루 한 번: 설정 폴더에 본 날을 적는다(Temp 자리마다 따로 — 시험·여러 Temp 가 서로 막지 않게)
-const stampFile = (root) => {
-  const norm = process.platform === 'win32' ? root.toLowerCase() : root;
-  return path.join(claudeHome(), 'harness-fit', 'stale-scratch', `${createHash('sha256').update(norm).digest('hex').slice(0, 12)}.txt`);
-};
-const readStamp = (file) => {
-  try {
-    return fs.readFileSync(file, 'utf8').trim();
-  } catch {
-    return '';
-  }
-};
-const writeStamp = (file, day) => {
-  try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, day);
-  } catch {} // 적지 못하면 다음 세션에 다시 볼 뿐
-};
-
 export const staleScratch = {
   id: 'stale-scratch',
   on: 'session-start',
   check({ input, t }) {
     const root = scratchRoot();
     if (!fs.existsSync(root)) return null;
-    const stamp = stampFile(root);
+    // 하루 한 번: 설정 폴더에 본 날을 적는다(Temp 자리마다 따로 — 시험·여러 Temp 가 서로 막지 않게)
+    const stamp = stampFile('stale-scratch', root);
     const today = localDate();
     if (readStamp(stamp) === today) return null;
     const { old, partial } = scanScratch(root, typeof input.session_id === 'string' ? input.session_id : '');

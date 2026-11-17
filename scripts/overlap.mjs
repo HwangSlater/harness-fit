@@ -9,13 +9,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from './lib/args.mjs';
-import { loadAll, reachableRules } from './lib/catalog.mjs';
+import { loadAll, reachableRules, recommend, fitOff } from './lib/catalog.mjs';
+import { resolveConflicts, restoredOf, shareOf } from './lib/conflicts.mjs';
+import { withExisting } from './lib/existing.mjs';
+import { dupHooks } from '../picker/dup.js';
 import { detect, withHints } from './detect.mjs';
 import { readHarnessConfig } from './lib/picker-state.mjs';
 import { readPluginJson } from './lib/paths.mjs';
 import { ruleFileLines, kindFits } from './lib/rule-files.mjs';
 import { listSkills } from './lib/installed.mjs';
 import { TAG, START, END, setBlock, fillCmd } from './lib/claude-md.mjs';
+import { vcsTexts } from './lib/vcs-text.mjs';
 import { listUserRules } from './lib/user-rules.mjs';
 
 // 프로젝트 CLAUDE.md 에서 사용자가 쓴 글만(harness-fit 이 전에 넣은 관리 구역은 뺀다).
@@ -53,18 +57,53 @@ export const overlapRuleIds = (all, det, raw) => {
   return [...all.packs.rules.map((r) => r.id).filter((id) => ids.has(id)), ...all.packs.flows.filter((f) => f.id !== 'none').map((f) => f.id)];
 };
 
+// 켜질 훅(추천 + 지난번에 켠 것)마다 무엇을 하게 하는지 한 줄 — 사용자 규칙과 반대인지 Claude 가 견주려고
+// (「main 에 바로 커밋한다」 ↔ protect-branch · 「커밋 메시지는 영어로」 ↔ commit-msg · 「모든 파일을 한꺼번에 올린다」 ↔ git-add-all).
+// enforces 는 훅 설명 한 줄, blocks 는 막는 때 예(브랜치 방식이 바꾸면 그 글 — Git Flow 의 protect-branch 는 develop 도). 긴 detail 은 싣지 않는다(토큰)
+// 이미 있는 훅이 같은 일을 해서 켜지 않을 훅(det.existing — withExisting)은 묻지 않는다. 다른 브랜치 방식으로만 켜지는 훅도 flows 를 붙여 싣는다 —
+// 화면에서 브랜치 방식을 바꾸면 그 훅이 켜지는데 물은 적이 없던 일(검토 2026-11-17)
+export const overlapHooks = (all, det, raw, lang) => {
+  const L = (o) => (o ? o[lang] || o.en : '');
+  const rec = recommend(all, det, lang);
+  const flowBy = (id) => all.packs.flows.find((f) => f.id === id) || null;
+  const cur = flowBy(raw?.selection?.flow) || flowBy(rec.flow);
+  const share = typeof raw?.selection?.share === 'boolean' ? raw.selection.share : rec.share;
+  const dupOf = (flow) => new Set(dupHooks(det.existing, share, flow).map((x) => x.id));
+  const fit = fitOff(all, det);
+  const dupNow = dupOf(cur);
+  const on = new Set([...rec.hooks, ...Object.keys(raw?.rules && typeof raw.rules === 'object' ? raw.rules : {})].filter((id) => !dupNow.has(id)));
+  const others = new Map();
+  for (const f of all.packs.flows) {
+    if (f.id === cur?.id) continue;
+    const dup = dupOf(f);
+    for (const id of f.hooksOn) if (!on.has(id) && !dup.has(id) && !fit.hooks[id] && !fit.flows[f.id]?.[id]) others.set(id, [...(others.get(id) || []), f]);
+  }
+  const entry = (h, flow, flows) => ({ id: h.id, name: L(h.name), enforces: L(h.desc), blocks: L(flow?.override?.[h.id]?.bad) || L(h.example?.bad), ...(flows ? { flows: flows.map((f) => f.id) } : {}) });
+  return all.packs.hooks.flatMap((h) => (on.has(h.id) ? [entry(h, cur)] : others.has(h.id) ? [entry(h, others.get(h.id)[0], others.get(h.id))] : []));
+};
+
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const { lang, root, hints } = parseArgs(process.argv.slice(2));
   const all = loadAll();
-  const det = withHints(detect(root), hints);
+  // 이미 있는 훅(시험 입력으로 돌려 봄 — recommend.mjs 와 같은 담아 둔 결과를 쓴다): 같은 일을 하는 훅은 묻지 않으려고
+  const det = await withExisting(withHints(detect(root), hints), root);
   const titles = readPluginJson('catalog/titles.json');
   const L = (o) => (o ? o[lang] || o.en : '');
+  const raw = readHarnessConfig(root);
   const installed = listSkills(root).map(({ id, name, description, scope, plugin }) => ({ name: name || id, description, scope, ...(plugin ? { plugin } : {}) }));
   const out = {
     installed,
     catalog: installed.length ? all.catalog.skills.map((s) => ({ id: s.id, title: L(titles[s.id]?.title) || s.id, when: L(titles[s.id]?.when) || L(s.summary) })) : [],
-    rules: ruleLines(lang, overlapRuleIds(all, det, readHarnessConfig(root)), det.commands || {}, det.kinds),
+    // 「커밋·PR 형식」 줄({{fmt:…}})도 감지한 글로 채워 보인다 — 사용자 CLAUDE.md 에 이미 같은 형식 설명이 있는지 견줄 수 있게
+    rules: ruleLines(lang, overlapRuleIds(all, det, raw), { ...(det.commands || {}), fmt: vcsTexts(det.vcs, lang) }, det.kinds),
   };
+  out.hooks = overlapHooks(all, det, raw, lang);
+  // 지난번에 사용자가 고른 쪽(selection.conflicts). known: 사용자 글이 그대로라 다시 묻지 않을 것(규칙은 지문 hash 로 다시 찾은 지금 줄 번호 line) ·
+  // gone: 글이 바뀌었거나 없어졌거나 팀 저장소의 ~/ 파일 기록이라 버린 것 · restored: 버린 「내 규칙」 기록 — 그 훅·줄은 이번 추천대로 돌아간다(Claude 가 한 줄로 알린다)
+  const { conflicts, gone } = resolveConflicts(all, root, raw, [], { lang, share: shareOf(det, raw) });
+  if (conflicts.length) out.knownConflicts = conflicts;
+  if (gone.length) out.goneConflicts = gone;
+  if (restoredOf(gone).length) out.restored = restoredOf(gone);
   const own = ownClaudeMd(root);
   if (own !== undefined) out.projectClaudeMd = own;
   // 사용자가 쓴 .claude/rules/ 규칙(프로젝트·~/.claude). paths 없는 것은 이미 대화에 들어와 있지만, paths 가 있는 것은 아니므로 글을 함께 준다.

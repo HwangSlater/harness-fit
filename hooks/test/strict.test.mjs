@@ -32,6 +32,7 @@ import blockReview4Cases from './strict-cases/block-review4.mjs';
 import v041Cases from './strict-cases/v041.mjs';
 import v041ReviewCases from './strict-cases/v041-review.mjs';
 import v041Review2Cases from './strict-cases/v041-review2.mjs';
+import flowCases from './strict-cases/flow.mjs';
 import { makeProbeRepo, runProbeCase } from '../../scripts/lib/existing-hooks.mjs';
 import { eventOf, ownSpace, buildScratch } from '../../scripts/lib/probe-run.mjs';
 import { checklistFile } from '../rules/checklist.mjs';
@@ -43,7 +44,7 @@ const ENTRY = { PreToolUse: RUN, Stop: path.join(ROOT, 'hooks', 'stop.mjs'), Ses
 const packs = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'packs.json'), 'utf8'));
 const probes = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'probes.json'), 'utf8'));
 const FLOW_OPTS = packs.flows.find((f) => f.id === 'github-flow').hooks;
-const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases };
+const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases, ...flowCases };
 // 뒤에 더한 사례 파일은 같은 훅의 사례에 이어 붙인다(훅 옵션은 원래 파일의 것)
 for (const [id, more] of [...Object.entries(followupCases), ...Object.entries(infraCases), ...Object.entries(infraReviewCases), ...Object.entries(infraReview2Cases), ...Object.entries(infraReview3Cases), ...Object.entries(askReviewCases), ...Object.entries(gapCases), ...Object.entries(blockReviewCases), ...Object.entries(iosReviewCases), ...Object.entries(blockReview2Cases), ...Object.entries(blockReview3Cases), ...Object.entries(blockReview4Cases), ...Object.entries(v041Cases), ...Object.entries(v041ReviewCases), ...Object.entries(v041Review2Cases)]) {
   const spec = CASES[id] || { block: [], pass: [] };
@@ -187,7 +188,8 @@ const inputsOf = (c, dir) => {
     }
     return [input];
   }
-  if (c.shells) return c.shells.map((tool_name) => ({ tool_name, cwd: dir, tool_input: { command: c.cmd } }));
+  // 셸마다 다른 세션(세션마다 한 번만 알리는 훅 — branch-age — 이 같은 저장소의 두 셸 사례를 서로 막지 않게)
+  if (c.shells) return c.shells.map((tool_name) => ({ tool_name, session_id: `strict-${++sessionSeq}`, cwd: dir, tool_input: { command: c.cmd } }));
   if (c.tool === 'Write') return [{ tool_name: 'Write', cwd: dir, tool_input: { file_path: abs(c.file), content: c.content } }];
   if (c.tool === 'Edit') return [{ tool_name: 'Edit', cwd: dir, tool_input: { file_path: abs(c.file), old_string: c.old_string, new_string: c.new_string } }];
   if (c.tool === 'NotebookEdit') return [{ tool_name: 'NotebookEdit', cwd: dir, tool_input: { notebook_path: abs(c.file), new_source: c.new_source } }];

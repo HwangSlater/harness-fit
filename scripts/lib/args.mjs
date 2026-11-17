@@ -1,10 +1,12 @@
-// 명령줄 인자: [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--similar "<스킬 id>=<이미 있는 스킬>,…"] [--skip "<규칙 id>:<줄 번호>,…"]
+// 명령줄 인자: [프로젝트] [--lang ko|en] [--stack "Next.js,Supabase"] [--team] [--similar "<스킬 id>=<이미 있는 스킬>,…"] [--skip "<규칙 id>:<줄 번호>,…"] [--conflicts '<JSON 배열>' | <JSON 파일>]
 // --stack·--team 은 저장소에서 읽을 게 없을 때(빈 저장소) 사용자가 말해 준 내용이다(SKILL.md 가 넘긴다).
 // --similar·--skip 은 setup 때 Claude 가 이미 있는 스킬·CLAUDE.md 와 견주어 겹친다고 본 것이다(scripts/overlap.mjs 를 읽고 넘긴다).
+// --conflicts 는 사용자 규칙과 반대인 것마다 사용자가 고른 쪽이다(꼴만 여기서 보고, id 는 lib/conflicts.mjs strictConflicts 가 본다).
 import path from 'node:path';
 import { pickLang } from '../../hooks/lib/core.mjs'; // 훅과 같은 기준(--lang → LANG → LC_ALL → 시스템 지역)
+import { parseConflictsArg } from './conflicts.mjs';
 
-const VALUE_FLAGS = new Set(['--lang', '--stack', '--selection', '--similar', '--skip']);
+const VALUE_FLAGS = new Set(['--lang', '--stack', '--selection', '--similar', '--skip', '--conflicts']);
 
 export { pickLang };
 
@@ -26,6 +28,6 @@ export const parseArgs = (args) => {
   return {
     lang: pickLang(value('--lang')),
     root: path.resolve(args.find((a, i) => !a.startsWith('--') && !VALUE_FLAGS.has(args[i - 1])) || '.'),
-    hints: { stack, team: args.includes('--team'), similar: pairs(value('--similar'), '='), skip: skipLines(value('--skip')) },
+    hints: { stack, team: args.includes('--team'), similar: pairs(value('--similar'), '='), skip: skipLines(value('--skip')), conflicts: parseConflictsArg(value('--conflicts')) },
   };
 };

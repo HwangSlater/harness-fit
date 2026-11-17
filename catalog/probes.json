@@ -95,6 +95,22 @@
     "block": [{ "tool_name": "Bash", "tool_input": { "command": "gh pr merge 12" } }],
     "pass": [{ "tool_name": "Bash", "tool_input": { "command": "gh pr merge 12 --squash --delete-branch" } }]
   },
+  "merge-flow": {
+    "said": { "ko": "main 에 feature 브랜치를 바로 합치는 `git merge` 는 막고, release 브랜치를 main 에·feature 를 develop 에 합치는 것은 통과시켰어요", "en": "Blocked a `git merge` of a feature branch straight into main and let release into main and feature into develop through" },
+    "block": [
+      { "tool_name": "Bash", "tool_input": { "command": "git switch main && git merge --no-ff feature/login" } },
+      { "tool_name": "Bash", "tool_input": { "command": "git switch main && git merge develop" } }
+    ],
+    "pass": [
+      { "tool_name": "Bash", "tool_input": { "command": "git switch main && git merge --no-ff release/1.2.0" } },
+      { "tool_name": "Bash", "tool_input": { "command": "git switch develop && git merge --no-ff feature/login" } }
+    ]
+  },
+  "branch-age": {
+    "said": { "ko": "사흘 된 브랜치에서 푸시하면 알려 주고, 오늘 만든 브랜치는 그냥 두었어요", "en": "Spoke up when pushing from a three-day-old branch and stayed quiet on a branch made today" },
+    "block": [{ "setup": { "commits": 1, "daysAgo": 3 }, "tool_name": "Bash", "tool_input": { "command": "git push origin feature/probe" }, "expect": "feature/probe" }],
+    "pass": [{ "setup": { "commits": 1 }, "tool_name": "Bash", "tool_input": { "command": "git push origin feature/probe" } }]
+  },
   "prefer-gh": {
     "said": { "ko": "github.com 페이지를 웹으로 읽기는 막고, docs.github.com 읽기는 통과시켰어요", "en": "Blocked reading a github.com page over the web and let docs.github.com through" },
     "block": [{ "tool_name": "WebFetch", "tool_input": { "url": "https://github.com/octocat/Hello-World/blob/master/README", "prompt": "summarize" }, "expect": "gh" }],

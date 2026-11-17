@@ -2,7 +2,8 @@
 import { h, icon } from './dom.js';
 import { lrow, flash, shead, num, link, withCode, btn } from './parts.js';
 import { teamBox, teamHowTo } from './team.js';
-import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy, failedText } from './stats.js';
+import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy, hookBy, failedText } from './stats.js';
+import { conflictKey } from './conflict.js';
 import { stepHead, sumRows } from './frame.js';
 import { outcomeItems, warningsOf, pathLines, changeGroups, manualSkills, preCommitStep, preCommitBox } from './changes.js';
 import { githubBox, githubResult } from './github.js';
@@ -25,6 +26,17 @@ function details(c) {
     rules: short(t, ruleIds(sel, ui).map(ruleName)),
     request: note ? (note.length > 80 ? `${note.slice(0, 80)}…` : note) : t('noteNone'),
   };
+}
+
+// 내 규칙과 반대인 것마다 한 줄: 무엇 — 고른 쪽(파일). 지난번에 정해 이번에 묻지 않은 것은 그렇다고 덧붙인다
+function conflictsBox(c) {
+  const { S, sel, t } = c;
+  const list = sel.conflicts || [];
+  if (!list.length) return null;
+  const saved = new Set(S.detected.conflictsSaved || []);
+  const nameOf = (k) => (k.kind === 'hook' ? hookBy(S, k.id)?.name : S.conflictText?.[conflictKey(k)]) || k.id;
+  return h('div.box.rvconf', {}, h('div.box-h', {}, h('span', {}, t('rvConflictsHead'))),
+    list.map((k) => lrow({ title: nameOf(k), desc: [t(k.choice === 'mine' ? 'rvConflictMine' : 'rvConflictHarness', { file: k.file }), saved.has(conflictKey(k)) ? ` · ${t('rvConflictSaved')}` : ''].join('') })));
 }
 
 function filesBox(c) {
@@ -55,6 +67,7 @@ export function reviewStep(c) {
         sumRows(c).map(([id, k, v]) => h('div.lrow.rv', {}, h('span.k', {}, k), h('div.main', {}, h('b', {}, v), h('span.d', {}, d[id])),
           h('a.link', { href: `#${id}`, 'data-key': `change:${id}`, 'aria-label': t('changeLabel', { name: k }) }, t('change'))))),
       optionTable(c),
+      conflictsBox(c),
       shead(t('s7'), ''),
       h('div.cols', {},
         h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([id, title, desc]) => noteFlash(c, { key: `warn:${id}`, title, body: h('p', {}, withCode(desc)), attrs: { 'data-key': `warn:${id}` } }))),

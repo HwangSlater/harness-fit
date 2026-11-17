@@ -188,7 +188,7 @@ test('화면 상태: 명령이 없으면 「이 저장소 명령」을 숨기고
 test('훅마다 종류(block·notice·ask)가 있고, 알리기만 하는 훅은 notice, 묻는 훅은 ask', () => {
   for (const h of all.packs.hooks) assert.ok(['block', 'notice', 'ask'].includes(h.kind), `${h.id}: kind`);
   assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'ask').map((h) => h.id), ['ask-cmd', 'iac-edit']);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'commit-hash', 'prefer-gh', 'stale-scratch', 'work-checklist']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'branch-age', 'commit-hash', 'prefer-gh', 'stale-scratch', 'work-checklist']);
 });
 
 test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만', () => {
@@ -201,8 +201,11 @@ test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만',
   for (const id of ['commit-hash', 'work-checklist', 'answer-lang']) assert.ok(!on.has(id), `알림 훅 ${id}`);
   assert.ok(!on.has('swift-unsafe'), '다른 스택 전용 훅');
   for (const id of ['squash-push', 'docs-check']) assert.ok(!on.has(id), `어느 조합도 기본으로 켜지 않는 훅 ${id}`);
-  for (const id of ['protect-branch', 'branch-name', 'pr-merge']) assert.ok(!on.has(id), `브랜치 전략 「정하지 않음」이 끄는 ${id}`);
+  for (const id of ['protect-branch', 'branch-name', 'pr-merge', 'merge-flow', 'branch-age']) assert.ok(!on.has(id), `브랜치 전략 「정하지 않음」이 끄는 ${id}`);
   assert.ok(blockingHooks(S, { flow: 'github-flow', share: false }).has('pr-merge'));
+  // Git Flow 합치기 방향은 막는 훅, 트렁크의 오래 산 브랜치 알림은 알림 훅이라 「차단하는 것만」에 들지 않는다
+  assert.ok(blockingHooks(S, { flow: 'git-flow', share: false }).has('merge-flow'));
+  assert.ok(!blockingHooks(S, { flow: 'trunk', share: false }).has('branch-age'));
 });
 
 // 영어 단·복수: 수가 든 문구마다 0·1·2 를 넣어 「1 instructions」·「2 instruction」 같은 꼴이 없는지 본다

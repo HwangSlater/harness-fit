@@ -339,6 +339,12 @@ pre.raw, pre.paths { max-height: var(--pre-max); overflow: auto; margin: var(--s
 .found + .found { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--line-soft); }
 .found .where { color: var(--ink-2); font-size: var(--fs-sm); }
 .found .rdesc { margin-top: var(--s1); }
+/* 확인 단계 「내 규칙과 반대인 것」 상자(옵션 표와 같은 간격) */
+.rvconf { margin-top: var(--s4); }
+/* 지침 줄 바로 아래 「내 규칙과 반대」 이름표 줄(줄을 여는 단추 밖) */
+.conf-line { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 0 var(--s4) var(--s2); }
+/* 내 규칙과 반대 창: 사용자가 쓴 줄(인용) */
+.found .quote { margin: 0 0 var(--s1); padding-left: var(--s3); border-left: 3px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
 #infoBody > .rsec:first-child { margin-top: 0; }
 a.btn { color: var(--ink); text-decoration: none; }
 a.btn.primary { color: var(--on-accent); }

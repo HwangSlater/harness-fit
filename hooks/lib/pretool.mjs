@@ -19,6 +19,7 @@ export const RULE_MODULES = [
   { on: 'shell', ids: ['git-add-all', 'protect-branch', 'commit-msg', 'branch-name', 'no-verify'], load: () => import('../rules/git.mjs') },
   { on: 'shell', ids: ['squash-push'], load: () => import('../rules/push.mjs') },
   { on: 'shell', ids: ['no-rewrite-pushed', 'pr-merge'], load: () => import('../rules/history.mjs') },
+  { on: 'shell', ids: ['merge-flow', 'branch-age'], load: () => import('../rules/flow.mjs') },
   { on: 'shell', ids: ['secrets', 'protected-files', 'file-size', 'unsafe-html', 'pin-deps', 'gha-inject', 'swift-unsafe', 'python-unsafe'], load: () => import('../rules/commit.mjs') },
   { on: 'fetch', ids: ['prefer-gh'], load: () => import('../rules/web.mjs') },
   { on: 'read', ids: ['protected-files'], load: () => import('../rules/files.mjs') },

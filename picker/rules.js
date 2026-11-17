@@ -6,6 +6,8 @@ import { ruleLines, ruleCount, lineCount, ruleTokens, flowBy, hookBy } from './s
 import { stepHead } from './frame.js';
 import { hookChip } from './hooks.js';
 import { ruleDesc, dropWhy } from './rule-dialog.js';
+import { conflictLabel } from './parts.js';
+import { conflictsOf, conflictKey } from './conflict.js';
 
 const START = '<!-- harness-fit:start -->';
 const END = '<!-- harness-fit:end -->';
@@ -17,24 +19,32 @@ function ruleRow(c, r) {
   const text = ui.preview?.ruleTexts?.[r.id];
   // 켜 두었는데 들어갈 줄이 하나도 없으면(이미 CLAUDE.md 에 같은 말이 있어 다 뺌) 그 이유를 보여 준다
   const skipped = on && ui.preview?.ruleTexts && !text;
-  return lrow({
+  return [lrow({
     cls: on ? '' : '.off', id: `lb-ru-${r.id}`, title: [r.name, isNew(S, 'rules', r.id) ? [' ', label(t('badgeNew'), '.accent')] : null], desc: ruleDesc(S, r), descOne: true,
     extra: skipped ? h('span.d.warn', {}, t('ruleAllSkipped')) : null,
     open: { key: `ruleOpen:${r.id}`, onOpen: () => act.openPanel({ kind: 'rule', id: r.id }) },
     tail: [h('span.meta', {}, on && text ? t('ruleSize', { lines: lineCount(text), tok: S.ruleTokens[r.id] || 0 }) : ''),
       toggleSwitch(t, { key: `rule:${r.id}`, on, labelId: `lb-ru-${r.id}`, onToggle: () => act.toggle('rules', r.id) })],
-  });
+  }), conflictLabels(c, r.id)];
 }
 
-function flowRow({ S, sel, ui, t }) {
+// 내 규칙과 반대인 줄(picker/conflict.js): 그 지침 줄 바로 아래 한 줄에 이름표 — 누르면 내 규칙 줄·파일과 harness-fit 줄(info-dialog.js).
+// 줄을 여는 단추 밖에 둔다(단추 안 단추는 누를 수 없다). 줄 끝에 두면 좁은 지침 칸에서 제목이 한 글자씩 꺾였다(캡처 2026-11-17)
+const conflictLabels = (c, id) => {
+  const list = conflictsOf(c.sel, 'rule', id);
+  return list.length ? h('div.conf-line', {}, list.map((k) => conflictLabel(c, conflictKey(k), k.choice))) : null;
+};
+
+function flowRow(c) {
+  const { S, sel, ui, t } = c;
   const f = flowBy(S, sel.flow);
   const set = sel.flow !== 'none';
   const text = ui.preview?.ruleTexts?.[sel.flow];
-  return lrow({
+  return [lrow({
     title: set ? t('flowRule', { name: f.name }) : t('flowRuleNone'), desc: set ? t('flowRuleD', { name: f.name }) : t('flowRuleNoneD', { name: f?.name || '' }),
     tail: [set && text ? h('span.meta', {}, t('ruleSize', { lines: lineCount(text), tok: S.ruleTokens[sel.flow] || 0 })) : null,
       h('a.link', { href: '#combo', 'data-key': 'flowChange', 'aria-label': t('flowChangeLabel') }, t('change'))],
-  });
+  }), set ? conflictLabels(c, sel.flow) : null];
 }
 
 // 줄을 대신 맡는 훅: 켠 지침(+ 브랜치 전략 지침)의 {{!hook:id}} 훅. 켜면 그 줄이 빠진다(같은 칩으로 바로 켜고 끈다).

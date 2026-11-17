@@ -75,11 +75,12 @@ export const deny = (reason) => {
 };
 
 // git 을 못 찾거나(PATH 에 없음), 저장소가 깨졌거나, 출력이 maxBuffer 를 넘으면 null.
-// timeout·windowsHide 는 주지 않는다 — Windows 에서 git 한 번이 70ms → 250ms 로 느려졌다(2026-11-06 측정). 멈춘 git 은 Claude Code 의 훅 시간 한도가 끊는다.
+// windowsHide 는 주지 않는다 — Windows 에서 git 한 번이 70ms → 250ms 로 느려졌다(2026-11-06 측정). 멈춘 git 은 Claude Code 의 훅 시간 한도가 끊는다.
+// timeout 은 기본으로 주지 않고, 알림만 하는 훅(branch-age)처럼 늦으면 그냥 넘어가도 되는 곳만 준다(timeout 만은 54→55ms 로 거의 같다 — 2026-11-17 측정).
 // input: 표준 입력으로 줄 글(git check-ignore --stdin 등). okCodes: 실패가 아닌 끝 코드(check-ignore 는 맞는 것이 없으면 1) — 그때는 그 출력
-export const git = (cwd, args, { maxBuffer = 1024 * 1024, input = null, okCodes = [] } = {}) => {
+export const git = (cwd, args, { maxBuffer = 1024 * 1024, input = null, okCodes = [], timeout = 0 } = {}) => {
   try {
-    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: [input === null ? 'ignore' : 'pipe', 'pipe', 'ignore'], maxBuffer, ...(input === null ? {} : { input }) });
+    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: [input === null ? 'ignore' : 'pipe', 'pipe', 'ignore'], maxBuffer, ...(input === null ? {} : { input }), ...(timeout > 0 ? { timeout } : {}) });
   } catch (e) {
     return okCodes.includes(e.status) && typeof e.stdout === 'string' ? e.stdout : null;
   }

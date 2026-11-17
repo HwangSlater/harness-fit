@@ -1,0 +1,22 @@
+{
+  "conflictLabel": "Left out: opposite of your rule",
+  "conflictLabelKept": "Opposite of your rule · using harness-fit's",
+  "chipConflict": "your rule",
+  "conflictHooksTitle": "Checks that go against your rules",
+  "conflictHooksD": "Set the way you chose during setup. Click a label to see your line and its file.",
+  "dropConflict": "opposite of your rule",
+  "infoConflictTitle": "Goes against your rule",
+  "infoConflictSubHook": "A check harness-fit would turn on says the opposite of a rule you wrote",
+  "infoConflictSubRule": "A line harness-fit would add says the opposite of a rule you wrote",
+  "infoConflictMine": "Your rule",
+  "infoConflictFile": "In {file}",
+  "infoConflictHarness": "What harness-fit would add",
+  "infoConflictSoMine": "Your rule wins, so this is left out. It stays that way on later setups. If you change or delete your line, you'll be asked again.",
+  "infoConflictSoHarness": "harness-fit's side is used. harness-fit never edits your files, so change or delete your own line so the two don't both stay.",
+  "infoConflictTeam": "Sharing with teammates is on. This choice is saved in .claude/harness.json and applies to everyone on the team.",
+  "infoConflictToggle": "Use harness-fit's",
+  "rvConflictsHead": "Against your rules",
+  "rvConflictMine": "Your rule wins · {file}",
+  "rvConflictHarness": "harness-fit's side · {file}",
+  "rvConflictSaved": "decided last time"
+}

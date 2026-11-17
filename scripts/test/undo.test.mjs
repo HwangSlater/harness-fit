@@ -219,10 +219,11 @@ test('예전(0.2.x) 백업 목록도 되돌린다', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('CLAUDE.md 관리 구역: 표시가 거꾸로면 지우지 않고 새로 붙인다', async () => {
+// 표시가 거꾸로면 어디까지가 우리 글인지 모른다 — 새 구역을 붙이면 다음부터 시작이 둘이 되어 영영 못 고친다. 그대로 두고 알린다(plan claude-md-markers)
+test('CLAUDE.md 관리 구역: 표시가 거꾸로면 손대지 않는다(LF·CRLF)', async () => {
   const { buildClaudeMd } = await import('../lib/claude-md.mjs');
-  const broken = '<!-- harness-fit:end -->\n내 글\n<!-- harness-fit:start -->\n';
-  const out = buildClaudeMd(broken, sel);
-  assert.ok(out.startsWith(broken.trimEnd()), '사용자 글은 그대로');
-  assert.match(out, /<!-- harness-fit:start -->\n[\s\S]+<!-- harness-fit:end -->\n$/);
+  for (const eol of ['\n', '\r\n']) {
+    const broken = ['<!-- harness-fit:end -->', '내 글', '<!-- harness-fit:start -->', ''].join(eol);
+    assert.equal(buildClaudeMd(broken, sel), broken);
+  }
 });

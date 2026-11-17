@@ -1,7 +1,8 @@
 // 3 자동 검사 단계: 묶음(packs.json hookGroups) 표 + 칩. 「자세히 보기」는 전체 보기 창(browse.js)을 그 묶음으로 연다.
 // 훅이 없는 묶음은 숨기고, 새 훅·새 묶음은 데이터만 더하면 그대로 나온다. 창의 검사 한 줄도 여기서 만든다.
 import { h } from './dom.js';
-import { chip, shead, groupRow, onCount, alreadyNote, label, isNew, withCode, browseBtn, itemRow, dupHookLabel, btn } from './parts.js';
+import { chip, shead, groupRow, onCount, alreadyNote, label, isNew, withCode, browseBtn, itemRow, dupHookLabel, conflictLabel, flash, btn } from './parts.js';
+import { conflictsOf, conflictKey } from './conflict.js';
 import { hookGroupsOf, hookBy, flowBy, comboBy } from './stats.js';
 import { stepHead } from './frame.js';
 import { hookOptions } from './options.js';
@@ -9,7 +10,8 @@ import { hookOptions } from './options.js';
 // 훅 칩(지침 단계 「줄을 대신 맡는 훅」도 같은 칩)
 export function hookChip(c, x) {
   const { S, sel, t, act, dup } = c;
-  return chip({ key: `hook:${x.id}`, on: sel.hooks.has(x.id), label: x.name, note: dup.hooks.get(x.id) ? t('chipDupHook') : null,
+  const mine = conflictsOf(sel, 'hook', x.id).some((k) => k.choice === 'mine');
+  return chip({ key: `hook:${x.id}`, on: sel.hooks.has(x.id), label: x.name, note: mine ? t('chipConflict') : dup.hooks.get(x.id) ? t('chipDupHook') : null,
     badge: isNew(S, 'hooks', x.id) ? t('badgeNewShort') : null, title: x.desc, onClick: () => act.toggle('hooks', x.id) });
 }
 
@@ -21,6 +23,7 @@ export function hooksStep(c) {
     h('p.qs', {}, t('s3p')),
     h('div.qb', {},
       alreadyNote(c, 'hooks', (id) => hookBy(S, id)?.name || id),
+      conflictNote(c),
       fitNote(c),
       shead(t('hkHead'), onCount(t, sel.hooks.size, S.hooks.length),
         btn('hooksDefault', t('hooksDefault'), act.hooksDefault),
@@ -31,6 +34,15 @@ export function hooksStep(c) {
         chips: g.hooks.map((x) => hookChip(c, x)), empty: '', more: browseBtn(c, t('details'), 'hooks', g.id),
       })))),
   ];
+}
+
+// 내 규칙과 반대인 훅(setup 때 물어 고른 쪽 — picker/conflict.js): 훅마다 이름 + 「내 규칙과 반대라 뺐어요」 이름표(누르면 내 규칙 줄·파일)
+function conflictNote(c) {
+  const { S, sel, t } = c;
+  const list = (sel.conflicts || []).filter((k) => k.kind === 'hook' && hookBy(S, k.id));
+  if (!list.length) return null;
+  return h('div.notes', {}, flash({ cls: '.info', title: t('conflictHooksTitle'), desc: t('conflictHooksD') }),
+    list.map((k) => h('p.hint', {}, h('b', {}, hookBy(S, k.id).name), ' ', conflictLabel(c, conflictKey(k), k.choice))));
 }
 
 // 이 저장소 기록과 맞지 않아 기본에서 뺀 형식 훅(서버 fitOff): 이유마다 한 줄(같은 이유의 훅은 이름을 묶는다 — GitLab 안내가 훅마다 되풀이되던 일, 화면 역할 평가 2026-11-12). 사용자가 다시 켜면 숨긴다.
@@ -59,7 +71,8 @@ export function hookItem(c, x, { preview = false } = {}) {
   const changed = Object.keys(sel.hookOpts?.[x.id] || {}).length > 0;
   return itemRow(c, {
     key: `h:${x.id}`, on: sel.hooks.has(x.id), name: x.name,
-    labels: [isNew(S, 'hooks', x.id) ? label(t('badgeNew'), '.accent') : null, x.kind === 'notice' ? label(t('kindNotice')) : x.kind === 'ask' ? label(t('kindAsk')) : null, d ? dupHookLabel(c, x.id) : null],
+    labels: [isNew(S, 'hooks', x.id) ? label(t('badgeNew'), '.accent') : null, x.kind === 'notice' ? label(t('kindNotice')) : x.kind === 'ask' ? label(t('kindAsk')) : null, d ? dupHookLabel(c, x.id) : null,
+      ...conflictsOf(sel, 'hook', x.id).map((k) => conflictLabel(c, conflictKey(k), k.choice))],
     plain: x.desc,
     // 머리말(차단하는 때 · 알림 훅은 알리는 때)은 「알아 둘 점」과 같은 꼴로 진하게
     meta: [bad ? [h('span.kl', {}, t(x.kind === 'notice' ? 'hookNoticeK' : x.kind === 'ask' ? 'hookAskK' : 'hookWhenK')), ' ', t('hookWhenV', { bad, fix })] : null, byFlow.length ? t('hookFlowOn', { list: byFlow.join(' · ') }) : null],

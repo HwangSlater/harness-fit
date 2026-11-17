@@ -99,8 +99,8 @@ test('조합에 적힌 규칙은 packs.json 에 있고 한국어·영어 글이 
   const { renderRule } = await import('../lib/claude-md.mjs');
   const rules = new Set(all.packs.rules.map((r) => r.id));
   for (const c of all.combos.combos) for (const r of c.rules) assert.ok(rules.has(r), `${c.id}: 없는 규칙 ${r}`);
-  // 이 저장소 명령(commands)은 저장소에서 읽은 명령으로 채우는 글이라 명령을 하나 준다
-  for (const r of rules) for (const lang of ['ko', 'en']) assert.ok(renderRule(r, lang, [], [], [], { test: ['npm test'] }), `규칙 글 없음: rules/${r}.${lang}.md`);
+  // 이 저장소 명령(commands)은 저장소에서 읽은 명령으로 채우는 글이라 명령을 하나 준다. 커밋·PR 형식(vcs-format)도 감지한 형식 글을 준다
+  for (const r of rules) for (const lang of ['ko', 'en']) assert.ok(renderRule(r, lang, [], [], [], { test: ['npm test'], fmt: { commit: '`feat: x`' } }), `규칙 글 없음: rules/${r}.${lang}.md`);
 });
 
 test('미리보기는 파일을 바꾸지 않고, 되돌릴 것이 없으면 알린다', () => {
@@ -130,8 +130,11 @@ test('브랜치 방식이 훅을 켜고 끈다', async () => {
   const { applyFlow } = await import('../lib/catalog.mjs');
   const sel = { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'branch-name'] };
   assert.deepEqual(applyFlow(all, { ...sel }, 'none').hooks, ['secrets']);
-  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['protect-branch', 'secrets']);
-  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['branch-name', 'protect-branch', 'secrets']);
+  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['branch-age', 'protect-branch', 'secrets']);
+  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['branch-name', 'merge-flow', 'protect-branch', 'secrets']);
+  // 전략을 바꾸면 앞 전략만의 훅은 꺼진다(트렁크 → Git Flow: 오래 산 브랜치 알림 대신 합치기 방향)
+  const fromTrunk = applyFlow(all, { flow: 'trunk', hooks: ['secrets', 'protect-branch', 'branch-age'] }, 'git-flow').hooks;
+  assert.ok(fromTrunk.includes('merge-flow') && !fromTrunk.includes('branch-age'), fromTrunk.join(','));
 });
 
 test('팀원 설치 안내: 기존 설정은 두고 두 항목만 더한다', async () => {

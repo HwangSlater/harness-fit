@@ -765,6 +765,102 @@
       }
     },
     {
+      "id": "merge-flow",
+      "group": "git",
+      "kind": "block",
+      "name": {
+        "ko": "Git Flow 합치기 방향",
+        "en": "Git Flow merge direction"
+      },
+      "desc": {
+        "ko": "feature 를 main 에 바로 합치는 것처럼 Git Flow 순서를 건너뛰는 git merge·pull 을 막고 갈 길을 알려 줘요",
+        "en": "Blocks git merge or pull that skips the Git Flow order, such as merging a feature straight into main, and says where it should go"
+      },
+      "downside": {
+        "ko": "급할 때 feature 를 main 에 바로 합치는 지름길도 막혀요. 꼭 필요하면 사용자가 직접 실행해야 해요",
+        "en": "The shortcut of merging a feature straight into main is blocked even in a hurry; the user has to run it themselves"
+      },
+      "example": {
+        "bad": {
+          "ko": "main 에서 git merge feature/login 을 하면",
+          "en": "Running git merge feature/login on main"
+        },
+        "fix": {
+          "ko": "develop 으로 합치고 release/* 를 거쳐 main 으로 가라고 알려 줘요",
+          "en": "it is told to merge into develop and reach main through release/*"
+        }
+      },
+      "detail": {
+        "ko": "지금 브랜치에서 `git merge <브랜치>`(--no-ff·--squash·--no-commit, `git -C`·`cd … &&`, 같은 명령에서 옮긴 브랜치도)와 브랜치를 적은 `git pull <원격> <브랜치>` 를 볼 때, main·master 에 feature/*·bugfix/*·develop 을, release/* 에 feature/* 를, hotfix/* 에 develop·feature/* 를 합치면 막아요. main 에는 release/*·hotfix/*, develop 에는 무엇이든(hotfix 뒤 main 되합치기 포함) 괜찮아요. origin/feature/x 같은 원격 추적 브랜치도 같은 이름으로 봐요. 이름은 보호 브랜치 훅의 목록을 따라요(main 대신 production 을 적었으면 그것, 배포 브랜치가 아닌 이름은 integration 같은 것도 통합 브랜치로). 윈도에서는 FEATURE/a 처럼 대소문자가 달라도 같은 브랜치로 봐요. 보지 않는 것: 모르는 이름(태그·커밋 해시·HEAD~1·staging 같은 환경 브랜치), 브랜치를 적지 않은 git pull, rebase·cherry-pick, `git push origin feature/a:main` 처럼 push 로 바로 올리기, reset --hard·update-ref 로 브랜치 옮기기, git 별칭·스크립트 속 merge, GitHub 웹이나 gh 로 하는 병합.",
+        "en": "Looks at `git merge <branch>` on the current branch (--no-ff, --squash, --no-commit, `git -C`, `cd … &&`, and branches switched to earlier in the same command) and `git pull <remote> <branch>` with a branch named, and blocks merging feature/*, bugfix/* or develop into main/master, feature/* into release/*, and develop or feature/* into hotfix/*. release/* and hotfix/* into main are fine, and anything into develop (including the back-merge of main after a hotfix). Remote-tracking names such as origin/feature/x count as the same branch. Names follow the Protected branches list (production if you wrote that instead of main; names that are not deploy branches, such as integration, count as integration branches). On Windows, FEATURE/a and feature/a are the same branch. Not checked: names it does not know (tags, commit hashes, HEAD~1, environment branches such as staging), git pull without a branch, rebase and cherry-pick, pushing straight with a refspec such as `git push origin feature/a:main`, moving a branch with reset --hard or update-ref, merges inside git aliases or scripts, merges on the GitHub web or through gh."
+      }
+    },
+    {
+      "id": "branch-age",
+      "group": "git",
+      "kind": "notice",
+      "options": [
+        {
+          "key": "hours",
+          "type": "select",
+          "default": 24,
+          "choices": [
+            { "value": 12, "label": { "ko": "12시간", "en": "12 hours" }, "desc": { "ko": "아주 작게", "en": "Very small" } },
+            { "value": 24, "label": { "ko": "하루", "en": "1 day" }, "desc": { "ko": "권장", "en": "Recommended" } },
+            { "value": 48, "label": { "ko": "이틀", "en": "2 days" }, "desc": { "ko": "넉넉하게", "en": "Roomy" } },
+            { "value": 72, "label": { "ko": "사흘", "en": "3 days" }, "desc": { "ko": "느슨하게", "en": "Loose" } }
+          ],
+          "label": { "ko": "브랜치 나이", "en": "Branch age" },
+          "help": {
+            "ko": "main 에 없는 첫 커밋이 이보다 오래되면 알려요.",
+            "en": "Notifies when the branch's first commit not on main is older than this."
+          }
+        },
+        {
+          "key": "commits",
+          "type": "select",
+          "default": 20,
+          "choices": [
+            { "value": 10, "label": { "ko": "10커밋", "en": "10 commits" }, "desc": { "ko": "자주 받는 팀", "en": "Busy trunk" } },
+            { "value": 20, "label": { "ko": "20커밋", "en": "20 commits" }, "desc": { "ko": "권장", "en": "Recommended" } },
+            { "value": 50, "label": { "ko": "50커밋", "en": "50 commits" }, "desc": { "ko": "넉넉하게", "en": "Roomy" } },
+            { "value": 100, "label": { "ko": "100커밋", "en": "100 commits" }, "desc": { "ko": "느슨하게", "en": "Loose" } }
+          ],
+          "label": { "ko": "main 보다 뒤처진 수", "en": "Commits behind main" },
+          "help": {
+            "ko": "브랜치가 main 보다 이만큼 넘게 뒤처지면 알려요.",
+            "en": "Notifies when the branch is more than this many commits behind main."
+          }
+        }
+      ],
+      "name": {
+        "ko": "오래 산 브랜치 알림",
+        "en": "Long-lived branch notice"
+      },
+      "desc": {
+        "ko": "커밋·푸시할 때 브랜치가 하루 넘게 살았거나 main 보다 많이 뒤처졌으면 Claude 에게 한 줄로 알려요(막지 않아요)",
+        "en": "On commit or push, tells Claude in one line when the branch is over a day old or far behind main (does not block)"
+      },
+      "downside": {
+        "ko": "세션마다 브랜치마다 처음 커밋·푸시할 때 한 줄이 더해져 토큰이 조금 들고, 그때 git 을 두 번 더 불러요",
+        "en": "The first commit or push on a branch in each session adds one line (a few tokens) and runs git twice more"
+      },
+      "example": {
+        "bad": {
+          "ko": "사흘 된 브랜치에 계속 커밋하면",
+          "en": "Committing on a three-day-old branch"
+        },
+        "fix": {
+          "ko": "작게 나눠 main 에 먼저 합치라고 알려요",
+          "en": "it is reminded to split the work and merge into main sooner"
+        }
+      },
+      "detail": {
+        "ko": "main·master 가 아닌 브랜치에서 `git commit`·`git push` 를 할 때, main 에 없는 첫 커밋의 작성 시각이 정한 시간(기본 24시간)보다 오래됐거나 main 보다 정한 수(기본 20커밋)보다 많이 뒤처졌으면 Claude 에게 한 줄을 더해요. 로컬 main 과 원격 origin/main(마지막 fetch 기준) 가운데 있는 것을 함께 견줘요(로컬 main 을 지웠어도 돼요). 세션마다 브랜치마다 한 번만 알려요. git 은 그때 두 번, 합쳐 1.5초 안에 끝나지 않거나 실패하면 아무것도 알리지 않아요. 트렁크 이름은 보호 브랜치 훅의 목록을 따라요. 보지 않는 것: 커밋이 아직 없는 새 브랜치, 분리된 HEAD, 다른 git 명령.",
+        "en": "On `git commit` or `git push` from a branch other than main/master, adds one line for Claude when the branch's first commit not on main was authored longer ago than the set time (24 hours by default) or the branch is more commits behind main than the set number (20 by default). Compares with both the local main and origin/main (as of the last fetch), whichever exist (a deleted local main is fine). Says it once per branch per session. Runs git twice at that point; if that fails or takes over 1.5 seconds in total, nothing is said. Trunk names follow the Protected branches list. Not checked: new branches with no commits yet, detached HEAD, other git commands."
+      }
+    },
+    {
       "id": "squash-push",
       "group": "git",
       "kind": "block",
@@ -1097,6 +1193,17 @@
       }
     },
     {
+      "id": "vcs-format",
+      "name": {
+        "ko": "커밋·PR 형식",
+        "en": "Commit and PR format"
+      },
+      "desc": {
+        "ko": "커밋 기록에서 읽은 커밋·PR 제목 꼴과 저장소의 PR 양식",
+        "en": "Commit and PR title style read from history, and the repo's PR template"
+      }
+    },
+    {
       "id": "security",
       "name": {
         "ko": "보안 기본기",
@@ -1272,7 +1379,10 @@
         "branch-name",
         "pr-merge"
       ],
-      "hooksOff": [],
+      "hooksOff": [
+        "merge-flow",
+        "branch-age"
+      ],
       "github": {
         "repo": {
           "squashOnly": true,
@@ -1326,10 +1436,12 @@
       },
       "hooksOn": [
         "protect-branch",
-        "branch-name"
+        "branch-name",
+        "merge-flow"
       ],
       "hooksOff": [
-        "pr-merge"
+        "pr-merge",
+        "branch-age"
       ],
       "github": {
         "branches": [
@@ -1405,11 +1517,13 @@
         "en": "Experienced teams merging small and often"
       },
       "hooksOn": [
-        "protect-branch"
+        "protect-branch",
+        "branch-age"
       ],
       "hooksOff": [
         "branch-name",
-        "pr-merge"
+        "pr-merge",
+        "merge-flow"
       ],
       "github": {
         "branches": [
@@ -1457,7 +1571,9 @@
       "hooksOff": [
         "protect-branch",
         "branch-name",
-        "pr-merge"
+        "pr-merge",
+        "merge-flow",
+        "branch-age"
       ],
       "override": {}
     }

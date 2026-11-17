@@ -12,6 +12,7 @@ export const ruleDesc = (S, r) => (r.id === 'commands'
 // 뺀 줄을 누가 맡는지(훅·스킬 이름, 또는 CLAUDE.md 에 이미 있음)
 export const dropWhy = ({ S, t }, d) => {
   const name = (id) => (d.by === 'hook' ? hookBy(S, id)?.name : skillBy(S, id)?.title) || id;
+  if (d.by === 'conflict') return t('dropConflict');
   return d.by === 'existing' ? t('dropExisting') : t(d.by === 'hook' ? 'dropByHook' : 'dropBySkill', { name: d.who.map(name).join(', ') });
 };
 

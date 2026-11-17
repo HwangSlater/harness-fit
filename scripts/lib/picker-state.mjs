@@ -5,9 +5,11 @@ import { recommend, expandCombo, catalogIds, fitOff } from './catalog.mjs';
 import { PLUGIN_ROOT, readPluginJson as readJson } from './paths.mjs';
 import { ruleTokens, estimateTokens } from './tokens.mjs';
 import { renderRule, ruleHookTags } from './claude-md.mjs';
+import { vcsTexts } from './vcs-text.mjs';
 import { UNDO_COMMAND } from './backup.mjs';
 import { cleanHookOpts } from '../../picker/hook-options.js';
 import { CONFIG_FILE, MAX_CONFIG_BYTES } from '../../hooks/lib/core.mjs';
+import { cleanConflicts, mineHooks, conflictLines, restoreHooks } from './conflicts.mjs';
 
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const NO_NEW = Object.freeze({ skills: [], hooks: [], rules: [] });
@@ -67,8 +69,13 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
   // 이 저장소 명령(commands)은 찾은 명령이 없으면 고를 목록·조합 기본값에서 뺀다(넣을 글이 없다)
   const cmds = det.commands || {};
   const hasCmds = Object.keys(cmds).length > 0;
-  const keepRule = (id) => id !== 'commands' || hasCmds;
+  // 커밋·PR 형식(vcs-format)도 감지한 꼴이 없으면 뺀다(lib/vcs-format.mjs — 분명히 많은 꼴만 말한다).
+  // pr-writer 앞섬 줄은 고른 스킬에 따라 붙으므로 여기서는 세지 않는다
+  const fmt = vcsTexts(det.vcs, lang);
+  const hasFmt = !!(fmt.commit || fmt.prTemplate || fmt.prTitle);
+  const keepRule = (id) => (id !== 'commands' || hasCmds) && (id !== 'vcs-format' || hasFmt);
   const tokens = ruleTokens(PLUGIN_ROOT, lang);
+  tokens['vcs-format'] = hasFmt ? estimateTokens(renderRule('vcs-format', lang, [], [], [], { fmt })) : 0;
   const fit = fitOff(all, det);
   // 언어·도구별 훅(combos.json stackAddons): 그 스택이 이 저장소에 있을 때만 「차단하는 것만」이 켠다
   const stackOf = (id) => {
@@ -80,13 +87,19 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
   const L = (o) => (o ? o[lang] || o.en : '');
   const repoBy = Object.fromEntries(all.catalog.repos.map((r) => [r.repo, r]));
   const Lmap = (o) => Object.fromEntries(Object.entries(o || {}).map(([id, v]) => [id, Object.fromEntries(Object.entries(v).map(([k, x]) => [k, L(x)]))]));
-  const previous = previousOf({ all, cfg }, prev, lang);
+  // 사용자 규칙을 따르기로 한 훅(det.conflicts — lib/conflicts.mjs): 지난번 선택에서는 끈다. 추천·조합은 그대로 보내고
+  // 화면이 지금 고른 쪽으로 거른다(picker/conflict.js withoutMine — 창에서 harness-fit 쪽으로 바꾸면 조합을 다시 골라도 켜지게)
+  const mine = mineHooks(det.conflicts);
+  const recommended = recommend(all, det, lang);
+  const last = previousOf({ all, cfg }, prev, lang);
+  // 사용자 글이 없어져 버린 「내 규칙」 훅 기록은 이번 추천대로 되돌린다(꺼진 채 이름표 없이 남지 않게 — det.conflictsGone)
+  const previous = last && { ...last, hooks: [...last.hooks.filter((id) => !mine.has(id)), ...restoreHooks(last.hooks, det.conflictsGone, recommended.hooks, det.conflicts)] };
   // 설명이 긴 스킬(늘 드는 토큰 상위 10%): 전체 보기 「자세히」에 「설명이 길어 목록 예산을 많이 써요」
   const longAt = [...all.catalog.skills].map((s) => s.always || 0).sort((a, b) => b - a)[Math.max(0, Math.ceil(all.catalog.skills.length * LONG_DESC_SHARE) - 1)] || Infinity;
   return {
     lang,
     detected: det,
-    recommended: recommend(all, det, lang),
+    recommended,
     // 이 프로젝트에 전에 적용한 적이 있으면 화면은 추천 대신 이것에서 시작한다.
     previous,
     newSince: previous ? newSinceOf(all, prev) : NO_NEW,
@@ -114,6 +127,8 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     rules: all.packs.rules.filter((r) => keepRule(r.id)).map((r) => ({ id: r.id, name: L(r.name), desc: L(r.desc) })),
     // 지침마다 「켜면 그 줄을 대신 맡는 훅」(rules/*.md 의 {{!hook:id}}) — 화면 「줄을 대신 맡는 훅」 칩
     ruleHooks: ruleHookTags(lang),
+    // 사용자 규칙과 반대인 규칙 줄마다 harness-fit 쪽 글(「내 규칙과 반대」 창) — 기록은 detected.conflicts
+    conflictText: conflictLines(det.conflicts, lang),
     // 형식 훅(fitOff): 이 저장소 기록과 맞지 않으면 브랜치 전략을 골라도 켜지 않는다(fitDropped 로 남겨 훅 단계가 이유를 보여 준다).
     // 저장소 전체에 맞지 않는 훅(fit.hooks — GitLab 의 pr-merge)도 — 「추천대로」·브랜치 방식 다시 고르기가 다시 켜던 일(검토 2026-11-12)
     fit,
@@ -130,16 +145,24 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
 // det.commands: 서버가 저장소에서 읽은 명령(화면이 보낸 값은 받지 않는다 — CLAUDE.md 에 들어갈 글이라).
 export const cleanSelection = ({ all, cfg, det }, sel, fallbackLang) => {
   const ids = (list, known) => [...new Set((Array.isArray(list) ? list : []).filter((x) => known.has(x)))];
+  const lang = sel.lang === 'ko' || sel.lang === 'en' ? sel.lang : fallbackLang;
+  // 사용자 규칙과 반대라 사용자가 고른 쪽(lib/conflicts.mjs). 「내 규칙」을 고른 훅은 선택 파일에 남아 있어도 켜지 않는다.
+  // 팀원 공유면 ~/ 파일(사람마다 다른 전역 글) 기록은 받지 않는다
+  const conflicts = cleanConflicts(all, sel.conflicts, { lang, share: sel.share === true });
+  const mine = mineHooks(conflicts);
   return {
-    lang: sel.lang === 'ko' || sel.lang === 'en' ? sel.lang : fallbackLang,
+    lang,
     combo: all.combos.combos.some((c) => c.id === sel.combo) ? sel.combo : '',
     skills: ids(sel.skills, new Set(all.catalog.skills.map((s) => s.id))),
-    hooks: ids(sel.hooks, new Set(all.packs.hooks.map((h) => h.id))),
+    hooks: ids(sel.hooks, new Set(all.packs.hooks.map((h) => h.id))).filter((id) => !mine.has(id)),
+    conflicts,
     // 이미 있는 훅이 같은 일을 해서 끈 것(규칙 글을 「켜짐」 기준으로 만들려고)
     covered: ids(sel.covered, new Set(all.packs.hooks.map((h) => h.id))),
     rules: ids(sel.rules, new Set(all.packs.rules.map((r) => r.id))),
     flow: all.packs.flows.some((f) => f.id === sel.flow) ? sel.flow : 'none',
     commands: det?.commands || {},
+    // 커밋·PR 형식도 서버가 읽은 것(지침 「커밋·PR 형식」 — lib/vcs-format.mjs). 화면이 보낸 값은 받지 않는다(CLAUDE.md 에 들어갈 글이라)
+    vcs: det?.vcs && typeof det.vcs === 'object' ? det.vcs : null,
     // 저장소 종류도 서버가 읽은 것({{kind:…}} 규칙 줄을 고르는 데 쓴다 — claude-md.mjs)
     kinds: Array.isArray(det?.kinds) ? det.kinds : null,
     explore: (Array.isArray(sel.explore) ? sel.explore : []).filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r)).slice(0, 10),

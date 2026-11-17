@@ -24,6 +24,7 @@
       ],
       "rules": [
         "commands",
+        "vcs-format",
         "lean"
       ],
       "flow": "none",
@@ -61,6 +62,7 @@
       ],
       "rules": [
         "commands",
+        "vcs-format",
         "lean",
         "security",
         "structure"
@@ -110,6 +112,7 @@
       ],
       "rules": [
         "commands",
+        "vcs-format",
         "lean",
         "security",
         "structure",
@@ -166,6 +169,7 @@
       ],
       "rules": [
         "commands",
+        "vcs-format",
         "lean",
         "security",
         "structure",

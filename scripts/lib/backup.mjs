@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { extractBlock, setBlock } from './claude-md.mjs';
+import { extractBlock, setBlock, blockBroken } from './claude-md.mjs';
 import { readPluginJson } from './paths.mjs';
 import { isOurLauncher, PRE_COMMIT_CONFIG, PRE_COMMIT_ENTRY, PRE_COMMIT_RUNNER } from '../../hooks/lib/git-hook.mjs';
 
@@ -137,7 +137,7 @@ export const latestBackup = (root) => {
 };
 
 const EOL = (text) => (text.includes('\r\n') ? '\r\n' : '\n');
-const withoutLine = (text, line) => text.split(/\r?\n/).filter((l) => l.trim() !== line).join(EOL(text)); // 줄바꿈 모양은 그대로
+export const withoutLine = (text, line) => text.split(/\r?\n/).filter((l) => l.trim() !== line).join(EOL(text)); // 줄바꿈 모양은 그대로
 const writeOrRemove = (abs, text) => (text.trim() ? fs.writeFileSync(abs, text) : fs.rmSync(abs, { force: true }));
 
 // settings.json 에서 harness-fit 이 더한 마켓·플러그인 칸만 뺀 글(plan.mjs buildSettings 와 짝). 읽을 수 없으면 null — 그때는 고친 사본을 남기고 되돌린다.
@@ -150,7 +150,18 @@ const parseOr = (text) => {
 };
 // 마켓·플러그인 이름은 플러그인 폴더의 config/sources.json 에서(지금 폴더 기준으로 읽으면 사용자 프로젝트에서 못 찾아
 // 아무것도 빼지 않고 「trimmed」 라고 하던 일 — 검토 2026-11-11). 적용 전에 있던 칸은 그 값으로 되살린다(꺼 두었던 플러그인이 켜진 채 남지 않게).
-const withoutShare = (now, before) => {
+// 플러그인 칸은 우리가 적는 값(true)일 때만 뺀다 — 사용자가 적은 "harness-fit@harness-fit": false(끄기)는 남의 설정이다(검토 2026-11-16)
+const OURS = { extraKnownMarketplaces: () => true, enabledPlugins: (v) => v === true };
+// 원래 파일 모양 그대로 다시 쓴다: 들여쓰기(처음 들여 쓴 줄의 것)·BOM·CRLF·끝 줄바꿈 — 고친 칸 말고 파일 전체가 diff 에 뜨지 않게
+export const sameShape = (original, value) => {
+  const text = String(original).replace(/^﻿/, '');
+  // 한 줄로 쓴 파일은 한 줄로, 못 알아내면 두 칸
+  const indent = text.trim() && !text.trim().includes('\n') ? '' : text.match(/^[{[][^\n]*\n([ \t]+)\S/m)?.[1] || '  ';
+  const eol = original.includes('\r\n') ? '\r\n' : '\n';
+  const body = JSON.stringify(value, null, indent).replace(/\n/g, eol);
+  return `${original.startsWith('﻿') ? '﻿' : ''}${body}${/\r?\n\s*$/.test(original) || !original.trim() ? eol : ''}`;
+};
+export const withoutShare = (now, before) => {
   const cur = parseOr(now);
   const old = parseOr(before);
   if (!cur || typeof cur !== 'object' || old === null) return null;
@@ -161,11 +172,11 @@ const withoutShare = (now, before) => {
       cur[key] = { ...(cur[key] && typeof cur[key] === 'object' ? cur[key] : {}), [id]: old[key][id] };
       continue;
     }
-    if (!cur[key] || typeof cur[key] !== 'object') continue;
+    if (!cur[key] || typeof cur[key] !== 'object' || !(id in cur[key]) || !OURS[key](cur[key][id])) continue;
     delete cur[key][id];
     if (!Object.keys(cur[key]).length) delete cur[key];
   }
-  return Object.keys(cur).length ? JSON.stringify(cur, null, 2) + '\n' : '';
+  return Object.keys(cur).length ? sameShape(now || '', cur) : '';
 };
 
 // 한 항목 되돌리기 → 'removed' | 'restored' | 'trimmed'(넣은 부분만 뺌) | 'saved'(고친 모습을 남기고 되돌림) | 'gone' | 'skipped'(믿을 수 없는 경로)
@@ -197,11 +208,15 @@ const undoEntry = (root, dir, e, savedDir) => {
   if (GIT_HOOK_PATHS.has(posix(e.path))) return undoGitHook(abs, e, dir);
   const original = e.action === 'create' ? null : path.join(dir, 'files', e.path);
   if (!fs.existsSync(abs) && !original) return 'gone';
-  const edited = !!e.hash && fs.existsSync(abs) && fingerprint(abs) !== e.hash;
+  // 적용이 지운 것(action remove — 고르지 않게 된 스킬 폴더·우리 git 훅·실행 파일)은 지문이 없다(지운 뒤라). 그 자리에 지금 무엇이 있으면
+  // 그 사이 사용자가 만든 것이다 — 덮어쓰지 않고 고친 모습처럼 따로 남긴 뒤 되살린다(검토 2026-11-16: 같은 이름 폴더가 사라졌다)
+  const edited = fs.existsSync(abs) && (e.action === 'remove' || (!!e.hash && fingerprint(abs) !== e.hash));
   let result = original ? 'restored' : 'removed';
   if (edited) {
     const now = readText(abs);
     const before = original ? readText(original) : null;
+    // 관리 구역 표시가 짝이 안 맞으면 어디까지가 우리 글인지 몰라 두고 알린다(kept — 사용자가 구역을 손으로 뺀다)
+    if (e.kind === 'claude-md' && blockBroken(now)) return 'kept';
     if (e.kind === 'claude-md') {
       writeOrRemove(abs, setBlock(now, extractBlock(before)));
       return 'trimmed';

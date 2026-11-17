@@ -1,6 +1,6 @@
 # 결정
 
-> 최종 수정: 2026-11-16 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-17 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 긴 근거·측정값·옛 이름은 archive 의 원문에 있다. 훅 원칙과 훅별 결정은 [decisions-hooks.md](decisions-hooks.md), 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정은 [decisions-recommend.md](decisions-recommend.md) 에 있다.
 
@@ -166,6 +166,9 @@
 - 팀 저장소(작성자 둘 이상)는 겹침을 프로젝트 안의 글·스킬과만 견준다 — 팀원에게 없는 전역 CLAUDE.md 때문에 보안 줄·스킬이 빠졌다(4·5 회차 2차). `skills/setup/SKILL.md`.
 - 어디서: `scripts/overlap.mjs`, `scripts/lib/user-rules.mjs`
 
+### 내 규칙과 반대면 묻고, 고른 쪽만 남기고 기억한다 (사용자 결정, 2026-11-17)
+- 결정: harness-fit 이 넣을 줄·켤 훅이 사용자가 쓴 규칙과 거꾸로면(「main 에 바로 커밋한다」 ↔ GitHub Flow 줄·protect-branch) 빼지도 둘 다 넣지도 않고 적용 전에 묻는다. 고른 쪽만 남기고 `.claude/harness.json` selection.conflicts 에 적어 다음엔 묻지 않는다. 화면은 「내 규칙과 반대라 뺐어요」 이름표. 세부는 [decisions-recommend.md](decisions-recommend.md) 「내 규칙과 반대인 것」.
+
 ### `.claude/rules/` 로 옮기지 않는다 (사용자 결정, 2026-11-07)
 - 결정: 지침은 CLAUDE.md 표시 구역에 그대로 둔다.
 - 이유: `paths` 규칙은 Read·Write·Edit·`cat` 때만 읽히고 압축하면 빠진다(2.1.318 테스트) — 보안 지침이 빠지는 구간이 생기는데 아끼는 양은 약 250토큰. 파일로만 옮기면 `.claude/` 를 git 에서 뺀 저장소는 팀원에게 안 간다.
@@ -260,7 +263,7 @@
 - 이유: 그 턴에만 걸리고, 필요한 모델은 만든 사람이 안다. setup 은 판단이 섞여 있고 보고 턴엔 어차피 원래 모델로 돌아온다.
 
 ### setup 스킬 머리말 (2026-11-06)
-- 결정: description 에 하는 일과 쓰는 때, `argument-hint: "[auto|undo]"`, `disable-model-invocation: true`(실행 전에는 설명도 문맥에 안 든다). `allowed-tools` 는 넣지 않는다.
+- 결정: description 에 하는 일과 쓰는 때, `argument-hint: "[auto|undo|remove]"`, `disable-model-invocation: true`(실행 전에는 설명도 문맥에 안 든다). `allowed-tools` 는 넣지 않는다.
 - 이유: `allowed-tools` 는 막는 기능이 아니라 그 턴에만 미리 허락하는 기능이고, `Bash(node *)` 는 아무 node 코드나 허락하게 된다.
 - 어디서: `skills/setup/SKILL.md`. 적용은 화면에서 하고 Claude 는 결과 JSON 한 덩어리만 읽는다.
 
@@ -314,6 +317,16 @@
 - 되돌리기: 팀원 공유 settings.json 을 적용 뒤 사용자가 고쳤으면 우리가 더한 마켓·플러그인 칸만 뺀다(사용자가 더한 훅은 남김). 적용 전에 그 칸이 있었으면 그 값으로 되살린다. 마켓·플러그인 이름은 플러그인 폴더의 config/sources.json 에서 읽는다(처음엔 지금 폴더 기준으로 읽어 사용자 프로젝트에서 아무것도 못 빼고 「trimmed」 라고 했다 — 독립 검토가 잡음, 시험도 프로젝트 폴더에서 돈다). BOM 붙은 settings.json 도 읽는다. `scripts/lib/backup.mjs` withoutShare, `scripts/lib/plan.mjs`.
 - 어디서: `scripts/lib/backup.mjs`
 
+### 프로젝트를 끝낼 때는 「지우기」, 우리 것임이 분명한 것만 (사용자 요청, 2026-11-16)
+- 결정: `setup remove`(`apply.mjs --remove`)는 백업 없이 harness-fit 이 넣은 것을 모두 뺀다 — harness.json·요청 메모, CLAUDE.md 관리 구역(남는 글이 없을 때만 파일 지움), `.harness-source.json` 의 지문과 같은 스킬 폴더, 우리 실행기 그대로인 git 훅(`isOurLauncher`)·표시가 있는 pre-commit 실행 파일, settings.json 의 두 칸(되돌리기와 같은 withoutShare, `{}` 가 되면 지움), .gitignore 한 줄, 백업 폴더는 맨 끝. 고친 스킬·지문 없는 옛 스킬은 `--force` 일 때만. 연결(심볼릭 링크·정션)은 가는 길이든 그 자리든 따라가지 않고 kept. 남의 파일(.pre-commit-config.yaml, 사용자 훅에 이어 붙인 줄)·플러그인 지우기·GitHub 설정은 manual 로 알린다. 늘 --dry-run 을 먼저 보이고 묻는다.
+- 이유: 되돌리기는 마지막 적용만, 그리고 .gitignore 된 백업 폴더가 있어야 한다 — 다른 PC·새 clone 에서는 아무것도 못 했다. 플러그인 지우는 명령은 `claude plugin uninstall <id> --scope user|project|local`(Claude Code 2.1.325 `--help` 로 확인).
+- 다시 적용: 고르지 않게 된 받은 그대로의 스킬 폴더는 skill-remove 로 빼고(백업이 사본을 남겨 되돌리기가 되살림), 고친 것은 두고 skill-kept-edited 로 알린다. 커밋 때 다시 보는 훅을 다 끄면 우리 git 훅도 뺀다(git-hook-off). 전에는 적용이 더하기만 해서 고르지 않은 스킬이 그대로 남았다.
+- 검토 뒤(2026-11-16) — CLAUDE.md 표시는 줄 하나가 통째로 표시일 때만, 코드 울타리 밖에서만 센다(`findBlock`). 짝이 안 맞으면(시작 둘·끝 없음·끝이 먼저) 지우기·적용·되돌리기 모두 손대지 않고 알린다(kept `markers` · `claude-md-markers` · undo kept). 지우기는 백업이 없어 문장 속 인용·코드 예시를 구역으로 보면 사용자 글이 사라졌다. 미리보기에 빼는 줄 수(`claudeMdLines`).
+- 검토 뒤 — 스킬 폴더는 이름이 받은 id(`.harness-source.json` 의 `id`, 없으면 SKILL.md name)일 때만 우리 것. 다른 이름 복사본은 `not-ours`. 되돌리기는 적용이 지운 자리에 새로 생긴 것을 `saved` 로 남긴 뒤 되살린다.
+- 검토 뒤 — 파일 모양: settings.json 은 들여쓰기·BOM·CRLF 그대로, `enabledPlugins` 는 `true` 만 뺀다(`false` 는 사용자 끄기). CLAUDE.md·.gitignore 는 파일 줄바꿈(CRLF)을 따른다. .gitignore 줄은 harness.json `gitignore`(added·existing — 커밋되므로 다른 PC 에서도 안다)가 existing 이면 남긴다. 기록 없는 옛 적용은 알 수 없어 뺀다.
+- 검토 뒤 — 백업 폴더가 연결이라 남으면 .gitignore 줄도 남긴다. 실행 방식은 하나만(`--remove --undo` 는 conflicting-modes). 지우기·되돌리기는 git 맨 위에서(아니면 준 폴더, `git: false`). pre-commit 저장소에서 커밋 훅을 다 끄면 실행 파일도 빼고 항목은 manual `pre-commit-entry`.
+- 어디서: `scripts/lib/remove.mjs`, `scripts/lib/owned.mjs`(프로젝트 안 경로·스킬 상태), `scripts/lib/plan.mjs`, `scripts/lib/claude-md.mjs`(`findBlock`), `picker/changes.js`
+
 ## 배포·버전
 
 ### Claude Code 플러그인으로 낸다 (사용자 결정, 2026-11-02)
@@ -339,6 +352,10 @@
 - 어디서: `Downloads/find-your-skill-시안/`
 
 ## 바뀐 이력
+- v0.5.0 (2026-11-17, https://github.com/HwangSlater/harness-fit/releases/tag/v0.5.0): 끝낼 때 지우기(setup remove), 다시 적용 때 뺀 스킬·git 훅 지우기, 내 규칙과 반대면 묻고 기억하기, 커밋·PR 을 저장소 형식으로, Git Flow 합치기 방향·트렁크 오래 산 브랜치 훅(29개).
+- 2026-11-17: 사용자 결정 — 내 규칙과 반대인 줄·훅은 적용 전에 묻고 고른 쪽만 남김(`--conflicts`, selection.conflicts, 「내 규칙과 반대라 뺐어요」 이름표).
+- 2026-11-16: 지우기 검토 — CLAUDE.md 표시는 줄 전체·코드 밖만, 짝이 안 맞으면 손대지 않음, 다른 이름 스킬 복사본·사용자 false·적용 전부터 있던 .gitignore 줄 남기기, 파일 모양 지키기, 방식 겹침·하위 폴더, pre-commit 실행 파일 빼기.
+- 2026-11-16: 프로젝트를 끝낼 때 `setup remove`(백업 없이 우리 것만 빼기, 고친 스킬·남의 훅·연결은 남기고 알림), 다시 적용할 때 고르지 않은 받은 그대로의 스킬과 커밋 훅을 다 끈 뒤의 우리 git 훅 빼기.
 - v0.4.1 (2026-11-16, https://github.com/HwangSlater/harness-fit/releases/tag/v0.4.1): 인프라 안전장치 끄기를 묻는 iac-edit 훅(27개), 비밀 파일 읽기 묻기, use client 비공개 env 알림, pre-commit 프레임워크 저장소 지원, Next.js 지침(18개), Argo CD·sqlc·iOS 마이그레이션 시험 줄, 옵션 설명 한 줄, 검토 네 번.
 - v0.4.0 (2026-11-13, https://github.com/HwangSlater/harness-fit/releases/tag/v0.4.0): 실행 전에 묻기·막을 명령·migration-edit·stale-scratch 훅, 분야 지침 8→17개, 저장소 단서로 묻는 명령·보호 경로 미리 채우기, README·CI 명령, 옵션 칩·설명 달린 메뉴·확인 단계 옵션 표·공통 부품, 스킬 받기·겹침 시험·훅의 git 줄이기, 역할극 16 분야.
 - 2026-11-13: 화면 역할 평가 반영 — 제안 값 「+」 단추, 긴 까닭 목록 「외 N개」, 팀원 「아니요」에도 저장소 보호 경로 유지, 적용 실패 안내를 오류 종류별로.

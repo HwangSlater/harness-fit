@@ -38,16 +38,22 @@ export function outcomeItems({ S, sel, ui, t }) {
   if (skills.length) items.push(['i-down', t('wManual', { n: skills.length }), t('wManualD', { list: skills.map((m) => title(S, m.skill)).join(', ') })]);
   if (preCommitStep(p)) items.push(['i-info', t('wPreCommit'), t('wPreCommitD')]);
   if (n('git-hook-remove')) items.push(['i-file', t('wGitHookRemove'), t('wGitHookRemoveD')]);
+  if (n('git-hook-off')) items.push(['i-file', t('wGitHookOff'), t('wGitHookOffD')]);
+  // 고르지 않게 된, harness-fit 이 받은 그대로의 스킬 폴더는 뺀다(plan.mjs skill-remove)
+  const gone = removedSkills(S, p);
+  if (gone.length) items.push(['i-folder', t('wSkillsRemove', { n: gone.length }), t('wSkillsRemoveD', { list: gone.join(', ') })]);
   // 이미 있는 같은 이름 폴더는 건드리지 않는다
   if (p.skipped?.length) items.push(['i-info', t('wSkipped', { n: p.skipped.length }), t('wSkippedD', { list: p.skipped.map((id) => title(S, id)).join(', ') })]);
   return items;
 }
 // 적용은 되지만 약속대로 동작하지 않을 것(apply.mjs plan 의 warnings): [id, 제목 한 줄, 자세한 설명]
 // skill-budget 은 숫자·단추가 있어 따로 그린다(budget-view.js budgetBox)
-export const warningsOf = ({ ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).filter((w) => w !== 'skill-budget').map((w) => [w, t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '' })]);
+// list: 고친 스킬이라 빼지 않은 것(skill-kept-edited — plan.mjs keptSkills)
+export const warningsOf = ({ S, ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).filter((w) => w !== 'skill-budget').map((w) => [w, t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '', list: (ui.preview.keptSkills || []).map((id) => title(S, id)).join(', ') })]);
 
 const SIGN = { create: '+', remove: '-' };
-export const pathLines = (S, p) => p.changes.map((x) => `${SIGN[x.action] || '~'} ${x.path}${x.skill ? `  — ${title(S, x.skill)}` : ''}`).join('\n');
+const removedSkills = (S, p) => p.changes.filter((x) => x.kind === 'skill-remove').map((x) => title(S, x.removedSkill));
+export const pathLines = (S, p) => p.changes.map((x) => `${SIGN[x.action] || '~'} ${x.path}${x.skill || x.removedSkill ? `  — ${title(S, x.skill || x.removedSkill)}` : ''}`).join('\n');
 
 // failed = 받지 못한 스킬(끝 화면에서만)
 export function changeGroups({ S, sel, t }, p, failed = []) {
@@ -66,11 +72,13 @@ export function changeGroups({ S, sel, t }, p, failed = []) {
     names?.length ? h(`span.d.cg-names${full ? '.clamp' : ''}`, { title: full || null }, names.join(' · ')) : null] });
   return [
     copied.length ? group('i-folder', t('cSkills', { n: copied.length }), '.claude/skills/', t('cSkillsWhat'), copied) : null,
+    removedSkills(S, p).length ? group('i-folder', t('cSkillsRemove', { n: removedSkills(S, p).length }), '.claude/skills/', t('cSkillsRemoveWhat'), removedSkills(S, p)) : null,
     manualSkills(p).length ? group('i-down', t('cManual', { n: manualSkills(p).length }), t('cManualWhere'), t('cManualWhat'), manualSkills(p).map((m) => title(S, m.skill))) : null,
     preCommitStep(p) ? group('i-info', t('cPreCommit'), preCommitStep(p).file, t('cPreCommitWhat'), null) : null,
     // 플러그인이 안 깔렸으면 「이미 깔린 플러그인이 막아요」 대신 깔아야 돈다고(확인 단계 경고와 같은 말 — 화면 역할 평가)
     group('i-file', t('cHooks', { n: sel.hooks.size }), '.claude/harness.json', t(p.warnings?.includes('plugin-missing') ? 'cHooksWhatNoPlugin' : 'cHooksWhat'), hookNames),
     n('git-hook') ? group('i-file', t('cGitHook'), '.git/hooks/pre-commit', t('cGitHookWhat'), null) : null,
+    n('git-hook-off') ? group('i-file', t('cGitHookOff'), '.git/hooks/pre-commit', t('cGitHookOffWhat'), null) : null,
     n('claude-md') ? group('i-file', t('cRules', { n: ruleNames.length }), 'CLAUDE.md', t('cRulesWhat'), ruleNames) : null,
     n('share') ? group('i-file', t('cShare'), '.claude/settings.json', t('cShareWhat', { repo: S.pluginRepo, ref: S.pluginRef }), null) : null,
     n('request') ? group('i-file', t('cNote'), '.claude/harness-request.md', t('cNoteWhat'), note ? [note] : null, note) : null,

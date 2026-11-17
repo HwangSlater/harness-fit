@@ -60,7 +60,7 @@ export const groupRow = ({ name, count, chips, empty, more }) =>
 // open = { key, onOpen } 이면 제목·설명 칸이 단추가 되어 누르면(Enter·Space 도) 창을 연다. 줄의 빈 곳을 눌러도 열고,
 // 끝에 붙은 스위치·링크를 누르면 열지 않는다(스위치는 켜고 끄기만).
 export const lrow = ({ cls = '', ic, title, desc, descOne, id, extra, tail = [], open }) =>
-  h(`div.lrow${cls}${open ? '.click' : ''}`, open ? { on: { click: (e) => (e.target.closest('.tgl, a') ? null : open.onOpen()) } } : {}, ic ? icon(ic) : null,
+  h(`div.lrow${cls}${open ? '.click' : ''}`, open ? { on: { click: (e) => (e.target.closest('.tgl, a, .lk') ? null : open.onOpen()) } } : {}, ic ? icon(ic) : null,
     h(open ? 'button.main' : 'div.main', open ? { type: 'button', 'aria-haspopup': 'dialog', 'data-key': open.key } : {},
       h('b', { id: id || null }, title), desc ? h(`span.d${descOne ? '.one' : ''}`, { title: descOne ? desc : null }, desc) : null, extra),
     ...tail);
@@ -107,6 +107,10 @@ export const skillLabels = ({ S, t, act, dup, mates }, k) => {
 };
 // 검사(훅)에 붙는 「이미 쓰고 있는 훅이 같은 일을 해요」: 누르면 그 훅·시험 결과를 보여 주는 작은 창
 export const dupHookLabel = ({ t, act }, id) => linkLabel('.warn', null, [{ key: `info:h:${id}`, text: t('dupHook'), popup: true, onClick: () => act.openInfo({ kind: 'hook', id }) }]);
+// 사용자 규칙과 반대인 것(picker/conflict.js 기록 하나)에 붙는 이름표: 「내 규칙과 반대라 뺐어요」(내 규칙 쪽) · 「내 규칙과 반대 · harness-fit 쪽」.
+// 누르면 내 규칙 줄·파일과 harness-fit 이 넣으려던 것을 보여 주는 작은 창(info-dialog.js conflictInfo)
+export const conflictLabel = ({ t, act }, key, choice) =>
+  linkLabel('.warn', null, [{ key: `info:c:${key}`, text: t(choice === 'mine' ? 'conflictLabel' : 'conflictLabelKept'), popup: true, onClick: () => act.openInfo({ kind: 'conflict', id: key }) }]);
 
 // 이미 있어서 기본에서 뺀 것(kind: hooks · skills). 원래 기본으로 들어갈 것(조합·브랜치 방식)이었고 지금 꺼져 있는 것만 —
 // 기본에 없던 것까지 「뺐다」고 하면 거짓이고, 사용자가 다시 켰으면 알릴 까닭이 없다. 그 밖의 겹침은 각 항목 옆에 표시한다.

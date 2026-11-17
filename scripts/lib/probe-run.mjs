@@ -5,7 +5,7 @@
 // — 기존 훅이 로그·상태를 쓰더라도 사용자 홈이 아니라 임시 폴더에 쓰게(spaceEnv).
 // 시험 입력의 꼴:
 //   event       'PreToolUse'(기본) · 'Stop' · 'SessionStart' · 'UserPromptSubmit'
-//   setup       { commits: n(지금 브랜치에 커밋 n개), committed: { 경로: 내용 }(커밋 하나로 넣어 두는 파일), files: { 경로: 내용 }(커밋하지 않은 새 파일),
+//   setup       { commits: n(지금 브랜치에 커밋 n개), daysAgo: n(그 커밋을 n 일 전 것으로), committed: { 경로: 내용 }(커밋 하나로 넣어 두는 파일), files: { 경로: 내용 }(커밋하지 않은 새 파일),
 //               scratch: [{ dir, files?: [이름], images?: n, days }](임시 폴더 <Temp>/claude 아래에 만들고 그 경로의 폴더들을 days 일 전으로) }
 //   transcript  대화 기록 줄들(배열). 글 속 <probe>·<hash>(setup 의 마지막 커밋)·<today>·<ts:초>(지금 기준 몇 초 앞뒤 시각)를 채운다
 //   checklist   UserPromptSubmit 시험: 세션 시작 훅들이 알려 준 .md 경로(임시 홈·저장소 안만)에 이 글을 써 둔다
@@ -92,10 +92,14 @@ export const makeSpace = async (x, makeRepo) => {
   const vars = { probe: dir.split(path.sep).join('/'), today: localDate() };
   const git = (...a) => gitAsync(dir, a);
   const commits = Number(x.setup?.commits) || 0;
+  // daysAgo: 그 커밋들을 며칠 전에 만든 것으로(오래 산 브랜치 알림 시험)
+  const ago = Number(x.setup?.daysAgo) || 0;
+  const when = ago ? new Date(Date.now() - ago * 86400000).toISOString() : null;
+  const commitEnv = when ? { ...process.env, GIT_AUTHOR_DATE: when, GIT_COMMITTER_DATE: when } : undefined;
   for (let k = 0; k < commits; k++) {
     fs.writeFileSync(path.join(dir, 'src', `step${k + 1}.js`), `export const step = ${k + 1};\n`);
     await git('add', '-A', 'src');
-    await git('commit', '-q', '-m', `feat: 테스트 단계 ${k + 1}`);
+    await gitAsync(dir, ['commit', '-q', '-m', `feat: 테스트 단계 ${k + 1}`], commitEnv);
   }
   const put = (rel, text) => {
     const abs = path.join(dir, rel);

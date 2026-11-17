@@ -174,7 +174,7 @@ export const expandCombo = (all, comboId, det) => {
   // 저장소가 이미 쓰는 표준 밖 타입(bench: 등)은 허용 — 기록이 그 꼴인데 막던 일(역할극 11 회차, 2026-11-11)
   const types = det.history?.extraTypes || [];
   if (types.length && kept.hooks.includes('commit-msg')) hookOpts['commit-msg'] = { ...hookOpts['commit-msg'], types };
-  return { combo: comboId, ...kept, hookOpts, base, already, covered, fit, fitDropped, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules, flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null };
+  return { combo: comboId, ...kept, hookOpts, base, already, covered, fit, fitDropped, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules, flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null, vcs: det.vcs || null };
 };
 
 // 원격·운영 명령 묻기를 이유 줄에 한 마디로: 감지된 스택의 명령(catalog/combos.json remoteSay) 몇 개 + ssh
