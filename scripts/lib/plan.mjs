@@ -12,6 +12,7 @@ import { localDate } from '../../hooks/lib/dates.mjs';
 import { readJson } from './paths.mjs';
 import { ownedSkills } from './owned.mjs';
 import { detect } from '../detect.mjs';
+import { workspaceRepos } from './workspace.mjs';
 
 // git 이 이 경로를 무시하는지(.gitignore 에 .claude/ 가 있으면 팀원에게 설정이 가지 않는다)
 const gitIgnores = (root, rel) => spawnSync('git', ['-C', root, 'check-ignore', '-q', rel], { stdio: 'ignore' }).status === 0;
@@ -64,6 +65,36 @@ export const gitHookPlan = (root, sel, active) => {
   if (state !== 'none' && state !== 'ours') return {};
   const content = launcherText(PLUGIN_DIR);
   return read(file) === content ? {} : { file, content };
+};
+
+// 작업 폴더(lib/workspace.mjs): 맨 위는 git 저장소가 아니라 git 훅은 저장소마다 넣는다 — 맨 위 .git 에는 절대 쓰지 않는다(gitHookState 가 no-git).
+// 저장소마다 gitHookPlan 과 같은 판단: 비었거나 우리 훅이면 넣고, 남의 훅·core.hooksPath·바깥 훅 폴더면 넣지 않고 알린다.
+// pre-commit 프레임워크 저장소는 그 저장소 안에 실행 파일(.claude/harness-fit-pre-commit.mjs)을 만들어야 해서 하지 않고 이어 붙일 한 줄로 알린다
+// (작업 폴더의 설정은 맨 위에 있는데 실행 파일만 저장소에 들어가 그 저장소 팀원 모두의 커밋에 섞인다). 커밋 훅을 다 껐으면 우리 훅만 뺀다.
+// → { changes, warnings, repos: [{ name, gitHook: install | current | off | none | git-hook-exists | git-hook-elsewhere | pre-commit }] }
+export const workspaceHookPlan = (root, repos, sel, active) => {
+  const out = { changes: [], warnings: [], repos: [] };
+  for (const name of repos) {
+    const dir = path.join(root, name);
+    const h = gitHookPlan(dir, sel, active);
+    let state = 'none';
+    if (h.content) {
+      out.changes.push({ path: h.file, kind: 'git-hook', action: fs.existsSync(h.file) ? 'change' : 'create', content: h.content, mode: HOOK_MODE });
+      state = 'install';
+    } else if (h.preCommit) state = 'pre-commit';
+    else if (h.warning) state = h.warning;
+    else if (sel.hooks.some((id) => COMMIT_HOOK_IDS.includes(id)) && active) state = 'current';
+    const own = ownHookPath(dir);
+    for (const f of (h.off || []).filter((x) => path.resolve(x) === path.resolve(own))) {
+      out.changes.push({ path: f, kind: 'git-hook-off', action: 'remove', content: null });
+      state = 'off';
+    }
+    if (state === 'pre-commit') out.warnings.push('git-hook-exists');
+    else if (Object.values(HOOK_WARNING).includes(state)) out.warnings.push(state);
+    out.repos.push({ name, gitHook: state });
+  }
+  out.warnings = [...new Set(out.warnings)];
+  return out;
 };
 
 // 훅 설정: 고른 훅을 켜고, Git 전략에 딸린 옵션을 얹는다.
@@ -148,7 +179,9 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   const giText = read(gi);
   const giHas = !!giText && giText.split(/\r?\n/).includes(GITIGNORE_LINE);
   const prevCfg = readJson(cfgPath);
-  add(cfgPath, 'config', JSON.stringify({ ...buildConfig(all, sel, prevCfg), ...gitignoreOwner(giHas, fs.existsSync(cfgPath) ? prevCfg || {} : null) }, null, 2) + '\n');
+  // 작업 폴더면 설정에 저장소 이름을 적는다 — 훅(hooks/lib/core.mjs loadConfig)이 저장소 안 cwd 에서도 이 설정을 찾는 표시
+  const repos = workspaceRepos(root);
+  add(cfgPath, 'config', JSON.stringify({ ...buildConfig(all, sel, prevCfg), ...gitignoreOwner(giHas, fs.existsSync(cfgPath) ? prevCfg || {} : null), ...(repos ? { workspace: repos } : {}) }, null, 2) + '\n');
   if (!active) warnings.push('plugin-missing');
   const mdPath = path.join(root, 'CLAUDE.md');
   const md = read(mdPath);
@@ -184,6 +217,11 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   }
   for (const f of hook.off || []) changes.push({ path: f, kind: 'git-hook-off', action: 'remove', content: null });
   if (hook.entryLeft) warnings.push('pre-commit-entry-left');
+  const ws = repos ? workspaceHookPlan(root, repos, sel, active) : null;
+  if (ws) {
+    changes.push(...ws.changes);
+    for (const w of ws.warnings) if (!warnings.includes(w)) warnings.push(w);
+  }
 
   const skills = sel.skills.map((id) => all.catalog.skills.find((s) => s.id === id)).filter(Boolean);
   const skipped = [];
@@ -215,5 +253,6 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   const fresh = changes.filter((c) => c.kind === 'skill' && c.action === 'create').map((c) => c.skill);
   const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}), () => (Array.isArray(sel.stack) ? sel.stack : detect(root).stack));
   if (skillBudget.level !== 'ok') warnings.push('skill-budget');
-  return { changes, manual, warnings, skipped, keptSkills, skillBudget, ...(hook.warning ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}) };
+  // workspace: 저장소마다 git 훅을 어떻게 했는지(작업 폴더일 때만 — 보고에 저장소 이름과 함께)
+  return { changes, manual, warnings, skipped, keptSkills, skillBudget, ...(hook.warning || ws?.warnings.length ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}), ...(ws ? { workspace: ws.repos } : {}) };
 };

@@ -115,27 +115,42 @@ export const repoState = (root, memo = null) => {
   return state;
 };
 
-// 프로젝트 설정. cwd 에서 위로 올라가며 .claude/harness.json 을 찾되, 저장소 맨 위(.git 이 있는 폴더)에서 멈춘다.
+// 프로젝트 설정. cwd 에서 위로 올라가며 .claude/harness.json 을 찾되, 저장소 맨 위(.git 이 있는 폴더)에서 멈춘다(작업 폴더는 아래 workspaceConfig).
 // 없으면 null — 이 프로젝트에서는 아무것도 하지 않는다.
 // 이 훅은 플러그인을 켠 모든 프로젝트의 도구 호출마다 돌므로 git 프로세스를 띄우지 않고 파일만 본다.
 // 설정이 이보다 크면 손으로 쓴 설정이 아니다 — 읽지 않고 깨진 것으로 알린다(큰 파일을 도구 호출마다 읽지 않게).
 export const MAX_CONFIG_BYTES = 256 * 1024; // 고르기 화면(scripts/lib/picker-state.mjs)도 같은 한도로 읽는다
+const readConfig = (dir, file) => {
+  try {
+    if (fs.statSync(file).size > MAX_CONFIG_BYTES) throw new Error('too big');
+    const cfg = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+    // rules 는 { 훅 id: true | false | { 옵션 } } 이어야 한다. 모양이 다르면(배열·글자) 깨진 설정으로 알린다.
+    if (!isObject(cfg) || (cfg.rules !== undefined && !isObject(cfg.rules))) throw new Error('shape');
+    // workspace: 작업 폴더 표시(적용이 적은 저장소 폴더 이름들 — scripts/lib/workspace.mjs). 글자 목록일 때만
+    const ws = Array.isArray(cfg.workspace) && cfg.workspace.length && cfg.workspace.every((x) => typeof x === 'string') ? { workspace: cfg.workspace } : {};
+    return { root: dir, lang: cfg.lang, rules: cfg.rules || {}, ...ws };
+  } catch {
+    // 깨진 설정은 「검사 없음」으로 조용히 넘기지 않는다 — 모든 검사가 꺼진 줄 모르게 된다(2026-11-05 검토). 막지는 않고 알린다(고치는 쓰기까지 막지 않게).
+    return { root: dir, lang: undefined, rules: {}, broken: file };
+  }
+};
+// 저장소 맨 위에서 멈추는 까닭: 위 폴더의 남의 설정(홈 폴더·다른 프로젝트에 적용한 것)이 이 저장소로 새지 않게.
+// 다만 바로 위 폴더가 작업 폴더(git 저장소가 아닌 폴더 + 바로 아래 저장소 여럿 — 적용이 workspace 를 적은 설정)면 그 설정을 쓴다.
+// ⚠️ 작업 폴더 맨 위에서 연 세션도 Claude Code 가 cd 를 이어 가 cwd 가 messenger/ 안이 되면, 여기서 messenger/.git 에 멈춰
+//    설정을 못 찾고 모든 검사가 조용히 꺼졌다(0.2.0 에서 잼, 2026-11-19). 표시가 없거나 깨진 위 설정은 지금처럼 보지 않는다(작업 폴더인지 알 수 없다).
+const workspaceConfig = (repo) => {
+  const parent = path.dirname(repo);
+  const file = path.join(parent, CONFIG_FILE);
+  if (parent === repo || !fs.existsSync(file)) return null;
+  const cfg = readConfig(parent, file);
+  return cfg.workspace ? cfg : null;
+};
 export const loadConfig = (cwd) => {
   for (let dir = path.resolve(cwd); ; dir = path.dirname(dir)) {
     const file = path.join(dir, CONFIG_FILE);
-    if (fs.existsSync(file)) {
-      try {
-        if (fs.statSync(file).size > MAX_CONFIG_BYTES) throw new Error('too big');
-        const cfg = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
-        // rules 는 { 훅 id: true | false | { 옵션 } } 이어야 한다. 모양이 다르면(배열·글자) 깨진 설정으로 알린다.
-        if (!isObject(cfg) || (cfg.rules !== undefined && !isObject(cfg.rules))) throw new Error('shape');
-        return { root: dir, lang: cfg.lang, rules: cfg.rules || {} };
-      } catch {
-        // 깨진 설정은 「검사 없음」으로 조용히 넘기지 않는다 — 모든 검사가 꺼진 줄 모르게 된다(2026-11-05 검토). 막지는 않고 알린다(고치는 쓰기까지 막지 않게).
-        return { root: dir, lang: undefined, rules: {}, broken: file };
-      }
-    }
-    if (fs.existsSync(path.join(dir, '.git')) || path.dirname(dir) === dir) return null;
+    if (fs.existsSync(file)) return readConfig(dir, file);
+    if (fs.existsSync(path.join(dir, '.git'))) return workspaceConfig(dir);
+    if (path.dirname(dir) === dir) return null;
   }
 };
 

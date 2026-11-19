@@ -225,9 +225,15 @@ export const recommend = (all, det, lang) => {
     why.push(lang === 'ko' ? `${head} → 「${nameOf({ id }, 'skill')}」 뺌` : `${head} → left out "${nameOf({ id }, 'skill')}"`);
   }
   if (det.team && det.host === 'github') applyFlow(all, sel, 'github-flow');
+  // 작업 폴더(lib/workspace.mjs): 저장소 여럿을 합쳐 본 결과라는 것과, 설정 하나를 모두가 받는다는 것을 밝힌다
+  const ws = Array.isArray(det.workspace) ? det.workspace : null;
+  if (ws) why.unshift(lang === 'ko' ? `작업 폴더: 저장소 ${ws.length}개(${ws.map((r) => r.name).join(' · ')})를 합쳐 보고, 같은 설정을 모두에 씀` : `Workspace folder: read ${ws.length} repositories together (${ws.map((r) => r.name).join(' · ')}); one setup applies to all`);
   if (det.hasDevelop) {
     applyFlow(all, sel, 'git-flow');
     why.push(lang === 'ko' ? 'develop 브랜치가 있음 → Git Flow' : 'develop branch found → Git Flow');
+    // develop 이 없는 저장소도 같은 브랜치 규칙(main 바로 커밋 막기, feature 를 main 에 바로 합치기 막기)을 받는다 — 숨기지 않고 이름을 댄다
+    const none = (ws || []).filter((r) => !r.hasDevelop).map((r) => r.name);
+    if (none.length) why.push(lang === 'ko' ? `develop 이 없는 저장소(${none.join(' · ')})도 Git Flow 규칙을 같이 받아요` : `Repositories without develop (${none.join(' · ')}) get the Git Flow rules too`);
   }
   if (sel.hookOpts['commit-msg']?.lang) {
     const ko = sel.hookOpts['commit-msg'].lang === 'ko';

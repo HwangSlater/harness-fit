@@ -20,6 +20,7 @@ import { vcsOf } from './lib/vcs-format.mjs';
 import { detect } from './detect.mjs';
 import { removeAll } from './lib/remove.mjs';
 import { repoRoot } from '../hooks/lib/core.mjs';
+import { workspaceRepos } from './lib/workspace.mjs';
 
 const args = process.argv.slice(2);
 const root = path.resolve(args[0] || '.');
@@ -96,15 +97,17 @@ const main = async () => {
   const withGithub = !!ghArg;
   const listed = ghArg?.includes('=') ? parseItemList(ghArg.slice(ghArg.indexOf('=') + 1)) : null;
   // 저장소 종류: recommend 가 선택 파일에 남긴 것(--stack 힌트 반영)을 쓰고, 없으면(옛 파일·손으로 만든 파일) 다시 읽는다
-  const kinds = Array.isArray(raw.kinds) && raw.kinds.every((k) => typeof k === 'string' && /^[a-z]+$/.test(k)) ? raw.kinds : detect(root).kinds;
+  // 작업 폴더(lib/workspace.mjs)는 맨 위가 저장소가 아니라 명령·형식을 저장소마다 읽어 합친 감지 결과에서 가져온다(맨 위에서 읽으면 비었다)
+  const ws = workspaceRepos(root) ? detect(root) : null;
+  const kinds = Array.isArray(raw.kinds) && raw.kinds.every((k) => typeof k === 'string' && /^[a-z]+$/.test(k)) ? raw.kinds : (ws || detect(root)).kinds;
   // 커밋·PR 형식(CLAUDE.md 「커밋·PR 형식」 줄)도 선택 파일 값이 아니라 저장소에서 다시 읽는다 — 명령과 같은 까닭
-  const sel = { ...cleanSelection({ all, cfg, det: { commands: detectCommands(root).commands, kinds, vcs: vcsOf(root) } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
+  const sel = { ...cleanSelection({ all, cfg, det: { commands: ws ? ws.commands : detectCommands(root).commands, kinds, vcs: ws ? ws.vcs : vcsOf(root) } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
   const spec = all.packs.flows.find((f) => f.id === sel.flow)?.github;
   if (args.includes('--dry-run')) {
-    const { changes, manual, warnings, keptSkills, gitHookCmd, skillBudget } = plan(root, sel, all);
+    const { changes, manual, warnings, keptSkills, gitHookCmd, skillBudget, workspace } = plan(root, sel, all);
     // --dry-run --github-settings: 읽기만 해서(GET) 무엇이 바뀔지 보여 준다. 묻기 전에 Claude 가 이것으로 목록을 만든다.
     const github = withGithub ? await previewGithub(root, spec) : undefined;
-    return out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, ...(keptSkills.length ? { keptSkills } : {}), gitHookCmd, ...(skillBudget.level !== 'ok' ? { skillBudget } : {}), ...(github ? { github } : {}) });
+    return out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, ...(keptSkills.length ? { keptSkills } : {}), gitHookCmd, ...(skillBudget.level !== 'ok' ? { skillBudget } : {}), ...(workspace ? { workspace } : {}), ...(github ? { github } : {}) });
   }
   return out(await apply(root, sel));
 };

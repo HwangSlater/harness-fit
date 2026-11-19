@@ -1,6 +1,6 @@
 # 결정 — 추천·감지
 
-> 최종 수정: 2026-11-17 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-19 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다.
 
@@ -168,11 +168,20 @@
 - 어디서: `scripts/lib/vcs-format.mjs`(감지)·`vcs-text.mjs`(글), `scripts/detect.mjs` vcs, `scripts/apply.mjs`, `scripts/lib/picker-state.mjs`, `scripts/lib/claude-md.mjs`, `rules/vcs-format.*.md`·`rules/collab.*.md`. 시험 `scripts/test/vcs-format.test.mjs`.
 - 알려진 빈틈: overlap.mjs 는 형식 글을 받지 않아 「커밋·PR 형식」 줄을 겹침 견주기에 보이지 않고, 협업 지침 첫 줄의 `{{!fmt:commit}}` 조건도 보지 않는다(다른 갈래가 고치는 파일이라 손대지 않음 — 형식 줄은 감지한 꼴이라 사용자 글과 겹칠 일이 드물다).
 
+### 작업 폴더 — 저장소 여럿을 한 폴더에서 (사용자 요청, 2026-11-19)
+- 무엇이 틀렸나: 사용자 팀은 git 저장소가 아닌 폴더 하나(arasoft/)에 GitLab 저장소 넷(셋은 main+develop, 배포 저장소는 main 만)과 같이 쓰는 docs/ 를 두고 맨 위에서 Claude Code 를 연다. v0.5.0 에서 맨 위로 추천하면 「혼자 빠르게」·브랜치 전략 없음·git 훅 없음이었고(맨 위가 저장소가 아니라 사람 0명·develop 없음), host 가 none 이라 「GitHub 은 gh 명령으로 읽기」까지 들어갔다. 같은 명령을 messenger/ 에서 돌리면 「팀 협업」·Git Flow 였다. 훅은 세션 cwd 가 저장소 안이면(Claude Code 는 cd 를 이어 간다) 설정을 못 찾아 모든 검사가 조용히 꺼졌다(decisions-hooks.md 「작업 폴더 설정 찾기」).
+- 결정: 작업 폴더 = 준 폴더가 git 저장소 안이 아니고, 바로 아래 폴더 가운데 git 저장소 맨 위인 것이 둘 이상(점 폴더·node_modules·연결은 빼고). 그때 detect 가 저장소마다 감지해 합친다 — 스택·종류는 합집합(「정확한 버전으로」 pinned 는 JS 저장소가 모두 그럴 때만), 사람은 저장소를 넘어 같은 이름·메일을 한 번, host 는 none 을 빼고 하나로 모이면 그것·갈리면 mixed(gitlab 이 아니므로 GitHub 전용 훅을 빼지 않는다), hasDevelop 은 저장소의 절반 이상, 기본 브랜치는 가장 많은 것, 커밋·PR 형식은 저장소마다 분명한 꼴이 같을 때만(다르면 지침에 적지 않음), 명령은 `cd <저장소> && …`, 보호 경로·결과 폴더·찾은 파일 자리는 `<저장소>/…`(「/」 없는 이름 꼴은 그대로), 묻는 명령은 명령 꼴이라 그대로, existing 은 맨 위. 저장소 하나의 감지 결과는 그대로(workspace 칸 없음).
+- 추천: 이유 줄 맨 앞에 「작업 폴더: 저장소 N개(…)를 합쳐 보고, 같은 설정을 모두에 씀」, Git Flow 면 「develop 이 없는 저장소(portal-deploy)도 Git Flow 규칙을 같이 받아요」. 설정은 작업 폴더에 하나라 저장소마다 다른 전략을 줄 수 없다 — 숨기지 않고 이름을 댄다. 사용자 팀 꼴 픽스처의 추천은 messenger/ 하나를 열었을 때와 훅 목록까지 같다(팀 협업 · Git Flow, prefer-gh·pr-merge 뺌).
+- 적용: harness.json(저장소 이름 목록 `workspace` — 훅이 찾는 표시)·CLAUDE.md 는 맨 위. git pre-commit 훅은 저장소마다 같은 판단(gitHookPlan)으로 넣고 맨 위 .git 에는 쓰지 않는다. 남의 훅·core.hooksPath·바깥 훅 폴더면 넣지 않고, pre-commit 프레임워크 저장소는 저장소 안에 실행 파일을 만들어야 해서 하지 않고 이어 붙일 한 줄(gitHookCmd)로 — 결과의 `workspace: [{ name, gitHook }]` 가 저장소마다 무엇을 했는지 말한다. 되돌리기 백업은 바로 아래 한 단계의 `<저장소>/.git/hooks/pre-commit` 만 받고(우리 실행기 그대로일 때만 지우거나 되살림 — 맨 위와 같다), 지우기(--remove)도 저장소마다 우리 훅을 뺀다. apply.mjs 가 명령·형식을 다시 읽을 때도 합친 감지 결과에서.
+- 하지 않은 것: 저장소마다 다른 브랜치 전략·훅(설정 하나 — 필요하면 그 저장소에서 따로 적용하면 그 설정이 먼저다), 작업 폴더 자체의 공유(맨 위는 git 이 아니라 settings.json·harness.json 이 팀원에게 가지 않는다 — 사람마다 적용), docs-check 의 끝낼 때 검사(맨 위 docs/ 는 git 이 아니라 바뀐 문서를 알 수 없다 — 쓰기 때 검사는 돈다), 묻는 명령의 `./deploy.sh` 를 맨 위 기준 경로로 바꾸기(명령 낱말로 맞춘다).
+- 어디서: `scripts/lib/workspace.mjs`, `scripts/detect.mjs` detect, `scripts/lib/catalog.mjs` recommend, `scripts/lib/plan.mjs` workspaceHookPlan, `scripts/lib/backup.mjs` CHILD_HOOK_PATH, `scripts/lib/remove.mjs`, `scripts/apply.mjs`. 시험 `scripts/test/workspace.test.mjs`.
+
 ### 남은 것
 - 남은 것: 받아 넣은 스킬의 다른 언어 부속 파일(npm·jest 예시), 이미 있는 위험한 줄(|safe·로그 속 개인정보)을 처음 보고에서 세기, csrf_token 이 빠진 POST 폼 검사, `churn-eval --baseline <다른 파일>` 같은 우회.
 - 남은 것: sqlc 생성 파일 손 고치기 막기(쓰기만 막는 보호 옵션), Argo CD 없이 매니페스트만 있는 저장소의 지침(인프라 지침은 Terraform·Ansible·Argo CD 에만 붙는다).
 
 ## 바뀐 이력
+- 2026-11-19: 사용자 요청 — 작업 폴더(저장소가 아닌 폴더 + 바로 아래 저장소 여럿): 감지 합치기·이유 줄·저장소마다 git 훅·되돌리기·지우기.
 - 2026-11-17: 사용자 요청 — 커밋·PR 형식을 기록·PR 양식에서 읽어 「커밋·PR 형식」 지침으로(이슈 번호·범위를 막는 훅 옵션은 두지 않음), pr-writer 앞섬 줄과 알아 둘 점.
 - 2026-11-17: 반대 기록 독립 검토 — 줄 지문으로 다시 찾기, 팀 저장소 `~/` 기록 거절·버림, 버린 「내 규칙」 훅 되돌리기(`restored`), file 칸 네 꼴만·256KB·장치 이름, 명령줄 글 확인·8자, 화면 동적 거르기·겹치는 훅, bidi·C1 빼기.
 - 2026-11-17: 사용자 결정 — 내 규칙과 반대인 줄·훅을 묻고 고른 쪽만 남김(overlap hooks·knownConflicts·goneConflicts, `--conflicts`, selection.conflicts, 화면 이름표).

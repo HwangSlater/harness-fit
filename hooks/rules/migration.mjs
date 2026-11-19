@@ -43,7 +43,16 @@ export const migrationKind = (file) => {
 const MIGRATION_DIR = /(?:^|\/)(?:db\/migration|db\/migrate|migrations|alembic\/versions|migrations\/versions|prisma\/migrations(?:\/[^/]+)?)\/?$/;
 
 // 저장소 맨 위(필요할 때 한 번만 찾는다). 셸 명령에 git 이 없으면 judge 가 root 를 주지 않는다.
-const rootOf = (ctx) => ctx.root || repoRoot(ctx.project || ctx.cwd || process.cwd());
+// 프로젝트가 git 저장소가 아니면(작업 폴더 — 저장소는 그 아래 폴더들) 지금 폴더의 저장소, 그다음 대상이 든 저장소(near — 있는 가장 가까운 폴더)를 본다.
+// 프로젝트 맨 위만 보면 작업 폴더에서는 저장소를 못 찾아 커밋한 마이그레이션 고치기를 한 번도 묻지 않았다(2026-11-19)
+// near 가 파일이면 그 폴더부터(repoRoot 는 폴더만 받는다 — 파일 경로를 주면 저장소 아님으로 읽었다)
+const existingDir = (p) => {
+  let d = p;
+  while (!isDir(d) && path.dirname(d) !== d) d = path.dirname(d);
+  return d;
+};
+const rootOf = (ctx, near = null) =>
+  ctx.root || repoRoot(ctx.project || ctx.cwd || process.cwd()) || (ctx.project && ctx.cwd ? repoRoot(ctx.cwd) : null) || (near ? repoRoot(existingDir(near)) : null);
 const relTo = (root, cwd, f) => path.relative(root, path.resolve(cwd, f)).split(path.sep).join('/');
 const inRepo = (rel) => rel && !rel.startsWith('../') && rel !== '..' && !path.isAbsolute(rel);
 
@@ -118,7 +127,7 @@ const globRe = (g, deep) => new RegExp(`^${g.replace(/[.+^${}()|\\]/g, '\\$&').r
 const committedMigrations = (ctx, targets, cwd) => {
   const qs = targets.flatMap((w) => queriesOf(w, cwd));
   if (!qs.length) return [];
-  const root = rootOf(ctx);
+  const root = rootOf(ctx, qs[0].exact ?? qs[0].dir ?? path.dirname(qs[0].glob));
   if (!root) return [];
   const rel = (abs) => relTo(root, cwd, abs);
   const want = qs

@@ -14,6 +14,7 @@ import { BACKUP_DIR, GITIGNORE_LINE, withoutLine, withoutShare } from './backup.
 import { within, isLink, ownedSkills } from './owned.mjs';
 import { MARKER, isOurLauncher, gitHookState, PRE_COMMIT_CONFIG, PRE_COMMIT_ENTRY, PRE_COMMIT_RUNNER } from '../../hooks/lib/git-hook.mjs';
 import { readInstalledPlugins } from '../../hooks/lib/claude-home.mjs';
+import { workspaceRepos } from './workspace.mjs';
 
 const posix = (p) => p.split(path.sep).join('/');
 const readFile = (abs) => {
@@ -116,8 +117,9 @@ export const removeAll = (root, { dryRun = false, force = false, home } = {}) =>
     else keep(rel, s.state);
   }
 
-  // git 훅: 우리 실행기 그대로인 것만(표시만 있거나 줄을 덧붙인 훅은 남의 것 — 지우면 팀의 커밋 검사가 멈출 수 있다)
-  for (const rel of [HOOK, LEGACY]) {
+  // git 훅: 우리 실행기 그대로인 것만(표시만 있거나 줄을 덧붙인 훅은 남의 것 — 지우면 팀의 커밋 검사가 멈출 수 있다).
+  // 작업 폴더면 저장소마다 넣은 것도(plan.mjs workspaceHookPlan — 지금 바로 아래에 있는 저장소들)
+  for (const rel of [HOOK, LEGACY, ...(workspaceRepos(root) || []).map((name) => `${name}/${HOOK}`)]) {
     const f = fileAt(rel);
     if (!f) continue;
     if (isOurLauncher(f.text)) drop(rel, f.abs);

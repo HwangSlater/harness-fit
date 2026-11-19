@@ -124,6 +124,9 @@ Only skill names, one-line descriptions and the CLAUDE.md instructions are read 
 **"Don't `git add .`", "don't commit to main"… do I have to say this every time?**<br>
 No. A hook blocks the command and tells Claude why in one line (Block git add -A, Protected branches). What a hook enforces is not repeated in CLAUDE.md.
 
+**I keep several repos in one folder and open them together (workspace folder).**<br>
+If a folder that is not a git repo has two or more repos directly inside it, it is treated as a workspace: each repo is read and the results are merged (committers, GitLab/GitHub, whether there is a develop branch). One setup (`.claude/harness.json`) and one CLAUDE.md go at the top; the commit-check git hook goes into each repo. Checks keep working when the session `cd`s into a repo, and git checks look at the branch of the repo the command actually touches. One branch strategy covers all repos — a repo without develop gets the same rules, and the recommendation says which ones.
+
 ## Learn more
 
 - [Mistakes it blocks — the 29 hooks](docs/guide.en.md#the-29-hooks)

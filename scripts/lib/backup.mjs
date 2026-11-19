@@ -27,6 +27,10 @@ const LEGACY_HOOK_PATH = `${GIT_HOOK_PATH}.legacy`;
 const GIT_HOOK_PATHS = new Set([GIT_HOOK_PATH, LEGACY_HOOK_PATH]);
 const ALLOWED = new Set(['.claude/harness.json', 'CLAUDE.md', '.claude/settings.json', '.claude/harness-request.md', '.gitignore', ...GIT_HOOK_PATHS, PRE_COMMIT_RUNNER]);
 const SKILL_PATH = /^\.claude\/skills\/[\w-][\w.-]*$/; // 첫 글자가 점이면 안 된다(`.`·`..` 로 폴더 전체를 지우지 못하게)
+// 작업 폴더(lib/workspace.mjs)의 저장소마다 넣는 git 훅: 바로 아래 폴더 한 단계의 .git/hooks/pre-commit 만(이름 첫 글자는 점이 아님 — `..` 로 밖에 닿지 못하게).
+// 맨 위와 같이 우리 실행기 그대로일 때만 지우거나 되살린다(undoGitHook) — 심어 둔 목록으로 남의 훅을 건드리지 못한다
+const CHILD_HOOK_PATH = /^[^./\\][^/\\]*\/\.git\/hooks\/pre-commit$/;
+const isHookPath = (p) => GIT_HOOK_PATHS.has(p) || CHILD_HOOK_PATH.test(p);
 
 const posix = (p) => p.split(path.sep).join('/');
 export const hashOf = (text) => crypto.createHash('sha256').update(text).digest('hex');
@@ -53,7 +57,7 @@ const fingerprint = (abs) => {
 // 프로젝트 안의, 적용이 만들 수 있는 경로만. 연결(심볼릭 링크)로 밖을 가리키면 거절한다.
 const resolveAllowed = (root, rel) => {
   const p = posix(rel);
-  if (!ALLOWED.has(p) && !SKILL_PATH.test(p)) return null;
+  if (!ALLOWED.has(p) && !SKILL_PATH.test(p) && !CHILD_HOOK_PATH.test(p)) return null;
   const abs = path.resolve(root, p);
   try {
     const realRoot = fs.realpathSync(root);
@@ -205,7 +209,7 @@ const undoGitHook = (abs, e, dir) => {
 const undoEntry = (root, dir, e, savedDir) => {
   const abs = resolveAllowed(root, e.path);
   if (!abs) return 'skipped';
-  if (GIT_HOOK_PATHS.has(posix(e.path))) return undoGitHook(abs, e, dir);
+  if (isHookPath(posix(e.path))) return undoGitHook(abs, e, dir);
   const original = e.action === 'create' ? null : path.join(dir, 'files', e.path);
   if (!fs.existsSync(abs) && !original) return 'gone';
   // 적용이 지운 것(action remove — 고르지 않게 된 스킬 폴더·우리 git 훅·실행 파일)은 지문이 없다(지운 뒤라). 그 자리에 지금 무엇이 있으면

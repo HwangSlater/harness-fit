@@ -49,7 +49,7 @@ export const lineOf = (root, c) => `${SIGN[c.action] || '~'} ${rel(root, c.path)
 // undoRun·install: 되돌리기·스킬 받기(시험이 실패 꼴을 넣는다 — 평소에는 이 파일의 것)
 export const apply = async (root, sel, onProgress = () => {}, { gh, listing, undoRun = undo, install = installAll } = {}) => {
   const all = loadAll();
-  const { changes, manual, warnings, skipped, keptSkills, gitHookCmd, skillBudget } = plan(root, sel, all, { listing });
+  const { changes, manual, warnings, skipped, keptSkills, gitHookCmd, skillBudget, workspace } = plan(root, sel, all, { listing });
   const saved = backup(root, changes);
   try {
     for (const c of changes.filter((x) => !x.skill)) {
@@ -110,6 +110,7 @@ export const apply = async (root, sel, onProgress = () => {}, { gh, listing, und
     ...(keptSkills.length ? { keptSkills } : {}),
     gitHookCmd,
     ...(skillBudget.level !== 'ok' ? { skillBudget } : {}),
+    ...(workspace ? { workspace } : {}),
     undo: UNDO_COMMAND,
     ...(github ? { github } : {}),
   };

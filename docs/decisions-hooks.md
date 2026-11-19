@@ -1,6 +1,6 @@
 # 결정 — 훅
 
-> 최종 수정: 2026-11-17 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-19 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다 — 고쳐 온 차례는 git 기록과 archive 에 있다.
 
@@ -76,6 +76,13 @@
 - swift·python: 주석·글자를 가린 뒤(`hooks/lib/code-mask.mjs`) 새 줄만. 테스트 코드·받아 온 코드는 뺀다. Python `exec(` 는 `eval(` 과 같은 위험이라 함께.
 - work-checklist: `<설정 폴더>/harness-fit/checklists/<프로젝트 이름-경로 지문>/<세션>.md` — 설정 폴더는 `CLAUDE_CONFIG_DIR`, 없으면 `~/.claude`. 사용자 전역 `~/.claude/checklists/` 와 겹치지 않게.
 - docs-check: 기계로 가릴 수 있는 것만 — docs/ 에는 .md·그림만, 바뀐 문서의 `# 제목`·날짜 줄·목차 링크(Stop 때).
+
+### 작업 폴더 설정 찾기 (사용자 요청, 2026-11-19)
+- 무엇이 틀렸나: loadConfig 는 cwd 에서 올라가다 `.git` 이 있는 폴더에서 멈춘다 — 위 폴더의 남의 설정(홈·다른 프로젝트에 적용한 것)이 저장소로 새지 않게. 그런데 작업 폴더(decisions-recommend.md 「작업 폴더」) 맨 위에서 연 세션이 `cd messenger` 를 하면 cwd 가 저장소 안이 되어 설정을 못 찾고 모든 검사가 조용히 꺼졌다(0.2.0 에서 잼). 세션 cwd 가 맨 위일 때의 `cd sub && git commit`·`git -C sub commit` 은 이미 commandCwd·repoRoot 로 그 저장소를 봐서 막혔다.
+- 결정: 저장소 맨 위에서 설정이 없으면 바로 위 폴더만 한 번 더 보고, 그 설정에 `workspace`(적용이 적는 저장소 이름 목록 — 글자 목록일 때만)가 있을 때만 쓴다. 표시가 없거나 깨진 위 설정은 지금처럼 보지 않는다(깨졌으면 작업 폴더인지 알 수 없다 — 남의 저장소에 「설정이 깨졌다」 알림을 내지 않게). 두 단계 위(저장소 안의 저장소)도 보지 않는다. 저장소 자신의 설정이 있으면 그것이 먼저. 목록에 없는 새 저장소(나중에 clone)도 바로 아래 저장소면 받는다 — git 훅은 없으니 PreToolUse 커밋 검사가 맡는다.
+- git 규칙은 바꾸지 않았다: 명령이 닿는 저장소(cwd·`cd … &&`·`git -C`)의 브랜치로 본다. 맨 위(저장소 아님)에서 저장소에 닿지 않는 명령은 볼 것이 없어 통과.
+- 같이 고친 것: 보호 경로의 git add 검사(commit.mjs protectedCommit)는 저장소 기준 경로만 견줘서 작업 폴더 기준으로 적은 `messenger/data/raw/` 가 하나도 맞지 않았다 — 프로젝트가 저장소의 위 폴더면 저장소 이름을 붙인 경로로도 본다. migration-edit 은 프로젝트 맨 위의 저장소만 찾아 작업 폴더에서는 한 번도 묻지 않았다 — 지금 폴더의 저장소, 그다음 대상이 든 저장소를 본다(파일 경로를 그대로 repoRoot 에 주면 저장소 아님으로 읽었다 — 가장 가까운 있는 폴더부터).
+- 어디서: `hooks/lib/core.mjs` loadConfig·workspaceConfig, `hooks/rules/commit.mjs`, `hooks/rules/migration.mjs` rootOf. 시험 `hooks/test/workspace.test.mjs`(설정 찾기·새지 않음·보호 브랜치 세 꼴·보호 경로·마이그레이션·진입점·git pre-commit 본체).
 
 ### 훅 종류: block 과 notice (2026-11-06·11-09)
 - 결정: 명령·쓰기를 막으면 block, 알리거나 끝낼 때 되묻기만 하면 notice(commit-hash·work-checklist·answer-lang·prefer-gh). 「차단하는 것만」은 block 훅 중 이 저장소에 맞는 것만 켠다 — 이미 있는 훅과 겹침·지금 브랜치 전략이 끄는 것·다른 스택 전용·어느 조합·브랜치 전략도 기본으로 켜지 않는 훅(docs-check·squash-push)은 뺀다.
@@ -324,6 +331,7 @@
 - 팀원 공유면 목록에서 못 찾은 이름(Claude 가 --similar 로 짚은 이 PC 의 스킬)도 겹침으로 치지 않는다. `picker/dup.js`.
 
 ## 바뀐 이력
+- 2026-11-19: 사용자 요청 — 작업 폴더: 저장소 안 cwd 에서도 바로 위 작업 폴더 설정(workspace 표시가 있을 때만), 보호 경로 git add·migration-edit 이 작업 폴더에서도 돈다.
 - 2026-11-17: merge-flow·branch-age 독립 검토 — branch-age 는 세션마다 브랜치마다 한 번(표시 파일), git 두 번(rev-list --count · log --format=%at)으로 바꾸고 로컬·origin 트렁크를 함께 견줌, 조사 안 틀리는 문구. merge-flow 는 보호 목록의 배포 꼴이 아닌 이름을 통합 브랜치로(develop 을 채워 넣지 않음), 윈도 대소문자, 같은 이름 태그는 통과, git 을 부르는 때와 하지 않는 것 바로잡음.
 - 2026-11-17: 새 훅 둘 — Git Flow 합치기 방향(merge-flow, 막음, Git Flow 에서만)과 오래 산 브랜치 알림(branch-age, 알림, 트렁크 기반에서만). git() 에 timeout 칸, 모든 훅 켠 커밋·push 의 git 한도 하나씩 올림.
 - 2026-11-16: v0.4.1 두 번째 검토 — git 훅은 글이 우리 실행기 그대로일 때만 지우고 되돌리기는 사본 그대로(.legacy 는 알리기만), 불러오기 글은 깨져도 통과·verbose 뺌·옛 항목 바꿔 넣기, askRead .pem 끝·../ 경로·kubeconfig.txt·틀 속 값·Chart.yaml, iac-edit _test·dev 이름·prd·live·JSON Argo CD.

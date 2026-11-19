@@ -228,15 +228,19 @@ const contentChanged = (root, rels, force) => {
 const protectedCommit = {
   id: 'protected-files',
   on: 'shell',
-  check({ cmd, cwd, root, shell, shared, opts, t }) {
+  check({ cmd, cwd, root, project, shell, shared, opts, t }) {
     const paths = Array.isArray(opts.paths) ? opts.paths : [];
     if (!root || !paths.length) return null;
     const src = stageSources(cmd, shell, root);
     if (!src) return null;
     const base = cwd || root;
     const rel = (f) => path.relative(root, path.resolve(base, f)).replace(/\\/g, '/');
+    // 적은 경로는 프로젝트 맨 위 기준이다(쓰기 검사와 같다). 프로젝트가 저장소의 위 폴더면(작업 폴더 — messenger/data/raw/) 저장소 기준 경로에
+    // 저장소 폴더를 붙여서도 본다 — 저장소 기준으로만 보면 작업 폴더에서 적은 경로가 git add 때 하나도 맞지 않았다(2026-11-19)
+    const up = project ? path.relative(project, root).replace(/\\/g, '/') : '';
+    const fromProject = up && !up.startsWith('..') && !path.isAbsolute(up) ? (f) => `${up}/${f}` : null;
     // 지정한 경로에 맞으면 — 키 파일 이름(.cer 등)이 먼저 'file.key' 로 잡혀 *.cer 을 적어도 add 때 지나가지 않게(2026-11-13)
-    const guarded = (f) => paths.some((g) => protectedBy(f, g));
+    const guarded = (f) => paths.some((g) => protectedBy(f, g) || (fromProject && protectedBy(fromProject(f), g)));
     // 이름으로 준 보호 경로는 내용을 더하거나 고치는 변경이 있을 때만(git status 한 번). 바뀌지 않았거나 지운 것뿐이면 둔다 —
     // 사용자가 지운 보호 파일을 `git commit 그 경로` 로 커밋하던 것까지 막던 회귀(검토 2026-11-11, add -u 는 이미 통과).
     let hits = src.specs.map(rel).filter(guarded);

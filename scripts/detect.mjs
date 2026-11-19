@@ -14,6 +14,7 @@ import { paymentSignal } from './lib/payments.mjs';
 import { sqlcConfig } from './lib/sqlc.mjs';
 import { authSignal, depRanges, rangesWide, toolStacks, TOOL_STACKS } from './lib/signals.mjs';
 import { readLog, vcsOf, isKorean, isEnglish, BOT } from './lib/vcs-format.mjs';
+import { workspaceRepos, mergeWorkspace } from './lib/workspace.mjs';
 
 // 형식 훅(commit-msg·branch-name) 기본값을 정하려고 보는 기록 크기(scripts/lib/catalog.mjs fitOff)
 const HISTORY_SUBJECTS = 30;
@@ -215,7 +216,20 @@ const hostOf = (root, remote, goMod) => {
   if (['.gitlab-ci.yml', '.gitlab'].some((f) => fs.existsSync(path.join(root, f))) || /^module\s+gitlab\./m.test(goMod)) return 'gitlab';
   return 'none';
 };
+// 최근 6개월 커밋한 사람(이름 <메일> 한 줄씩) — 작업 폴더는 저장소를 넘어 같은 사람을 한 번만 센다(lib/workspace.mjs)
+const authorList = (root) => git(root, ['shortlog', '-sne', '--since=6.months', 'HEAD']).split('\n').filter(Boolean).map((l) => l.replace(/^\s*\d+\s+/, ''));
+const existingAt = (root) => {
+  const has = (f) => fs.existsSync(path.join(root, f));
+  return { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') };
+};
+// 작업 폴더(git 저장소가 아닌 폴더 + 바로 아래 저장소 여럿)면 저장소마다 읽어 합친다. 기존 설정은 맨 위(설정을 넣을 자리)에서 읽는다
 export const detect = (dir) => {
+  const repos = workspaceRepos(dir);
+  if (!repos) return detectRepo(dir);
+  const parts = repos.map((name) => ({ name, det: detectRepo(path.join(dir, name)), authorIds: authorList(path.join(dir, name)) }));
+  return mergeWorkspace(path.resolve(dir), parts, { kindsOf, existing: existingAt(dir), branchesMax: HISTORY_BRANCHES });
+};
+const detectRepo = (dir) => {
   const root = git(dir, ['rev-parse', '--show-toplevel']) || dir;
   const has = (f) => fs.existsSync(path.join(root, f));
   // 맨 위와 한 단계 아래 패키지 폴더(ROS 2 colcon 의 src/<패키지>, 모노레포의 packages/·apps/·workspaces — 역할극 2 회차: 맨 위만 봐서 ROS·C++·Python 을 다 놓쳤다)
@@ -314,7 +328,7 @@ export const detect = (dir) => {
   for (const n of toolStacks(has, deps, pkg)) add(n);
   const ranges = depRanges(pkgs);
 
-  const authors = git(root, ['shortlog', '-sne', '--since=6.months', 'HEAD']).split('\n').filter(Boolean).length;
+  const authors = authorList(root).length;
   const remote = git(root, ['remote', 'get-url', 'origin']);
   const log = readLog(root);
   // 지킬 경로를 먼저 — README·CI 명령 가운데 결과를 그리로 쓰는 것을 빼려고(doc-commands.mjs)
@@ -365,7 +379,7 @@ export const detect = (dir) => {
     // 커밋·PR 형식(지침 「커밋·PR 형식」 — lib/vcs-format.mjs). 분명히 많은 꼴만, 없으면 commit·pr.title 이 null
     vcs: vcsOf(root, log),
     library: isLibrary(pkg),
-    existing: { claudeMd: has('CLAUDE.md'), skills: has('.claude/skills'), harness: has('.claude/harness.json') },
+    existing: existingAt(root),
   };
 };
 
