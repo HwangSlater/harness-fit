@@ -76,6 +76,15 @@ export const refExists = (repo, ref) => {
   return packedOf(repo).has(ref);
 };
 
+// ref 가 가리키는 커밋(풀린 파일 → packed-refs) · null(없음) · undefined(애매 — reftable 등). git 을 띄우지 않는다
+export const refValue = (repo, ref) => {
+  if (!repo || reftable(repo) || !ref.startsWith('refs/') || !safeRefName(ref.slice(5))) return undefined;
+  const loose = (readOf(path.join(repo.commonDir, ref)) || '').trim();
+  if (HEX.test(loose)) return loose;
+  const line = (readOf(path.join(repo.commonDir, 'packed-refs')) || '').split('\n').find((l) => l.trimEnd().endsWith(` ${ref}`) && HEX.test(l.slice(0, l.indexOf(' '))));
+  return line ? line.slice(0, line.indexOf(' ')) : null;
+};
+
 // HEAD → { branch: 짧은 이름('' = 분리된 HEAD), hasHead: 커밋이 있나 } · undefined(애매)
 // branch 는 git symbolic-ref --short HEAD 와 같아야 한다: 같은 짧은 이름의 다른 ref(태그·원격 등)가 있으면 git 은 heads/ 를 붙이므로 그때는 묻는다.
 export const headOf = (repo) => {

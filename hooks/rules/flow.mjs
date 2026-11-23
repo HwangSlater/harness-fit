@@ -1,9 +1,10 @@
-// 브랜치 전략 규칙: Git Flow 합치기 방향(merge-flow, 막음), 트렁크 기반의 오래 산 브랜치 알림(branch-age, 알림만).
+// 브랜치 전략 규칙: Git Flow 합치기 방향(merge-flow, 막음), 오래 산 브랜치 알림(branch-age, 알림만 — 트렁크·Git Flow),
+// Git Flow 의 develop 되돌려 합치기 알림(back-merge, 알림만).
 // 이름은 보호 브랜치(protect-branch) 옵션의 브랜치 목록을 따른다 — 사용자가 main 대신 production 을 적었으면 그것이 배포 브랜치다.
 // 원칙: 확실할 때만 막는다. 지금 브랜치·합칠 브랜치 가운데 하나라도 모르는 이름이면(태그·커밋 해시·HEAD~1·다른 이름) 통과.
 import { git, gitSegments, repoState } from '../lib/core.mjs';
 import { timelineOf } from '../lib/branches.mjs';
-import { findRepo, refExists, safeRefName } from '../lib/repo-files.mjs';
+import { findRepo, refExists, refValue, safeRefName } from '../lib/repo-files.mjs';
 import { stampFile, readStamp, writeStamp } from '../lib/stamp.mjs';
 import { localDate } from '../lib/dates.mjs';
 
@@ -141,8 +142,9 @@ export const mergeFlow = {
 // 오래 산 브랜치 알림 기본값(화면의 옵션 기본값과 같아야 한다 — packs.json branch-age options)
 export const DEFAULT_MAX_HOURS = 24;
 export const DEFAULT_MAX_BEHIND = 20;
-// 알림만 하는 훅이라 git 이 늦으면 기다리지 않고 조용히 넘어간다(두 번 부르는 것을 합쳐 이 한도 안에서)
-const AGE_GIT_TIMEOUT_MS = 1500;
+// 알림만 하는 훅이라 git 이 늦으면 기다리지 않고 조용히 넘어간다(두 번 부르는 것을 합쳐 이 한도 안에서).
+// HARNESS_FIT_NOTICE_GIT_MS: 시험만 쓴다 — 전체 시험이 CPU 를 다 쓰면 git 두 번이 1.5초를 넘어 알림 시험이 흔들렸다(2026-11-23)
+const noticeGitMs = () => (Number(process.env.HARNESS_FIT_NOTICE_GIT_MS) > 0 ? Number(process.env.HARNESS_FIT_NOTICE_GIT_MS) : 1500);
 const AGE_MAX_BUFFER = 4 * 1024 * 1024;
 const HOUR_S = 3600;
 
@@ -182,9 +184,9 @@ const trunkRefs = (trunks, state, files) => {
 //   나이: 두 트렁크 어디에서도 닿지 않는 브랜치 커밋 가운데 가장 이른 작성 시각
 // `git log --left-right A...B` 하나로 하면 뒤처진 커밋마다 줄을 만들어 5만 커밋 뒤면 1초 가까이 걸렸다(검토 2026-11-17).
 const measure = (root, branch, refs) => {
-  const deadline = Date.now() + AGE_GIT_TIMEOUT_MS;
+  const deadline = Date.now() + noticeGitMs();
   const head = `refs/heads/${branch}`;
-  const count = git(root, ['rev-list', '--count', ...refs, `^${head}`, '--'], { timeout: AGE_GIT_TIMEOUT_MS });
+  const count = git(root, ['rev-list', '--count', ...refs, `^${head}`, '--'], { timeout: noticeGitMs() });
   const behind = Number((count || '').trim());
   if (count === null || !Number.isInteger(behind)) return null;
   const left = deadline - Date.now();
@@ -205,9 +207,16 @@ export const branchAge = {
     const state = repo || repoState(root);
     const first = Math.min(...segs.map((s) => s.start));
     const branch = timelineOf(cmd, shell, root, state)(first);
-    const trunks = flowNames(rules).prod;
+    const names = flowNames(rules);
     const fold = (s) => (FOLD_CASE ? s.toLowerCase() : s);
-    if (!branch || trunks.some((n) => fold(n) === fold(branch)) || !safeRefName(branch)) return null;
+    if (!branch || [...names.prod, ...names.dev].some((n) => fold(n) === fold(branch)) || !safeRefName(branch)) return null;
+    // Git Flow 의 feature·bugfix·release 는 develop 에서 따므로 develop 과 견준다(main 과 견주면 아직 배포 안 한 develop 커밋까지 이 브랜치 나이로 셌다).
+    // develop 이 없으면(트렁크·GitHub Flow) main. hotfix·모르는 이름은 main
+    const kind = flowKind(branch, names);
+    // Git Flow 일 때만(합치기 방향·되돌려 합치기 훅이 켜짐) — 보호 브랜치 목록이 없으면 flowNames 가 develop 을 기본으로 주어,
+    // 트렁크 저장소에 남은 옛 develop 과 견줘 나이를 크게 잘못 셌다(독립 검토 2026-11-23)
+    const gitFlow = !!(rules?.['merge-flow'] || rules?.['back-merge']);
+    const trunks = gitFlow && ['feature', 'bugfix', 'release'].includes(kind) ? [...names.dev, ...names.prod] : names.prod;
     // 세션마다 브랜치마다 한 번만 본다(같은 줄을 커밋·푸시마다 되풀이하지 않게, 큰 저장소에서 git 을 매번 걸지 않게).
     // 세션 id 가 없으면 날짜로. 이미 봤으면 git 을 부르기 전에 끝낸다.
     const stamp = stampFile('branch-age', root, branch);
@@ -232,4 +241,45 @@ export const branchAge = {
   },
 };
 
-export default [mergeFlow, branchAge];
+// ── 되돌려 합치기 알림(back-merge, Git Flow, 알림만) ──
+// release·hotfix 를 main 에 합친 뒤 develop 에 되돌려 합치지 않으면 다음 배포에서 그 수정이 사라진다(hotfix 가 한쪽에만 남음).
+// push 할 때 main(로컬·origin) 에 있고 develop(로컬·origin) 어디에도 없는 커밋(병합 커밋 빼고)을 세어 알린다.
+// 한 세션에서 main·develop 끝 커밋이 그대로면 한 번만(움직이면 다시). develop 이 없으면(트렁크·GitOps 처럼 main 하나) 보지 않는다.
+// 못 보는 것: release 를 main 에 squash 로 합친 저장소 — 그 squash 커밋은 develop 에 영영 없어 늘 알린다(설정에서 끄면 된다).
+const refsOf = (names, state, files) =>
+  names.filter(safeRefName).flatMap((n) => [
+    ...(state.isBranch(n) ? [`refs/heads/${n}`] : []),
+    ...(files && refExists(files, `refs/remotes/origin/${n}`) === true ? [`refs/remotes/origin/${n}`] : []),
+  ]);
+
+export const backMerge = {
+  id: 'back-merge',
+  notice: true,
+  on: 'shell',
+  check({ input, cmd, shell, root, repo, rules, t }) {
+    if (!root || !gitSegments(cmd, 'push', shell).length) return null;
+    const names = flowNames(rules);
+    if (!names.dev.length) return null;
+    const state = repo || repoState(root);
+    const files = findRepo(root);
+    const prod = refsOf(names.prod, state, files);
+    const dev = refsOf(names.dev, state, files);
+    if (!prod.length || !dev.length) return null;
+    // 한 세션에서 main·develop 끝 커밋이 그대로면 다시 보지 않는다 — git 을 부르기 전에 ref 파일로 견준다(push 마다 git 한 번 늘지 않게)
+    const tips = [...prod, ...dev].map((r) => refValue(files, r) ?? '?').join(',');
+    const stamp = stampFile('back-merge', root);
+    const seen = `${typeof input?.session_id === 'string' && input.session_id ? input.session_id : localDate()}:${tips}`;
+    if (readStamp(stamp) === seen) return null;
+    const out = git(root, ['rev-list', '--count', '--no-merges', ...prod, ...dev.map((r) => `^${r}`), '--'], { timeout: noticeGitMs() });
+    const n = Number((out || '').trim());
+    // 시간 초과·실패도 「봤음」으로 적는다(branch-age 와 같이 — 큰 저장소에서 push 마다 1.5초를 기다리지 않게)
+    writeStamp(stamp, seen);
+    if (!Number.isInteger(n) || n <= 0 || out === null) return null;
+    // 확인 명령은 센 것과 같은 ref 들로(로컬 main 을 안 받아 와 origin/main 에만 있는 커밋도 보이게 — 독립 검토 2026-11-23)
+    const short = (r) => r.replace(/^refs\/(?:heads|remotes)\//, '');
+    const range = [...prod.map(short), ...dev.map((r) => `^${short(r)}`)].join(' ');
+    return t('backMerge.missing', { n, main: prod.map(short).join('·'), develop: dev.map(short).join('·'), range });
+  },
+};
+
+export default [mergeFlow, branchAge, backMerge];

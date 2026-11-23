@@ -1,6 +1,6 @@
 // 독립 검토(2026-11-13)가 찾은 막기·묻기 빈틈: 시험 실행 표시를 무시하는 막기, 앞붙이·블록·백틱·파이프로 넘긴 글·find -exec 로 숨긴 막을 명령,
 // PowerShell Start-Process·cmd /c·스크립트 블록, 비밀값 읽기와 도구 이름만 적은 묻는 명령, JDBC·파일 DB 주소, plist·python·ruby 쓰기의 다른 꼴.
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { S, B, P } from './helpers.mjs';
 
 const BL = { commands: [], block: ['terraform apply', 'make apply-prod', 'kubectl --context prod-payments', 'scripts/drain-node.sh'], remote: false };

@@ -14,6 +14,7 @@ import { plan } from './lib/plan.mjs';
 import { apply, retry, lineOf } from './lib/apply-run.mjs';
 import { undoWithGithub, previewGithub } from './lib/github-settings.mjs';
 import { parseItemList } from '../picker/github-plan.js';
+import { gitlabPlans, gitlabRelevant } from './lib/gitlab-settings.mjs';
 import { cleanSelection } from './lib/picker-state.mjs';
 import { detectCommands } from './lib/commands.mjs';
 import { vcsOf } from './lib/vcs-format.mjs';
@@ -104,10 +105,13 @@ const main = async () => {
   const sel = { ...cleanSelection({ all, cfg, det: { commands: ws ? ws.commands : detectCommands(root).commands, kinds, vcs: ws ? ws.vcs : vcsOf(root) } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
   const spec = all.packs.flows.find((f) => f.id === sel.flow)?.github;
   if (args.includes('--dry-run')) {
-    const { changes, manual, warnings, keptSkills, gitHookCmd, skillBudget, workspace } = plan(root, sel, all);
+    const { changes, manual, warnings, keptSkills, gitHookCmd, skillBudget, workspace, pluginFolders, userScopeCmd } = plan(root, sel, all);
     // --dry-run --github-settings: 읽기만 해서(GET) 무엇이 바뀔지 보여 준다. 묻기 전에 Claude 가 이것으로 목록을 만든다.
     const github = withGithub ? await previewGithub(root, spec) : undefined;
-    return out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, ...(keptSkills.length ? { keptSkills } : {}), gitHookCmd, ...(skillBudget.level !== 'ok' ? { skillBudget } : {}), ...(workspace ? { workspace } : {}), ...(github ? { github } : {}) });
+    // GitLab 이면 같은 때(--github-settings) 요금제를 읽어 서버에서 강제할 수 없는 것을 알린다(읽기만 — lib/gitlab-settings.mjs). 못 읽어도 미리보기는 그대로
+    const gl = withGithub ? await gitlabPlans(root, ws || detect(root), all.packs).catch(() => null) : null;
+    const gitlab = gitlabRelevant(gl, sel) ? gl : null;
+    return out({ changes: changes.map((c) => lineOf(root, c)), manual, warnings, ...(keptSkills.length ? { keptSkills } : {}), gitHookCmd, ...(skillBudget.level !== 'ok' ? { skillBudget } : {}), ...(workspace ? { workspace } : {}), ...(userScopeCmd ? { pluginFolders, userScopeCmd } : {}), ...(github ? { github } : {}), ...(gitlab ? { gitlab } : {}) });
   }
   return out(await apply(root, sel));
 };

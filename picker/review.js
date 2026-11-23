@@ -1,12 +1,13 @@
 // 6 확인 단계(고른 것 + 「바꾸기」, 적용하면 생기는 것, 팀원 공유, GitHub 설정)와 끝 화면.
 import { h, icon } from './dom.js';
-import { lrow, flash, shead, num, link, withCode, btn } from './parts.js';
+import { lrow, flash, shead, num, link, withCode, btn, noteList } from './parts.js';
 import { teamBox, teamHowTo } from './team.js';
 import { comboBy, hookGroupsOf, costOf, pct, ruleIds, skillBy, hookBy, failedText } from './stats.js';
 import { conflictKey } from './conflict.js';
 import { stepHead, sumRows } from './frame.js';
 import { outcomeItems, warningsOf, pathLines, changeGroups, manualSkills, preCommitStep, preCommitBox } from './changes.js';
 import { githubBox, githubResult } from './github.js';
+import { gitlabBox } from './gitlab.js';
 import { budgetBox, skillCommands } from './budget-view.js';
 import { noteFlash } from './review-notes.js';
 import { optionTable, changedOptions } from './option-table.js';
@@ -73,8 +74,9 @@ export function reviewStep(c) {
         h('div.stack', {}, filesBox(c), budgetBox(c), warningsOf(c).map(([id, title, desc]) => noteFlash(c, { key: `warn:${id}`, title, body: h('p', {}, withCode(desc)), attrs: { 'data-key': `warn:${id}` } }))),
         h('div.stack', {},
           teamBox(c),
-          githubBox(c))),
-      h('div.steps-ol', {}, h('b', {}, t('stepsTitle')), h('ol', {}, [t('step1'), t('step2'), t('step3', { n: (ui.preview?.changes || []).filter((x) => x.kind === 'skill').length }), t('step4')].map((x) => h('li', {}, x)))),
+          // GitLab 저장소면 GitHub 설정 대신 요금제 알림(picker/gitlab.js)
+          gitlabBox(c) || githubBox(c))),
+      noteList({ title: t('stepsTitle'), ordered: true, items: [t('step1'), t('step2'), t('step3', { n: (ui.preview?.changes || []).filter((x) => x.kind === 'skill').length }), t('step4')] }),
       h('p.undo', {}, t('undoPre'), h('code', {}, S.undoCommand), t('undoPost'))),
   ];
 }
@@ -97,6 +99,7 @@ export function finished(c, result) {
       manualSkills(result).length ? flash({ cls: '.info', title: t('doneManual', { list: names(manualSkills(result)) }) }) : null,
       preCommitBox(t, preCommitStep(result)),
       githubResult(c, result.github),
+      gitlabBox(c),
       p ? h('div.box', {}, h('div.box-h', {}, h('span', {}, t('doneWhat'))), changeGroups(c, p, result.failed)) : null,
       // CLAUDE.md 에 지침을 넣었을 때만: 사람만 아는 것은 직접 적게(지침 단계와 같은 한 줄)
       p && Object.keys(p.ruleTexts || {}).length ? h('p.hint', {}, withCode(t('ownNotes'))) : null,

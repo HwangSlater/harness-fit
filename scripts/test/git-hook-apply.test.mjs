@@ -16,6 +16,7 @@ const sel = { lang: 'ko', combo: 'team', skills: [], hooks: ['secrets', 'protect
 const HOOK = path.join('.git', 'hooks', 'pre-commit');
 let tmp;
 let saved;
+let savedHome;
 before(() => {
   tmp = tmpDir('harness-hookapply-');
   // apply() 는 플러그인이 켜졌는지 본다 — 플러그인 안에서 도는 것처럼
@@ -23,9 +24,14 @@ before(() => {
   process.env.CLAUDE_PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..'); // 이 플러그인 자리(이름이 아니라 자리로 본다 — installed.mjs pluginActive)
   // 스킬 목록 예산 경고(skill-budget)는 이 PC 의 스킬 수에 따라 달라진다 — 이 시험은 git 훅 경고만 보므로 예산을 넉넉히
   process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET = '100000000';
+  // 설치 범위 경고(plugin-folder-only)도 이 PC 의 installed_plugins.json 에 따라 달라진다 — 빈 설정 폴더로(installed.mjs pluginScope 가 모름 → 말 안 함)
+  savedHome = process.env.CLAUDE_CONFIG_DIR;
+  process.env.CLAUDE_CONFIG_DIR = path.join(tmp, 'claude-home');
 });
 after(() => {
   delete process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET;
+  if (savedHome === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+  else process.env.CLAUDE_CONFIG_DIR = savedHome;
   if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
   else process.env.CLAUDE_PLUGIN_ROOT = saved;
   fs.rmSync(tmp, { recursive: true, force: true });

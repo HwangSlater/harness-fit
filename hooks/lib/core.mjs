@@ -189,15 +189,29 @@ export { GIT, SUB_END, BASH, POWERSHELL, shellOf, stripQuoted, shortFlags, split
 
 // 명령이 도는 저장소: `cd 경로 &&` 나 `git -C 경로` 를 따른다.
 const unquote = (s) => s.replace(/^["']|["']$/g, '');
+// Windows 의 Git Bash 경로(/c/Users/…)는 C:/Users/… 로 읽는다 — 그대로 두면 지금 드라이브의 \c\Users 로 풀렸다(독립 검토 2026-11-23)
+const nativePath = (p) => (process.platform === 'win32' ? p.replace(/^\/([a-zA-Z])(?=\/|$)/, (_, d) => `${d.toUpperCase()}:`) : p);
+const toDir = (base, raw) => path.resolve(base, nativePath(unquote(raw)));
+// PowerShell 의 Set-Location·Push-Location·pushd 도(Set-Location shop; git rm -r --cached . 가 맨 위로 읽히던 일 — 검토 2026-11-11), -Path·-LiteralPath 도.
+// 줄바꿈도 명령 구분으로 본다(`cd x` 다음 줄에 `git commit`).
+// 따옴표 속(커밋 메시지의 "wip; cd foo")은 보지 않는다 — 따옴표를 가린 글에서 자리를 찾고 원래 글에서 경로를 읽는다. 두 글자 sl 은 Sapling 과 겹쳐 뺐다
+const CD = /(?:^|[;&|\n]\s*)(?:cd|chdir|pushd|set-location|push-location)\s+(?:-(?:literal)?path\s+)?("[^"]+"|'[^']+'|[^\s;&|]+)\s*(?:&&|;|\n)/i;
+const DASH_C = new RegExp(String.raw`${GIT_CMD}(?:(?:-c\s+${QUOTED_OR_WORD}|--[\w-]+(?:=${QUOTED_OR_WORD})?|-[pP])\s+)*-C\s+(${QUOTED_OR_WORD})`);
+const MORE_C = new RegExp(String.raw`\s+-C\s+(${QUOTED_OR_WORD})`, 'y'); // git -C a -C b 는 a 에서 b 로(git 처럼 이어서)
 export const commandCwd = (cmd, cwd) => {
   let dir = cwd;
-  // PowerShell 의 Set-Location·Push-Location·pushd 도(Set-Location shop; git rm -r --cached . 가 맨 위로 읽히던 일 — 검토 2026-11-11).
-  // 따옴표 속(커밋 메시지의 "wip; cd foo")은 보지 않는다 — 따옴표를 가린 글에서 자리를 찾고 원래 글에서 경로를 읽는다. 두 글자 sl 은 Sapling 과 겹쳐 뺐다
-  const CD = /(?:^|[;&|]\s*)(?:cd|chdir|pushd|set-location|push-location)\s+(?:-path\s+)?("[^"]+"|'[^']+'|[^\s;&|]+)\s*(?:&&|;)/i;
-  const at = CD.exec(stripQuoted(cmd));
+  const bare = stripQuoted(cmd);
+  const at = CD.exec(bare);
   const cd = at ? CD.exec(cmd.slice(at.index)) : null;
-  if (cd) dir = path.resolve(dir, unquote(cd[1]));
-  const dashC = cmd.match(new RegExp(String.raw`${GIT_CMD}(?:(?:-c\s+${QUOTED_OR_WORD}|--[\w-]+(?:=${QUOTED_OR_WORD})?|-[pP])\s+)*-C\s+(${QUOTED_OR_WORD})`));
-  if (dashC) dir = path.resolve(dir, unquote(dashC[1]));
+  if (cd) dir = toDir(dir, cd[1]);
+  // `git -C` 도 따옴표 밖에서만(echo "git -C ../other …" 가 다른 저장소로 읽히지 않게 — 2026-11-23). `bash -c "git -C …"` 속은 judge 가 속 명령으로 따로 본다
+  const atC = DASH_C.exec(bare);
+  const rest = atC ? cmd.slice(atC.index) : '';
+  const dashC = atC ? DASH_C.exec(rest) : null;
+  if (dashC) {
+    dir = toDir(dir, dashC[1]);
+    MORE_C.lastIndex = dashC.index + dashC[0].length;
+    for (let m; (m = MORE_C.exec(rest)); ) dir = toDir(dir, m[1]);
+  }
   return dir;
 };

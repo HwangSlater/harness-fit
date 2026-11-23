@@ -1,7 +1,7 @@
 // 다시 한 독립 검토(2026-11-13)와 역할극 16 회차 다시 매기기가 찾은 빈틈: 적은 명령의 -h(호스트)를 도움말로 센 회귀, xargs 뒤 옵션·대상,
 // 앞붙이(if·while·coproc·time -p·su -c·env -S·wsl…)와 숨은 실행(echo "$(X)"·printf | bash·tee | bash·PowerShell 블록), 보호 파일의 셸 앞붙이,
 // danger-cmd 의 숨은 실행, CLAUDECODE 바꾸기, 태그 올리기 막기·push.followTags, 예시 파일, HEAD 에서 되돌리기.
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { S, B, P, keyed } from './helpers.mjs';
 
 const PSQL = { commands: [], block: ['psql -h prod-db', 'redis-cli -h prod-cache'], remote: false };

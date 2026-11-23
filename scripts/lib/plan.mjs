@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { loadAll, catalogIds } from './catalog.mjs';
 import { buildClaudeMd, blockBroken } from './claude-md.mjs';
 import { GITIGNORE_LINE } from './backup.mjs';
-import { pluginActive } from './installed.mjs';
+import { pluginActive, pluginScope } from './installed.mjs';
 import { currentListing, planBudget } from './skill-budget.mjs';
 import { COMMIT_HOOK_IDS, MARKER, gitHookState, ownHookPath, launcherText, chainCommand, PLUGIN_DIR, PRE_COMMIT_CONFIG, PRE_COMMIT_ENTRY, PRE_COMMIT_RUNNER, preCommitSnippet, preCommitPasted, runnerText, isOurLauncher, isPreCommitFrameworkHook } from '../../hooks/lib/git-hook.mjs';
 import { localDate } from '../../hooks/lib/dates.mjs';
@@ -153,6 +153,9 @@ export const buildSettings = (current, src) => {
   return text === current ? null : text;
 };
 
+// 사용자 범위로 까는 명령(plugin-folder-only 알림). 지우기(remove.mjs)의 `claude plugin uninstall … --scope …` 와 같은 꼴
+export const userScopeCommand = (src) => `claude plugin install ${src.pluginId} --scope user`;
+
 // 요청 칸에 쓴 내용은 파일로도 남긴다(Claude 가 이어받지 못해도 사라지지 않게).
 export const requestFile = (note, date) =>
   `# 적용할 때 남긴 요청 / Requests left at setup\n\n> ${date} · harness-fit. Claude 가 반영한 뒤 지워도 돼요.\n\n${note.trim()}\n`;
@@ -160,6 +163,7 @@ export const requestFile = (note, date) =>
 // 바뀔 것 목록. kind 는 화면에서 무엇인지 설명하는 데 쓴다.
 // warnings: 적용은 되지만 화면이 약속한 대로 동작하지 않을 것(화면·보고에 알린다).
 //   plugin-missing  플러그인이 없어 훅이 돌지 않는다 → CLAUDE.md 는 「훅 꺼짐」 글로 쓴다(mdSelection)
+//   plugin-folder-only  프로젝트(·local) 범위로만 깔려 이 폴더에서 연 세션에서만 훅이 돈다 — 사용자 범위 설치 명령을 알린다(pluginScope, 폴더는 pluginFolders)
 //   claude-ignored  .claude/ 를 git 이 무시해 팀원에게 설정이 가지 않는다
 //   settings-broken .claude/settings.json 이 깨져 팀원 공유를 적지 못했다
 //   git-hook-exists   남의 pre-commit 훅이나 core.hooksPath(husky·pre-commit·lefthook)가 있어 git 훅을 넣지 않았다
@@ -169,7 +173,8 @@ export const requestFile = (note, date) =>
 //   skill-kept-edited  고르지 않게 된 harness-fit 스킬인데 받은 뒤 고쳤거나 받은 그대로인지 알 수 없어 빼지 않았다 — 이름은 keptSkills
 // listing: 지금 스킬 목록(scripts/lib/skill-budget.mjs currentListing). 고르기 화면은 한 번 읽어 둔 것을 넘긴다.
 // skipped: 같은 이름의 폴더가 이미 있고 harness-fit 이 넣은 것이 아니라 건드리지 않은 스킬(retry 와 같은 규칙)
-export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), listing, home } = {}) => {
+// scope: 시험이 설치 범위를 넣는다(안 주면 installed_plugins.json 에서 읽는다 — installed.mjs pluginScope)
+export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), listing, home, scope = pluginScope(home) } = {}) => {
   const changes = [];
   const warnings = [];
   const add = (p, kind, content) => changes.push({ path: p, kind, action: fs.existsSync(p) ? 'change' : 'create', content });
@@ -183,6 +188,7 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   const repos = workspaceRepos(root);
   add(cfgPath, 'config', JSON.stringify({ ...buildConfig(all, sel, prevCfg), ...gitignoreOwner(giHas, fs.existsSync(cfgPath) ? prevCfg || {} : null), ...(repos ? { workspace: repos } : {}) }, null, 2) + '\n');
   if (!active) warnings.push('plugin-missing');
+  else if (scope?.scope === 'folder') warnings.push('plugin-folder-only');
   const mdPath = path.join(root, 'CLAUDE.md');
   const md = read(mdPath);
   // 관리 구역 표시가 짝이 안 맞으면(시작이 둘·끝이 없음 등) CLAUDE.md 는 건드리지 않고 알린다(setBlock 이 그대로 돌려준다)
@@ -254,5 +260,5 @@ export const plan = (root, sel, all = loadAll(), { active = pluginActive(root), 
   const skillBudget = planBudget(all, sel, fresh, listing || currentListing(root, home ? { home } : {}), () => (Array.isArray(sel.stack) ? sel.stack : detect(root).stack));
   if (skillBudget.level !== 'ok') warnings.push('skill-budget');
   // workspace: 저장소마다 git 훅을 어떻게 했는지(작업 폴더일 때만 — 보고에 저장소 이름과 함께)
-  return { changes, manual, warnings, skipped, keptSkills, skillBudget, ...(hook.warning || ws?.warnings.length ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}), ...(ws ? { workspace: ws.repos } : {}) };
+  return { changes, manual, warnings, skipped, keptSkills, skillBudget, ...(active && scope?.scope === 'folder' ? { pluginFolders: scope.folders, userScopeCmd: userScopeCommand(all.sources) } : {}), ...(hook.warning || ws?.warnings.length ? { gitHookCmd: chainCommand(PLUGIN_DIR) } : {}), ...(ws ? { workspace: ws.repos } : {}) };
 };

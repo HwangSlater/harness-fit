@@ -812,8 +812,8 @@
           ],
           "label": { "ko": "브랜치 나이", "en": "Branch age" },
           "help": {
-            "ko": "main 에 없는 첫 커밋이 이보다 오래되면 알려요.",
-            "en": "Notifies when the branch's first commit not on main is older than this."
+            "ko": "기준 브랜치(main — Git Flow 의 feature·bugfix·release 는 develop)에 없는 첫 커밋이 이보다 오래되면 알려요.",
+            "en": "Notifies when the branch's first commit not on its base (main; develop for Git Flow feature, bugfix and release branches) is older than this."
           }
         },
         {
@@ -838,8 +838,8 @@
         "en": "Long-lived branch notice"
       },
       "desc": {
-        "ko": "커밋·푸시할 때 브랜치가 하루 넘게 살았거나 main 보다 많이 뒤처졌으면 Claude 에게 한 줄로 알려요(막지 않아요)",
-        "en": "On commit or push, tells Claude in one line when the branch is over a day old or far behind main (does not block)"
+        "ko": "커밋·푸시할 때 브랜치가 오래 살았거나 기준 브랜치(main — Git Flow 의 feature 는 develop)보다 많이 뒤처졌으면 Claude 에게 한 줄로 알려요(막지 않아요)",
+        "en": "On commit or push, tells Claude in one line when the branch is old or far behind its base (main; develop for Git Flow features) (does not block)"
       },
       "downside": {
         "ko": "세션마다 브랜치마다 처음 커밋·푸시할 때 한 줄이 더해져 토큰이 조금 들고, 그때 git 을 두 번 더 불러요",
@@ -858,6 +858,99 @@
       "detail": {
         "ko": "main·master 가 아닌 브랜치에서 `git commit`·`git push` 를 할 때, main 에 없는 첫 커밋의 작성 시각이 정한 시간(기본 24시간)보다 오래됐거나 main 보다 정한 수(기본 20커밋)보다 많이 뒤처졌으면 Claude 에게 한 줄을 더해요. 로컬 main 과 원격 origin/main(마지막 fetch 기준) 가운데 있는 것을 함께 견줘요(로컬 main 을 지웠어도 돼요). 세션마다 브랜치마다 한 번만 알려요. git 은 그때 두 번, 합쳐 1.5초 안에 끝나지 않거나 실패하면 아무것도 알리지 않아요. 트렁크 이름은 보호 브랜치 훅의 목록을 따라요. 보지 않는 것: 커밋이 아직 없는 새 브랜치, 분리된 HEAD, 다른 git 명령.",
         "en": "On `git commit` or `git push` from a branch other than main/master, adds one line for Claude when the branch's first commit not on main was authored longer ago than the set time (24 hours by default) or the branch is more commits behind main than the set number (20 by default). Compares with both the local main and origin/main (as of the last fetch), whichever exist (a deleted local main is fine). Says it once per branch per session. Runs git twice at that point; if that fails or takes over 1.5 seconds in total, nothing is said. Trunk names follow the Protected branches list. Not checked: new branches with no commits yet, detached HEAD, other git commands."
+      }
+    },
+    {
+      "id": "self-merge",
+      "group": "git",
+      "kind": "block",
+      "name": {
+        "ko": "PR·MR 병합은 사람이",
+        "en": "People merge PRs and MRs"
+      },
+      "desc": {
+        "ko": "Claude 가 PR·MR 을 스스로 병합하거나 승인하지 못하게 막아요. 열기까지만 하고 검토·병합은 팀원이 해요",
+        "en": "Stops Claude from merging or approving PRs and MRs itself. It opens them; teammates review and merge"
+      },
+      "downside": {
+        "ko": "로컬에서 release·hotfix 를 합쳐 main·develop 으로 바로 올리는 것도 막혀서, 그런 병합은 사람이 하거나 MR 로 해요. 혼자 쓰는 저장소라면 이 훅을 끄세요",
+        "en": "Merging a release or hotfix locally and pushing it straight to main or develop is blocked too, so a person does those merges or they go through MRs. Turn this off in a solo repository"
+      },
+      "example": {
+        "bad": {
+          "ko": "Claude 가 glab mr merge 나 API 로 자기가 연 MR 을 병합하면",
+          "en": "Claude merges the MR it opened with glab mr merge or the API"
+        },
+        "fix": {
+          "ko": "막고, MR 을 연 채로 멈춰 검토를 부탁하라고 알려요",
+          "en": "it is blocked and told to leave the MR open and ask for review"
+        }
+      },
+      "detail": {
+        "ko": "GitHub: `gh pr merge`(--auto 자동 병합 예약 포함, --disable-auto 로 예약 풀기는 허용), `gh pr review --approve`, `gh api` 의 PUT …/pulls/N/merge·리뷰 승인(event=APPROVE), GraphQL mergePullRequest·enablePullRequestAutoMerge. GitLab: `glab mr merge`·`glab mr approve`, `glab api` 의 …/merge_requests/N/merge·approve·merge_when_pipeline_succeeds, GraphQL mergeRequestAccept·mergeRequestSetAutoMerge, `git push -o merge_request.merge_when_pipeline_succeeds`·`merge_request.auto_merge`. curl·wget·httpie·Invoke-RestMethod 로 같은 주소를 부를 때도(GET 은 통과). PR 없이 서버에서 병합(…/merges)·병합 열차도. 주소를 변수로 만든 호출(`\"$API/projects/$ID/merge_requests/$IID/merge\"`)과 env·sudo·timeout·xargs 앞붙이도 봐요. 로컬에서 합쳐 보호 브랜치(보호 브랜치 훅의 목록, 없으면 main·master·develop)로 바로 올리는 `git push` 도 막아요(태그만·원격에 아직 없는 브랜치 만들기는 통과). PR·MR 열기(gh pr create·glab mr create·`git push -o merge_request.create`)·읽기·`--help` 는 통과. 따옴표 속·heredoc·주석의 글(커밋 메시지·문서)은 보지 않아요. 보지 않는 것: 스크립트 파일 안의 호출(node·python -c), 본문을 파일로 주는 호출(`--input x.json`·`-F query=@q.graphql`), `git -c push.pushOption=…`, 웹 화면의 병합 버튼 — 보호 브랜치·승인 규칙 설정으로 막으세요.",
+        "en": "GitHub: `gh pr merge` (including --auto; --disable-auto is fine), `gh pr review --approve`, `gh api` PUT …/pulls/N/merge and review approval (event=APPROVE), GraphQL mergePullRequest and enablePullRequestAutoMerge. GitLab: `glab mr merge` and `glab mr approve`, `glab api` …/merge_requests/N/merge, approve and merge_when_pipeline_succeeds, GraphQL mergeRequestAccept and mergeRequestSetAutoMerge, `git push -o merge_request.merge_when_pipeline_succeeds` or `merge_request.auto_merge`. The same addresses through curl, wget, httpie or Invoke-RestMethod too (GET is fine). Server-side merges without a PR (…/merges) and merge trains too. Addresses built from variables (`\"$API/projects/$ID/merge_requests/$IID/merge\"`) and env, sudo, timeout or xargs prefixes are seen. A `git push` straight to a protected branch (the Protected branches list, or main, master and develop) after merging locally is blocked as well (pushing only tags or creating a branch the remote does not have yet is fine). Opening PRs and MRs (gh pr create, glab mr create, `git push -o merge_request.create`), reading and `--help` are fine. Text inside quotes, heredocs or comments (commit messages, docs) is not checked. Not checked: calls inside script files (node, python -c), bodies given as files (`--input x.json`, `-F query=@q.graphql`), `git -c push.pushOption=…`, and the merge button in the web UI — use protected branches and approval rules for those."
+      }
+    },
+    {
+      "id": "protect-rules",
+      "group": "git",
+      "kind": "ask",
+      "name": {
+        "ko": "보호 설정 바꾸기 묻기",
+        "en": "Ask before changing protection"
+      },
+      "desc": {
+        "ko": "보호 브랜치·승인 규칙을 API 로 바꾸기 전에 사용자에게 물어요",
+        "en": "Asks you before protected branches or approval rules are changed through the API"
+      },
+      "downside": {
+        "ko": "사용자가 시킨 설정 바꾸기도 한 번씩 확인 창이 떠요",
+        "en": "Even settings changes you asked for show a confirmation each time"
+      },
+      "example": {
+        "bad": {
+          "ko": "Claude 가 승인 규칙을 지우는 API 를 부르면",
+          "en": "Claude calls the API that deletes an approval rule"
+        },
+        "fix": {
+          "ko": "실행 전에 확인 창을 띄워요",
+          "en": "you are asked before it runs"
+        }
+      },
+      "detail": {
+        "ko": "GET 이 아닌 호출(gh api·glab api·curl·wget·httpie·Invoke-RestMethod)이 GitHub 의 …/branches/<브랜치>/protection(그 아래 포함)·…/rulesets, GitLab 의 protected_branches·protected_tags·approval_rules·approvals(프로젝트·그룹·MR 하나)·merge_request_approval_setting·push_rule 로 갈 때(주소를 변수로 만들어도). 읽기(GET)는 묻지 않아요. 보지 않는 것: 웹 화면, 스크립트 파일 안의 호출, 저장소 일반 설정(병합 방식·자동 병합 허용).",
+        "en": "Non-GET calls (gh api, glab api, curl, wget, httpie, Invoke-RestMethod) to GitHub …/branches/<branch>/protection (and below) or …/rulesets, or GitLab protected_branches, protected_tags, approval_rules, approvals (project, group or a single MR), merge_request_approval_setting or push_rule (addresses built from variables too). Reads (GET) are not asked about. Not checked: the web UI, calls inside script files, general repository settings (merge methods, allowing auto-merge)."
+      }
+    },
+    {
+      "id": "back-merge",
+      "group": "git",
+      "kind": "notice",
+      "name": {
+        "ko": "develop 에 되돌려 합치기 알림",
+        "en": "Back-merge reminder"
+      },
+      "desc": {
+        "ko": "main 에 들어간 release·hotfix 가 develop 에 빠져 있으면 push 할 때 알려요",
+        "en": "Says so on push when a release or hotfix that reached main is missing from develop"
+      },
+      "downside": {
+        "ko": "release 를 main 에 squash·rebase 로 합치는 저장소에서는 늘 알려요. 그럴 때는 끄세요",
+        "en": "Repositories that squash or rebase releases into main get it every time; turn it off there"
+      },
+      "example": {
+        "bad": {
+          "ko": "hotfix 를 main 에만 합치고 develop 에는 안 합치면",
+          "en": "A hotfix merged into main but not develop"
+        },
+        "fix": {
+          "ko": "다음 push 때 develop 에도 합치라고 알려요",
+          "en": "the next push reminds Claude to merge it into develop as well"
+        }
+      },
+      "detail": {
+        "ko": "Git Flow 에서 `git push` 를 할 때, main(로컬·origin) 에 있고 develop(로컬·origin) 어디에도 없는 커밋(병합 커밋 빼고)이 있으면 그 수와 함께 develop 에 되돌려 합치라고 Claude 에게 한 줄을 더해요. 막지 않아요. 한 세션에서 같은 수로는 한 번만. git 은 한 번, 1.5초 안에 끝나지 않으면 아무것도 알리지 않아요. 이름은 보호 브랜치 훅의 목록을 따라요. develop 이 없는 저장소(main 하나로 쓰는 GitOps 저장소 등)는 보지 않아요.",
+        "en": "On `git push` in Git Flow, when main (local or origin) has commits (merge commits aside) that are in neither the local nor the origin develop, adds one line for Claude with the count, saying to merge them back into develop. Does not block. Once per session for the same count. Runs git once; nothing is said if it takes over 1.5 seconds. Names follow the Protected branches list. Repositories without develop (such as GitOps repositories using only main) are skipped."
       }
     },
     {
@@ -1377,11 +1470,14 @@
       "hooksOn": [
         "protect-branch",
         "branch-name",
-        "pr-merge"
+        "pr-merge",
+        "self-merge",
+        "protect-rules"
       ],
       "hooksOff": [
         "merge-flow",
-        "branch-age"
+        "branch-age",
+        "back-merge"
       ],
       "github": {
         "repo": {
@@ -1428,6 +1524,10 @@
         },
         "branch-name": {
           "pattern": "^(feature|release|hotfix|bugfix|support)/[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
+        "branch-age": {
+          "hours": 72,
+          "commits": 50
         }
       },
       "for": {
@@ -1437,11 +1537,14 @@
       "hooksOn": [
         "protect-branch",
         "branch-name",
-        "merge-flow"
+        "merge-flow",
+        "self-merge",
+        "protect-rules",
+        "back-merge",
+        "branch-age"
       ],
       "hooksOff": [
-        "pr-merge",
-        "branch-age"
+        "pr-merge"
       ],
       "github": {
         "branches": [
@@ -1475,6 +1578,12 @@
           "detail": {
             "ko": "main·master·develop 에서 git commit(첫 커밋은 허용)과 git cherry-pick·revert·am 이 만드는 커밋(-n·--no-commit, --abort·--quit 은 허용, --continue·--skip 은 커밋을 만들 때만), 그 브랜치로 강제 푸시, 원격에서 지우기. Git Flow 는 이 브랜치에서 release·hotfix 를 병합하므로 git merge·pull 은 막지 않아요.",
             "en": "git commit on main/master/develop (the first commit is allowed) and commits made by git cherry-pick, revert or am (-n/--no-commit, --abort and --quit are fine; --continue/--skip only when they would commit), force-pushes to them, and deleting them on the remote. Git Flow merges release and hotfix branches here, so git merge and pull are not blocked."
+          }
+        },
+        "branch-age": {
+          "detail": {
+            "ko": "main·master·develop 이 아닌 브랜치에서 `git commit`·`git push` 를 할 때, feature/*·bugfix/*·release/* 는 develop 과, hotfix/*·다른 이름은 main 과 견줘요. 기준에 없는 첫 커밋이 정한 시간(Git Flow 기본 사흘)보다 오래됐거나 기준보다 정한 수(기본 50커밋)보다 많이 뒤처졌으면 Claude 에게 한 줄을 더해요. 로컬과 origin 을 함께 견주고, 세션마다 브랜치마다 한 번만 알려요. git 이 1.5초 안에 끝나지 않으면 아무것도 알리지 않아요.",
+            "en": "On `git commit` or `git push` from a branch other than main, master or develop, compares feature/*, bugfix/* and release/* with develop and hotfix/* and other names with main. Adds one line for Claude when the first commit not on the base is older than the set time (three days by default in Git Flow) or the branch is more commits behind than the set number (50 by default). Compares with both local and origin refs and says it once per branch per session. Says nothing if git takes over 1.5 seconds."
           }
         },
         "branch-name": {
@@ -1518,12 +1627,15 @@
       },
       "hooksOn": [
         "protect-branch",
-        "branch-age"
+        "branch-age",
+        "protect-rules"
       ],
       "hooksOff": [
         "branch-name",
         "pr-merge",
-        "merge-flow"
+        "merge-flow",
+        "self-merge",
+        "back-merge"
       ],
       "github": {
         "branches": [
@@ -1573,7 +1685,10 @@
         "branch-name",
         "pr-merge",
         "merge-flow",
-        "branch-age"
+        "branch-age",
+        "self-merge",
+        "protect-rules",
+        "back-merge"
       ],
       "override": {}
     }

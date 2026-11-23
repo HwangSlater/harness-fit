@@ -26,6 +26,8 @@ before(() => {
   repo = path.join(tmp, 'repo');
   // 세션마다 한 번 표시는 시험 폴더에 적는다(이 PC 의 ~/.claude 에 남지 않게)
   savedConfig = process.env.CLAUDE_CONFIG_DIR;
+  // 전체 시험이 CPU 를 다 쓸 때 알림 훅의 git 한도(1.5초)를 넘어 조용히 넘어가지 않게(flow.mjs noticeGitMs)
+  process.env.HARNESS_FIT_NOTICE_GIT_MS = '30000';
   process.env.CLAUDE_CONFIG_DIR = path.join(tmp, 'config');
   execFileSync('git', ['init', '-q', '-b', 'production', repo]);
   g('config', 'user.email', 't@example.com');

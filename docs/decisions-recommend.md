@@ -1,6 +1,6 @@
 # 결정 — 추천·감지
 
-> 최종 수정: 2026-11-19 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-23 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다.
 
@@ -40,6 +40,11 @@
 - 앱 코드(detect code): 인프라 스택이 있는 저장소에서만 소스 파일(.py·.go·.rb·.php·.cs·.swift·.kt·.ts…, vendor·testdata 밖)을 찾아 하나도 없을 때 거짓 — 거짓이면 tdd-lite·test-driven-development 를 기본에서 빼고 이유 줄. 운영 .sh 는 앱 코드가 아니다(bats 는 맞다). 처음엔 스택 이름만으로 정해 PHP·Elixir·.NET·Terraform 의 lambda/*.py 를 「코드 없음」으로 봤다(검토 2026-11-12).
 
 ## 저장소 단서
+
+### 감지는 파일 목록을 git 한 번으로, 한글 경로도 그대로 (2026-11-19)
+- 결정: 글롭 무리 셋(소스·인프라·화면 틀)을 git ls-files -z 한 번으로 받아 나눈다(scripts/lib/git-files.mjs). rev-parse 두 번도 한 번으로 — 감지의 git 14번 → 11번(고르기 화면이 0.2~0.3초 빨리 열린다).
+- 바뀐 동작: -z 라 한글 등 ASCII 밖 경로가 따옴표·8진수 없이 온다. 전에는 「인프라/main.tf」·「앱.py」가 확장자 검사에 걸리지 않아 Terraform·앱 코드를 못 알아봤다(시험 detect-stacks.test.mjs).
+- globRe 는 * 만 옮긴다 — ?·[…] 글롭을 넣으면 멈춘다(조용히 파일을 버리지 않게).
 
 ### 묻는 명령·보호 경로 미리 채우기 (역할극 10~15 회차, 2026-11-11~12)
 - 저장소 단서(scripts/lib/suggest.mjs)를 넓혔다:
@@ -176,11 +181,23 @@
 - 하지 않은 것: 저장소마다 다른 브랜치 전략·훅(설정 하나 — 필요하면 그 저장소에서 따로 적용하면 그 설정이 먼저다), 작업 폴더 자체의 공유(맨 위는 git 이 아니라 settings.json·harness.json 이 팀원에게 가지 않는다 — 사람마다 적용), docs-check 의 끝낼 때 검사(맨 위 docs/ 는 git 이 아니라 바뀐 문서를 알 수 없다 — 쓰기 때 검사는 돈다), 묻는 명령의 `./deploy.sh` 를 맨 위 기준 경로로 바꾸기(명령 낱말로 맞춘다).
 - 어디서: `scripts/lib/workspace.mjs`, `scripts/detect.mjs` detect, `scripts/lib/catalog.mjs` recommend, `scripts/lib/plan.mjs` workspaceHookPlan, `scripts/lib/backup.mjs` CHILD_HOOK_PATH, `scripts/lib/remove.mjs`, `scripts/apply.mjs`. 시험 `scripts/test/workspace.test.mjs`.
 
+### 적용 때 알릴 것: 설치 범위와 GitLab 요금제 (실제 팀 저장소, 2026-11-21 · 2026-11-23)
+- 무엇이 틀렸나: GitLab 그룹 저장소(v0.6.0, 팀 협업 · Git Flow)에서 (a) harness-fit 이 작업 폴더 .claude/settings.json 의 프로젝트 범위로만 켜져 있어, 다른 폴더에서 연 세션이 cd·git -C 로 저장소를 건드릴 때 훅이 하나도 돌지 않았다. (b) 그룹이 GitLab Ultimate 체험판(2026-12-19 끝)이라 필요한 승인 수·승인 규칙·CODEOWNERS 승인이 지금만 강제되고, Free 의 보호 브랜치는 역할로만 나눠 모두 Owner·Maintainer 면 「작성자는 병합 못 함」을 걸 수 없다는 것을 설정 어디서도 말하지 않았다.
+- 결정(설치 범위): 플러그인이 켜져 있고 installed_plugins.json 의 harness-fit 항목이 project·local 뿐이면(사용자 설정 settings.json 의 enabledPlugins 로 켰으면 사용자 범위로 본다) 경고 `plugin-folder-only` 하나와 `userScopeCmd`(`claude plugin install harness-fit@harness-fit --scope user` — 지우기의 uninstall 명령과 같은 꼴, 플러그인 id 는 config/sources.json)·`pluginFolders`. 사용자 범위로 깔아도 .claude/harness.json 이 없는 프로젝트는 훅이 바로 통과한다고 함께 말한다. 명령은 알리기만 한다. 파일이 없거나 harness-fit 항목이 없으면(--plugin-dir 개발·체험판 사이트의 빈 임시 홈) 아무 말도 않는다 — 헛알림보다 침묵. 플러그인이 없으면(plugin-missing) 그 경고만.
+- 결정(GitLab 요금제): GitLab 저장소(det.host — 작업 폴더면 저장소마다)이고 MR 방식(packs.json flows 의 github.protect 에 pullRequest 칸이 있는 것 = github-flow·git-flow, id 를 코드에 적지 않음)이거나 팀 조합이면, origin 에서 맨 위 그룹을 읽어(ssh·scp·https, 자체 설치 호스트도) `glab api --hostname <호스트> namespaces/<그룹>` 을 그룹마다 한 번, 8초 한도(config/picker.json gitlabTimeoutMs). plan·trial·trial_ends_on → free · trial(끝나는 날이 없을 수 있음) · paid · unknown(까닭: no-glab·not-logged-in·offline·not-found·no-plan·no-remote·ssh-alias·error — ssh-alias 는 origin 이 ~/.ssh/config 별칭이라 API 호스트를 몰라 부르지 않음, https 의 :443 은 뗌). 못 읽은 까닭이 다시 읽으면 바뀔 수 있으면(no-glab·not-logged-in·offline·error) GitHub 상자와 같은 「다시 확인」 단추. Free·모름·GitLab 체험판은 강제 못 하는 것과 대신 쓸 것(카탈로그에 self-merge 훅이 있을 때만 그 훅 — 이름은 카탈로그에서, 결과의 `claudeHook` · CLAUDE.md 팀 약속 한 줄 · 작성자 아닌 승인이 없으면 실패하는 MR 파이프라인 작업 + Pipelines must succeed, Free 에도 승인 버튼·API 는 있고 강제만 안 됨), 유료는 제목을 「승인 설정 확인」으로 바꾸고 필요한 승인 수 1 이상과 작성자 승인 금지 두 칸. 설정은 바꾸지 않는다. 못 읽어도 적용은 그대로.
+- 언제 읽나: 고르기 화면은 GET /api/github 에 얹어 한 번(화면을 띄운 뒤, 미리보기마다 부르지 않음), 적용 결과(`gitlab`)에도 같은 답. 명령줄은 `--dry-run --github-settings` 때만(GitHub 미리보기와 같은 자리 — auto 는 브랜치 방식이 있거나 팀 조합일 때 이것을 부른다).
+- 보안: 토큰 환경 변수(GITLAB_TOKEN·GITLAB_ACCESS_TOKEN·OAUTH_TOKEN·GLAB_TOKEN·CI_JOB_TOKEN, 이름은 대소문자 없이 — Windows)는 gitlab.com 이나 GITLAB_HOST·GL_HOST 와 같은 호스트에만 넘긴다 — glab 은 그 변수를 어느 호스트에나 붙여, origin 이 낯선 호스트면 토큰이 그리로 갈 수 있다. 그 밖의 호스트는 glab 에 저장된 그 호스트 로그인만. 받은 요금제 이름·날짜는 꼴을 검사해 남기고 화면에는 textContent 로만.
+- 하지 않은 것: GitHub 쪽은 이미 요금제 제한을 알린다(비공개 저장소 브랜치 보호 403 → `plan` — github-settings.mjs readProtection) — 더 늘리지 않았다. CI 작업 예시 글은 넣지 않았다(승인 API 를 부를 토큰이 저장소마다 달라 틀린 예시가 되기 쉽다). 자체 설치 GitLab 의 라이선스는 관리자 API 라 읽지 않는다(모름으로 알림).
+- 어디서: `scripts/lib/installed.mjs` pluginScope, `scripts/lib/plan.mjs`(plugin-folder-only·userScopeCommand), `scripts/lib/gitlab-settings.mjs`, `picker/gitlab-plan.js`(화면과 같이 쓰는 판단), `picker/gitlab.js`, `scripts/picker.mjs`, `scripts/apply.mjs`, `skills/setup/SKILL.md`. 시험 `scripts/test/gitlab-scope.test.mjs`·`gitlab-ui.test.mjs`(가짜 DOM `scripts/test/fake-dom.mjs` — conflicts-ui 와 같이 씀).
+
 ### 남은 것
 - 남은 것: 받아 넣은 스킬의 다른 언어 부속 파일(npm·jest 예시), 이미 있는 위험한 줄(|safe·로그 속 개인정보)을 처음 보고에서 세기, csrf_token 이 빠진 POST 폼 검사, `churn-eval --baseline <다른 파일>` 같은 우회.
 - 남은 것: sqlc 생성 파일 손 고치기 막기(쓰기만 막는 보호 옵션), Argo CD 없이 매니페스트만 있는 저장소의 지침(인프라 지침은 Terraform·Ansible·Argo CD 에만 붙는다).
 
 ## 바뀐 이력
+- 2026-11-23: 독립 검토 — self-merge 훅 줄은 카탈로그에 있을 때만, 끝나는 날 모르는 체험판 제목, 토큰 변수 대소문자·CI_JOB_TOKEN·GITLAB_HOST, ssh 별칭·:443, 유료 제목, 「다시 확인」, 목록 부품 하나로(noteList), 체험판 사이트와 GitLab 체험판 낱말 나눔.
+- 2026-11-23: 실제 팀 저장소 — 프로젝트 범위로만 깔렸으면 사용자 범위 설치를 알림(plugin-folder-only), GitLab 이면 요금제를 읽어 강제 못 하는 것과 대신 쓸 것을 알림.
+- 2026-11-19: 감지의 파일 목록을 git 한 번으로(-z), 한글 경로 감지가 고쳐짐 — 시험 시간 줄이기에서 나옴, 독립 검토 반영.
 - 2026-11-19: 사용자 요청 — 작업 폴더(저장소가 아닌 폴더 + 바로 아래 저장소 여럿): 감지 합치기·이유 줄·저장소마다 git 훅·되돌리기·지우기.
 - 2026-11-17: 사용자 요청 — 커밋·PR 형식을 기록·PR 양식에서 읽어 「커밋·PR 형식」 지침으로(이슈 번호·범위를 막는 훅 옵션은 두지 않음), pr-writer 앞섬 줄과 알아 둘 점.
 - 2026-11-17: 반대 기록 독립 검토 — 줄 지문으로 다시 찾기, 팀 저장소 `~/` 기록 거절·버림, 버린 「내 규칙」 훅 되돌리기(`restored`), file 칸 네 꼴만·256KB·장치 이름, 명령줄 글 확인·8자, 화면 동적 거르기·겹치는 훅, bidi·C1 빼기.

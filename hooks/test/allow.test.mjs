@@ -32,16 +32,24 @@ const env = () => {
   return e;
 };
 const gitIn = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: env() });
+// 바탕(main 에 README 커밋 하나)은 처음 한 번만 git 으로 만들고 사례마다 복사한다 — 저장소 하나에 git 을 여섯 번 띄우던 것(2026-11-19)
+let base = null;
+const baseRepo = () => {
+  if (base) return base;
+  base = path.join(tmp, 'base');
+  fs.mkdirSync(base, { recursive: true });
+  execFileSync('git', ['init', '-q', '-b', 'main', base]);
+  gitIn(base, 'config', 'user.email', 't@example.com');
+  gitIn(base, 'config', 'user.name', 't');
+  gitIn(base, 'config', 'core.autocrlf', 'false');
+  fs.writeFileSync(path.join(base, 'README.md'), 'hello\n');
+  gitIn(base, 'add', 'README.md');
+  gitIn(base, 'commit', '-q', '-m', 'chore: 시작');
+  return base;
+};
 const repo = (rules, { gitHook = false } = {}) => {
   const dir = path.join(tmp, `r${++seq}`);
-  fs.mkdirSync(dir, { recursive: true });
-  execFileSync('git', ['init', '-q', '-b', 'main', dir]);
-  gitIn(dir, 'config', 'user.email', 't@example.com');
-  gitIn(dir, 'config', 'user.name', 't');
-  gitIn(dir, 'config', 'core.autocrlf', 'false');
-  fs.writeFileSync(path.join(dir, 'README.md'), 'hello\n');
-  gitIn(dir, 'add', 'README.md');
-  gitIn(dir, 'commit', '-q', '-m', 'chore: 시작');
+  fs.cpSync(baseRepo(), dir, { recursive: true });
   fs.mkdirSync(path.join(dir, '.claude'));
   fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ lang: 'en', rules }));
   if (gitHook) {

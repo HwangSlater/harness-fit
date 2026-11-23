@@ -1,5 +1,5 @@
 // 정답지 다시 매기기 뒤 검토(2026-11-13)에서 나온 ask-cmd 꼴: python -m 모듈 꼴, 버전 태그 올리기, iOS 기본 묻는 명령 더함,
-// 읽기 전용 fastlane match, 이름이 운영인 환경 변수로 가는 DB 클라이언트·마이그레이션 도구. strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// 읽기 전용 fastlane match, 이름이 운영인 환경 변수로 가는 DB 클라이언트·마이그레이션 도구. strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import fs from 'node:fs';
 import { S, B, P, keyed } from './helpers.mjs';
 

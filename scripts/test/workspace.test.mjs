@@ -36,16 +36,28 @@ const repo = (ws, name, { who = ['a'], develop = true, files = {} } = {}) => {
   if (develop) git(dir, 'a', 'switch', '-q', '-c', 'develop');
   return dir;
 };
+// 작업 폴더는 처음 한 번만 git 으로 만들고(저장소 넷에 git 을 스무 번 넘게 띄운다) 사례마다 통째로 복사한다(2026-11-19)
+let wsTemplate = null;
 const workspace = () => {
+  if (!wsTemplate) {
+    wsTemplate = tmpDir('harness-ws-tpl-');
+    writeFiles(wsTemplate, { 'docs/README.md': '# 문서\n' });
+    repo(wsTemplate, 'portal-web', { who: ['a', 'b'], files: { '.gitignore': 'data/raw/\n' } });
+    repo(wsTemplate, 'messenger', { who: ['a'] });
+    repo(wsTemplate, 'mail', { who: ['c'] });
+    repo(wsTemplate, 'portal-deploy', { who: ['a'], develop: false });
+  }
   const ws = tmpDir('harness-ws-');
-  writeFiles(ws, { 'docs/README.md': '# 문서\n' });
-  repo(ws, 'portal-web', { who: ['a', 'b'], files: { '.gitignore': 'data/raw/\n' } });
-  repo(ws, 'messenger', { who: ['a'] });
-  repo(ws, 'mail', { who: ['c'] });
-  repo(ws, 'portal-deploy', { who: ['a'], develop: false });
+  fs.cpSync(wsTemplate, ws, { recursive: true });
   return ws;
 };
 let ws;
+// 같이 쓰는 작업 폴더(ws)는 어느 시험도 바꾸지 않으니 감지는 폴더마다 한 번(감지 한 번에 저장소마다 git 을 열 번 넘게 띄운다)
+const seen = new Map();
+const detected = (dir) => {
+  if (!seen.has(dir)) seen.set(dir, detect(dir));
+  return seen.get(dir);
+};
 before(() => {
   tmp = tmpDir('harness-ws-top-');
   ws = workspace();
@@ -58,7 +70,7 @@ after(() => {
   delete process.env.SLASH_COMMAND_TOOL_CHAR_BUDGET;
   if (saved === undefined) delete process.env.CLAUDE_PLUGIN_ROOT;
   else process.env.CLAUDE_PLUGIN_ROOT = saved;
-  for (const d of [tmp, ws]) fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  for (const d of [tmp, ws, wsTemplate]) fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
 
 test('작업 폴더 알아보기: 저장소가 아닌 맨 위 + 바로 아래 저장소 둘 이상만', () => {
@@ -83,7 +95,7 @@ test('작업 폴더 알아보기: 저장소가 아닌 맨 위 + 바로 아래 �
 });
 
 test('감지: 저장소마다 읽어 합친다 — 사람은 저장소를 넘어 한 번씩, 위치는 모두 같을 때, develop 은 절반 이상일 때', () => {
-  const det = detect(ws);
+  const det = detected(ws);
   assert.equal(det.root, ws);
   assert.equal(det.isGit, false);
   assert.deepEqual(det.workspace.map((r) => r.name), ['mail', 'messenger', 'portal-deploy', 'portal-web']);
@@ -104,7 +116,7 @@ test('감지: 저장소마다 읽어 합친다 — 사람은 저장소를 넘어
   assert.deepEqual(det.existing, { claudeMd: false, skills: false, harness: false });
   assert.equal(det.history.subjects, 5);
   // 저장소 하나의 감지 결과는 그대로(workspace 칸 없음)
-  const one = detect(path.join(ws, 'messenger'));
+  const one = detected(path.join(ws, 'messenger'));
   assert.equal('workspace' in one, false);
   assert.equal(one.isGit, true);
   assert.deepEqual(one.commands.test, ['npm test']);
@@ -135,7 +147,7 @@ test('합치기: 위치가 갈리면 mixed, develop 이 절반 못 되면 Git Fl
 });
 
 test('추천: 팀 Git Flow 저장소처럼 — GitLab 이라 GitHub 전용 훅은 빼고, develop 없는 저장소는 이유 줄에 이름을 밝힌다', () => {
-  const det = detect(ws);
+  const det = detected(ws);
   const sel = recommend(all, det, 'ko');
   assert.equal(sel.combo, 'team');
   assert.equal(sel.flow, 'git-flow');
@@ -147,7 +159,7 @@ test('추천: 팀 Git Flow 저장소처럼 — GitLab 이라 GitHub 전용 훅�
   assert.ok(sel.why.some((w) => w.includes('작업 폴더') && w.includes('portal-web')), sel.why.join('\n'));
   assert.ok(sel.why.some((w) => w.includes('portal-deploy') && w.includes('develop')), sel.why.join('\n'));
   // 같은 저장소 하나를 따로 열었을 때와 같은 조합·전략
-  const one = recommend(all, detect(path.join(ws, 'messenger')), 'ko');
+  const one = recommend(all, detected(path.join(ws, 'messenger')), 'ko');
   assert.equal(one.flow, sel.flow);
 });
 

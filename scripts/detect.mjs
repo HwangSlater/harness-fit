@@ -15,6 +15,7 @@ import { sqlcConfig } from './lib/sqlc.mjs';
 import { authSignal, depRanges, rangesWide, toolStacks, TOOL_STACKS } from './lib/signals.mjs';
 import { readLog, vcsOf, isKorean, isEnglish, BOT } from './lib/vcs-format.mjs';
 import { workspaceRepos, mergeWorkspace } from './lib/workspace.mjs';
+import { filesByGlobs } from './lib/git-files.mjs';
 
 // 형식 훅(commit-msg·branch-name) 기본값을 정하려고 보는 기록 크기(scripts/lib/catalog.mjs fitOff)
 const HISTORY_SUBJECTS = 30;
@@ -56,16 +57,6 @@ const WEB_GLOBS = ['js', 'mjs', 'cjs', 'jsx', 'ts', 'tsx', 'mts', 'cts', 'vue', 
 // 화면을 그리는 파일(HTML·서버 템플릿·컴포넌트). 있으면 kinds 에 html — 보안 지침의 「HTML 이스케이프」 줄이 이것을 본다
 // (JSON 만 내는 FastAPI 에도 그 줄이 들어가던 일 — 역할극 7 회차, 2026-11-11)
 const HTML_GLOBS = ['html', 'htm', 'jinja', 'jinja2', 'j2', 'hbs', 'handlebars', 'ejs', 'erb', 'twig', 'liquid', 'njk', 'mustache', 'vue', 'svelte', 'astro', 'jsx', 'tsx', 'cshtml', 'razor', 'jsp', 'php'].map((e) => `*.${e}`);
-// git 저장소가 아니면 거짓 — package.json 으로만 본다(아닌 폴더에서 늘 참이던 일 — 검토 2026-11-11)
-const hasFiles = (root, globs) => trackedFiles(root, globs).length > 0;
-// git 이 아는 파일 가운데 글롭에 맞는 것(git 저장소가 아니면 빈 목록)
-const trackedFiles = (root, globs) => {
-  try {
-    return execFileSync('git', ['-C', root, 'ls-files', '-co', '--exclude-standard', '--', ...globs, ':(exclude).claude/**'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).split('\n').filter(Boolean);
-  } catch {
-    return [];
-  }
-};
 const SOURCE_EXTS = ['py', 'go', 'rb', 'php', 'cs', 'fs', 'swift', 'kt', 'java', 'scala', 'rs', 'ex', 'exs', 'erl', 'lua', 'dart', 'c', 'cc', 'cpp', 'h', 'hpp', 'm', 'mm', 'js', 'mjs', 'cjs', 'ts', 'tsx', 'jsx', 'vue', 'svelte', 'bats', 'clj', 'hs', 'ml', 'zig', 'r', 'jl'];
 const SOURCE_GLOBS = SOURCE_EXTS.map((e) => `*.${e}`);
 const SOURCE_FILE = new RegExp(`\\.(?:${SOURCE_EXTS.join('|')})$`);
@@ -230,7 +221,10 @@ export const detect = (dir) => {
   return mergeWorkspace(path.resolve(dir), parts, { kindsOf, existing: existingAt(dir), branchesMax: HISTORY_BRANCHES });
 };
 const detectRepo = (dir) => {
-  const root = git(dir, ['rev-parse', '--show-toplevel']) || dir;
+  // git 폴더와 맨 위 폴더를 한 번에. 맨 위가 없는 곳(.git 안·bare 저장소)은 둘째 줄이 없어 실패하니 git 폴더만 다시 묻는다
+  const [gitDir = '', top = ''] = git(dir, ['rev-parse', '--git-dir', '--show-toplevel']).split('\n');
+  const root = top || dir;
+  const isGit = !!(gitDir || git(dir, ['rev-parse', '--git-dir']));
   const has = (f) => fs.existsSync(path.join(root, f));
   // 맨 위와 한 단계 아래 패키지 폴더(ROS 2 colcon 의 src/<패키지>, 모노레포의 packages/·apps/·workspaces — 역할극 2 회차: 맨 위만 봐서 ROS·C++·Python 을 다 놓쳤다)
   const pkg = readJson(path.join(root, 'package.json'));
@@ -278,8 +272,9 @@ const detectRepo = (dir) => {
   const cSrc = (d) => filesIn(root, d).some((f) => /\.(?:c|cc|cpp|cxx|h|hpp)$/i.test(f));
   if (has('CMakeLists.txt') || has('meson.build') || ros.some((d) => fs.existsSync(path.join(root, d, 'CMakeLists.txt'))) || (has('Makefile') && (cSrc('.') || cSrc('src')))) add('C/C++');
   if (['.', 'notebooks', ...dirs].some((d) => filesIn(root, d).some((f) => f.endsWith('.ipynb')))) add('Jupyter');
-  // git 이 아는 소스·인프라 파일(한 번만 부른다). vendor·testdata·examples 안의 것은 남의 것·시험 재료라 뺀다
-  const tracked = trackedFiles(root, LOOKUP_GLOBS);
+  // git 이 아는 소스·인프라 파일과 웹·화면 파일(git 은 한 번). vendor·testdata·examples 안의 것은 남의 것·시험 재료라 뺀다
+  const listed = filesByGlobs(root, { lookup: LOOKUP_GLOBS, web: WEB_GLOBS, html: HTML_GLOBS });
+  const tracked = listed.lookup;
   const own = tracked.filter((p) => !SIDE_PATH.test(p));
   // iOS: 앱 단서(Xcode 프로젝트·.xcode-version·.iOS( 를 적은 Package.swift)면 바로, Info.plist 는 Swift 소스 셋 이상과 함께일 때.
   // Swift 소스만으로는 iOS 가 아니라 스택 Swift(주 언어가 Swift 이고 다른 주 언어 스택이 없을 때 — React + tools/mac-helper/*.swift,
@@ -335,11 +330,12 @@ const detectRepo = (dir) => {
   const sug = suggest(root);
   const cmds = detectCommands(root, { protect: sug.protect });
   // Ansible 저장소의 .j2 는 설정 파일 틀이다(sshd_config.j2 로 웹 저장소처럼 보이던 일 — 역할극 15 회차, 2026-11-12)
-  const notTemplates = stack.includes('Ansible') ? [':(exclude)*.j2'] : [];
-  const jsRepo = pkgs.length > 0 || hasFiles(root, [...WEB_GLOBS, ...notTemplates]);
+  const notTemplate = (p) => !stack.includes('Ansible') || !p.endsWith('.j2');
+  // git 저장소가 아니면 거짓 — package.json 으로만 본다(아닌 폴더에서 늘 참이던 일 — 검토 2026-11-11)
+  const jsRepo = pkgs.length > 0 || listed.web.some(notTemplate);
   const code = hasAppCode(root, stack, pkgs.length > 0, tracked);
   const signals = [
-    ...(hasFiles(root, [...HTML_GLOBS, ...notTemplates]) ? ['html'] : []), ...(jsRepo ? ['js'] : []),
+    ...(listed.html.some(notTemplate) ? ['html'] : []), ...(jsRepo ? ['js'] : []),
     ...(authSignal({ deps, goMod, jvm, gemfile, py: pyNames, files: src, read: (p, max) => readText(path.join(root, p), max) }) ? ['auth'] : []),
     // 「의존성은 정확한 버전으로」 줄: JS 저장소이고 라이브러리가 아니며 의존성을 대부분 범위로 두지 않을 때
     ...(jsRepo && !isLibrary(pkg) && !rangesWide(ranges) ? ['pinned'] : []),
@@ -360,7 +356,7 @@ const detectRepo = (dir) => {
     code,
     // 스택을 알 수 있는 파일이 하나도 없다(빈 저장소 등) → 맞춤 추천을 할 수 없다. CI 파일만 있는 것도 같다.
     thin: !stack.some((s) => s !== 'GitHub Actions' && !TOOL_STACKS.includes(s)),
-    isGit: !!git(root, ['rev-parse', '--git-dir']),
+    isGit,
     commits: Number(git(root, ['rev-list', '--count', 'HEAD']) || 0),
     authors,
     team: authors > 1,

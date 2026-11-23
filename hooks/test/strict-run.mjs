@@ -1,6 +1,7 @@
 // 엄격 시험(2026-11-06 사용자 원칙 「훅은 모두 엄격하게 시험한다」): 훅마다 packs.json detail 이 약속한 꼴을
-// 하나씩 막는지(block), 비슷하지만 안전한 꼴은 통과하는지(pass)를 실제 진입점 hooks/run.mjs 에 JSON 을 넣어 본다.
-// 셸 훅은 Bash·PowerShell 둘 다로(꼴이 다르면 각자의 꼴로). 사례는 strict-cases/*.mjs.
+// 하나씩 막는지(block), 비슷하지만 안전한 꼴은 통과하는지(pass)를 진입점과 같은 판정으로 본다 — 도구 호출은 일꾼 스레드의 evaluate,
+// 때마다 사례와 훅마다 막음·통과 첫 사례는 실제 진입점(hooks/run.mjs 등) 프로세스에 JSON 을 넣어서.
+// 셸 훅은 Bash·PowerShell 둘 다로(꼴이 다르면 각자의 꼴로). 사례는 strict-cases/*.mjs. 시험 파일은 hooks/test/strict/*.test.mjs(나눠 돌린다).
 // 새 훅을 packs.json 에 더하면 사례(막음·통과 각 3개 이상)가 없어서 이 시험이 실패한다.
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,9 +34,11 @@ import v041Cases from './strict-cases/v041.mjs';
 import v041ReviewCases from './strict-cases/v041-review.mjs';
 import v041Review2Cases from './strict-cases/v041-review2.mjs';
 import flowCases from './strict-cases/flow.mjs';
+import reviewCases from './strict-cases/review.mjs';
 import { makeProbeRepo, runProbeCase } from '../../scripts/lib/existing-hooks.mjs';
 import { eventOf, ownSpace, buildScratch } from '../../scripts/lib/probe-run.mjs';
 import { checklistFile } from '../rules/checklist.mjs';
+import { judgePool } from './helpers/judge-pool.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const RUN = path.join(ROOT, 'hooks', 'run.mjs');
@@ -44,17 +47,26 @@ const ENTRY = { PreToolUse: RUN, Stop: path.join(ROOT, 'hooks', 'stop.mjs'), Ses
 const packs = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'packs.json'), 'utf8'));
 const probes = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog', 'probes.json'), 'utf8'));
 const FLOW_OPTS = packs.flows.find((f) => f.id === 'github-flow').hooks;
-const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases, ...flowCases };
+const CASES = { ...writeCases, ...codeCases, ...shellCases, ...gitCases, ...commitCases, ...langCases, ...eventCases, ...migrationCases, ...flowCases, ...reviewCases };
 // 뒤에 더한 사례 파일은 같은 훅의 사례에 이어 붙인다(훅 옵션은 원래 파일의 것)
 for (const [id, more] of [...Object.entries(followupCases), ...Object.entries(infraCases), ...Object.entries(infraReviewCases), ...Object.entries(infraReview2Cases), ...Object.entries(infraReview3Cases), ...Object.entries(askReviewCases), ...Object.entries(gapCases), ...Object.entries(blockReviewCases), ...Object.entries(iosReviewCases), ...Object.entries(blockReview2Cases), ...Object.entries(blockReview3Cases), ...Object.entries(blockReview4Cases), ...Object.entries(v041Cases), ...Object.entries(v041ReviewCases), ...Object.entries(v041Review2Cases)]) {
   const spec = CASES[id] || { block: [], pass: [] };
   CASES[id] = { ...spec, block: [...spec.block, ...more.block], pass: [...spec.pass, ...more.pass] };
 }
 const MIN_CASES = 3;
-const PARALLEL = 8;
+// 알림 훅(branch-age·back-merge)의 git 한도를 넉넉히 — 몫 다섯이 함께 돌면 1.5초를 넘어 알림이 빠졌다(flow.mjs noticeGitMs). 일꾼·진입점 프로세스가 이 환경을 물려받는다
+process.env.HARNESS_FIT_NOTICE_GIT_MS = '30000';
+// 나눠 돌리기(2026-11-19, 한 프로세스로 253초): 사례 3,600여 개와 그 저장소 준비(복사·git 커밋 1,000여 번 — 동기라 한 줄로 돈다)를
+// hooks/test/strict/*.test.mjs 가 프로세스 여럿에 나눈다. 그 파일이 이 모듈을 부르기 전에 globalThis.HF_STRICT 에 { shard, of } 또는 { probes: true } 를 둔다.
+const PART = globalThis.HF_STRICT || { shard: 0, of: 1 };
+const PARALLEL = 4;
+// 도구 호출 사례는 일꾼 스레드에서 진입점과 같은 판정(evaluate)으로 — Node 를 띄우지 않는다.
+// 진입점 자체(stdin·출력 JSON·규칙 모듈 골라 불러오기)는 훅마다 막음·통과 첫 사례와 때마다 사례로 계속 프로세스를 띄워 본다.
+const WORKERS = 2;
 
 let tmp;
 let base;
+let judges;
 const gitIn = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
 
 // 저장소 하나: main 에 커밋 하나(README.md), 훅 설정. 사례마다 이것을 복사해 쓴다(git init 을 되풀이하지 않게).
@@ -62,7 +74,8 @@ before(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-strict-'));
   base = path.join(tmp, 'base');
   fs.mkdirSync(base);
-  execFileSync('git', ['init', '-q', '-b', 'main', base]);
+  // 빈 틀(--template=): 견본 훅 파일 16개를 사례 저장소 1,000여 개에 복사하지 않게
+  execFileSync('git', ['init', '-q', '--template=', '-b', 'main', base]);
   gitIn(base, 'config', 'user.email', 't@example.com');
   gitIn(base, 'config', 'user.name', 't');
   gitIn(base, 'config', 'core.autocrlf', 'false');
@@ -72,11 +85,15 @@ before(() => {
   execFileSync('git', ['-C', base, 'commit', '-q', '-m', 'chore: 시작'], { stdio: 'ignore', env: { ...process.env, GIT_AUTHOR_DATE: '2020-01-01T00:00:00+0000', GIT_COMMITTER_DATE: '2020-01-01T00:00:00+0000' } });
   fs.mkdirSync(path.join(base, '.claude'));
 });
-after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+after(async () => {
+  await judges?.close();
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
 
 let seq = 0;
 const templates = new Map(); // 준비 key → 준비를 마친 저장소(복사해 쓴다)
-const freshRepo = (hook, opts, setup) => {
+// extra: 함께 켤 다른 훅({ id: 옵션 }) — 다른 훅이 켜졌는지 보는 훅(branch-age 는 Git Flow 훅이 켜졌을 때만 develop 과 견준다)
+const freshRepo = (hook, opts, setup, extra = {}) => {
   const dir = path.join(tmp, `r${++seq}`);
   const cached = setup?.key && templates.get(setup.key);
   fs.cpSync(cached || base, dir, { recursive: true });
@@ -88,7 +105,7 @@ const freshRepo = (hook, opts, setup) => {
       templates.set(setup.key, tpl);
     }
   }
-  fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ lang: 'en', rules: { [hook]: opts } }));
+  fs.writeFileSync(path.join(dir, '.claude', 'harness.json'), JSON.stringify({ lang: 'en', rules: { ...extra, [hook]: opts } }));
   return dir;
 };
 const prepare = (dir, setup) => {
@@ -214,7 +231,7 @@ const slot = async (job) => {
 };
 const pool = (jobs) => Promise.all(jobs.map((j) => slot(j)));
 
-test('packs.json 의 훅마다 엄격 사례가 있다(막음·통과 각 3개 이상), 없는 훅의 사례는 없다', () => {
+if (PART.shard === 0) test('packs.json 의 훅마다 엄격 사례가 있다(막음·통과 각 3개 이상), 없는 훅의 사례는 없다', () => {
   const ids = packs.hooks.map((h) => h.id);
   for (const id of ids) {
     assert.ok(CASES[id], `엄격 사례 없음: ${id} — hooks/test/strict-cases 에 더하세요`);
@@ -224,9 +241,22 @@ test('packs.json 의 훅마다 엄격 사례가 있다(막음·통과 각 3개 �
   for (const id of Object.keys(CASES)) assert.ok(ids.includes(id), `packs.json 에 없는 훅의 사례: ${id}`);
 });
 
-// 사례 하나를 돌려 기대와 다르면 그 설명을 돌려준다.
-const check = (want, c, input) => async () => {
-  const got = decision(await runHook(input, c.event, tmpRoots.get(input)), c);
+// 일꾼의 판정 재료 → 진입점(hooks/run.mjs)이 고르는 것과 같은 결정: 막는 글 > 물을 까닭 > Claude 에게 건넬 글 > 통과.
+// 통과일 때 검사 오류가 있으면 진입점은 오류 알림을 내므로 실패, 알림은 허용 주석 알림만(decision 과 같은 기준).
+const inprocDecision = (r) => {
+  if (r.threw) throw new Error(`판정이 터짐: ${r.threw}`);
+  assert.equal(r.stdout, '', `판정 중에 표준 출력에 씀(진입점 출력 JSON 이 깨진다): ${r.stdout.slice(0, 200)}`);
+  if (r.msgs.length) return { blocked: true, kind: 'deny', reason: r.msgs.join('\n') };
+  if (r.asks.length) return { blocked: true, kind: 'ask', reason: r.asks.join('\n') };
+  if (r.hints.length) return { blocked: true, reason: r.hints.join('\n') };
+  assert.deepEqual(r.errors, [], `검사 오류 알림이 나옴: ${r.errors.join(', ')}`);
+  for (const n of r.notes) assert.match(n, /lint:allow|allow comments|허용 주석/, `알림은 허용 주석 알림만: ${n}`);
+  return { blocked: false };
+};
+
+// 사례 하나를 돌려 기대와 다르면 그 설명을 돌려준다. spawn: 진입점 프로세스를 띄워 본다(때마다 사례는 늘)
+const check = (want, c, input, spawn) => async () => {
+  const got = c.event || spawn ? decision(await runHook(input, c.event, tmpRoots.get(input)), c) : inprocDecision(await (judges ||= judgePool(WORKERS, { env: hookEnv() })).judge({ raw: input, detail: true }));
   // 막음 사례의 c.decision('deny'·'ask')은 결정 꼴까지, c.reason(정규식)은 글까지 본다 — ask-cmd 의 막기·묻기, GitLab 의 MR 글(2026-11-13)
   const kindOk = !(want === 'block' && got.blocked) || ((!c.decision || got.kind === c.decision) && (!c.reason || c.reason.test(got.reason || '')));
   if (got.blocked === (want === 'block') && kindOk) return null;
@@ -236,18 +266,25 @@ const check = (want, c, input) => async () => {
   return `${wanted} 이어야 함 [${input.tool_name || c.event}] ${c.why}: ${JSON.stringify(where).slice(0, 120)}${got.reason ? ` → ${got.reason.slice(0, 160)}` : ''}`;
 };
 
-describe('엄격 사례(훅마다 함께 돈다)', { concurrency: true }, () => {
+if (!PART.probes) describe(`엄격 사례(훅마다 함께 돈다, ${PART.shard + 1}/${PART.of})`, { concurrency: true }, () => {
   for (const hook of Object.keys(CASES)) {
     test(`엄격: ${hook} — 약속한 꼴은 막고 비슷한 안전한 꼴은 통과(hooks/run.mjs)`, async () => {
       const spec = CASES[hook];
       // 훅 옵션: 사례의 opts(다른 브랜치 방식 등) > 훅 묶음의 opts > GitHub Flow 값 > true
       const hookOpts = spec.opts || FLOW_OPTS[hook] || true;
-      const shared = freshRepo(hook, hookOpts);
+      let shared = null; // 이 몫에 공용 저장소를 쓰는 사례가 있을 때만 만든다
       const jobs = [];
+      let n = 0; // 이 훅의 사례 순번(막음 → 통과) — n % of 가 이 몫인 것만 돈다
+      // 진입점 프로세스 표본: 막음·통과마다, 도구 종류(셸·Write·Edit…)마다 첫 사례 — 몫을 나누기 전에 정한다(셸 사례는 Bash·PowerShell 둘 다)
+      const sampled = new Set();
       for (const want of ['block', 'pass']) {
         for (const c of spec[want]) {
-          const dir = c.setup || c.opts ? freshRepo(hook, c.opts || hookOpts, c.setup) : shared;
-          for (const input of inputsOf(c, dir)) jobs.push(check(want, c, input));
+          const kind = `${want}:${c.event || c.tool || 'shell'}`;
+          const spawn = !sampled.has(kind);
+          sampled.add(kind);
+          if (n++ % PART.of !== PART.shard) continue;
+          const dir = c.setup || c.opts || c.rules ? freshRepo(hook, c.opts || hookOpts, c.setup, c.rules) : (shared ||= freshRepo(hook, hookOpts));
+          for (const input of inputsOf(c, dir)) jobs.push(check(want, c, input, spawn));
         }
       }
       const failures = (await pool(jobs)).filter(Boolean);
@@ -258,7 +295,7 @@ describe('엄격 사례(훅마다 함께 돈다)', { concurrency: true }, () => 
 
 // 도구 호출(PreToolUse) 가운데 저장소 준비가 없는 입력은 scripts/test/probes.test.mjs 가 판정(evaluate)을 바로 불러 본다 —
 // 여기서는 그 밖의 것(Stop·SessionStart·UserPromptSubmit, 저장소 준비가 있는 것 = ownSpace)만 진입점으로 돌린다.
-test('catalog/probes.json 의 시험 입력(때마다·자기 자리)도 실제 진입점에서 block 은 막고 pass 는 통과한다', async () => {
+if (PART.probes) test('catalog/probes.json 의 시험 입력(때마다·자기 자리)도 실제 진입점에서 block 은 막고 pass 는 통과한다', async () => {
   const dir = makeProbeRepo();
   try {
     fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });

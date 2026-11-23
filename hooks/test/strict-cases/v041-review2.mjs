@@ -1,7 +1,7 @@
 // v0.4.1 두 번째 검토(2026-11-16): 헛물음을 줄이며 느슨해진 검사가 진짜 비밀·운영 고침을 놓치던 것(73f1c76 이전보다 덜 묻던 회귀).
 // iac-edit: 파일 이름 속 _test·dev, modules/ 밑 dev-, 운영 낱말(prd·live)이 시험·개발 자리보다 앞섬, JSON 꼴 Argo CD.
 // protected-files askRead: .pem 끝의 키, ../ 로 빠져나간 시험 자료 경로, kubeconfig.txt, 가운데 낀 .tpl, 틀 속 진짜 값, Chart.yaml 없는 templates/.
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { B, W, R, keyed, FAKE } from './helpers.mjs';
 
 const ask = (extra = {}) => ({ decision: 'ask', ...extra });

@@ -187,8 +187,8 @@ test('화면 상태: 명령이 없으면 「이 저장소 명령」을 숨기고
 
 test('훅마다 종류(block·notice·ask)가 있고, 알리기만 하는 훅은 notice, 묻는 훅은 ask', () => {
   for (const h of all.packs.hooks) assert.ok(['block', 'notice', 'ask'].includes(h.kind), `${h.id}: kind`);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'ask').map((h) => h.id), ['ask-cmd', 'iac-edit']);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'branch-age', 'commit-hash', 'prefer-gh', 'stale-scratch', 'work-checklist']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'ask').map((h) => h.id), ['ask-cmd', 'iac-edit', 'protect-rules']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'back-merge', 'branch-age', 'commit-hash', 'prefer-gh', 'stale-scratch', 'work-checklist']);
 });
 
 test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만', () => {

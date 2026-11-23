@@ -1,5 +1,5 @@
 // 다섯째 검토(2026-11-13, 평소 명령 1,002개)의 헛막음 — 진입점(hooks/run.mjs)에서 통과 쪽과 그대로 막는 쪽을 함께 본다.
-// 자세한 꼴은 hooks/test/review5.test.mjs. strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// 자세한 꼴은 hooks/test/review5.test.mjs. strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { S, B, P, keyed } from './helpers.mjs';
 
 // .env 가 이미 있는 저장소(덮어쓰기 막기와 확인한 처음 만들기)

@@ -1,6 +1,6 @@
 {
   "name": "harness-fit",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Find the skills, hooks and rules your project actually needs — a visual picker for Claude Code.",
   "type": "module",
   "bin": {
@@ -22,8 +22,8 @@
   ],
   "scripts": {
     "start": "node cli/harness-fit.js",
-    "test": "node --test \"hooks/test/!(strict).test.mjs\" scripts/test/*.test.mjs && node --test hooks/test/strict.test.mjs && node --test hooks/test/stress/*.test.mjs",
-    "test:quick": "node --test \"hooks/test/!(strict).test.mjs\" scripts/test/*.test.mjs && node --test hooks/test/strict.test.mjs",
+    "test": "node --test hooks/test/*.test.mjs scripts/test/*.test.mjs && node --test hooks/test/strict/*.test.mjs && node --test hooks/test/stress/*.test.mjs",
+    "test:quick": "node --test hooks/test/*.test.mjs scripts/test/*.test.mjs && node --test hooks/test/strict/*.test.mjs",
     "test:stress": "node --test hooks/test/stress/*.test.mjs"
   },
   "engines": {

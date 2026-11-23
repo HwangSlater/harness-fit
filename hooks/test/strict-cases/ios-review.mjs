@@ -1,6 +1,6 @@
 // 역할극 16 회차(iOS) 판정(2026-11-13)의 훅 쪽 고칠 점: git add -f 로 올린 무시 파일·.cer·.provisionprofile 커밋 막기,
 // plist 도구(PlistBuddy·plutil·defaults write)와 python -c·ruby -e 쓰기, 빌드·버전 번호 올리기 묻기, match --readonly false,
-// 프로비저닝 프로필 폴더 지우기 묻기, NSLog(. strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// 프로비저닝 프로필 폴더 지우기 묻기, NSLog(. strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import fs from 'node:fs';
 import { S, B, P, W, keyed } from './helpers.mjs';
 

@@ -1,8 +1,10 @@
-// 브랜치 전략 훅 엄격 사례: merge-flow(Git Flow 합치기 방향, 막음) · branch-age(오래 산 브랜치, 알림).
+// 브랜치 전략 훅 엄격 사례: merge-flow(Git Flow 합치기 방향, 막음) · branch-age(오래 산 브랜치, 알림) · back-merge(develop 되돌려 합치기, 알림).
 // 시험 저장소는 main 에 2020 년 커밋 하나. 브랜치 이름이 바뀌는 사례는 같은 명령의 git switch 로 준다(그 브랜치가 없어도 switch 는 옮긴다고 본다).
 import { S, B, P, keyed } from './helpers.mjs';
 
 const DAY_S = 86400;
+// Git Flow 저장소 표시: 합치기 방향 훅을 함께 켠다(branch-age 는 이때만 feature 를 develop 과 견준다)
+const GIT_FLOW = { 'merge-flow': true };
 const isoAgo = (seconds) => new Date(Date.now() - seconds * 1000).toISOString();
 // origin/feature/login 원격 추적 브랜치가 있는 저장소
 const remoteFeature = keyed('remote-feature', (r) => r.git('update-ref', 'refs/remotes/origin/feature/login', 'HEAD'));
@@ -47,6 +49,46 @@ const unpushedTrunk = keyed('unpushed-trunk', (r) => {
   r.git('switch', '-q', '-c', 'feature/today');
   r.commit('src/t.js', 'export const t = 1;\n', 'feat: t');
 });
+// Git Flow: develop 에 사흘 된 아직 배포 안 한 커밋, 그 위에서 오늘 딴 feature/today — develop 과 견주면 오늘 것(전에는 main 과 견줘 사흘로 셌다)
+const developAhead = keyed('develop-ahead', (r) => {
+  r.git('switch', '-q', '-c', 'develop');
+  r.put('src/d.js', 'export const d = 1;\n');
+  r.git('add', 'src/d.js');
+  r.git('commit', '-q', '-m', 'feat: d', '--date', isoAgo(3 * DAY_S));
+  r.git('switch', '-q', '-c', 'feature/today');
+  r.commit('src/t.js', 'export const t = 1;\n', 'feat: t');
+});
+// Git Flow: develop 이 feature/x 보다 n 커밋 앞섬
+const behindDevelop = (n) =>
+  keyed(`behind-develop\0${n}`, (r) => {
+    r.git('switch', '-q', '-c', 'develop');
+    const start = r.git('rev-parse', 'HEAD');
+    for (let i = 0; i < n; i++) r.git('commit', '-q', '--allow-empty', '-m', `chore: develop ${i}`);
+    r.git('switch', '-q', '-c', 'feature/x', start);
+    r.commit('src/x.js', 'export const x = 1;\n', 'feat: x');
+  });
+// 되돌려 합치기: develop 을 main 에서 따고, main 에만 hotfix 커밋 n 개(origin 에도 올린 것처럼 — remote 면 origin/main 도)
+const hotfixOnMain = (n, { remote = false, mergedBack = false, mergeOnly = false } = {}) =>
+  keyed(`hotfix-main\0${n}\0${remote}\0${mergedBack}\0${mergeOnly}`, (r) => {
+    r.git('branch', 'develop');
+    if (mergeOnly) {
+      // develop 에서 feature 를 합친 병합 커밋만 main 에 — 병합 커밋은 세지 않는다
+      r.git('switch', '-q', 'develop');
+      r.commit('src/f.js', 'export const f = 1;\n', 'feat: f');
+      r.git('switch', '-q', 'main');
+      r.git('merge', '-q', '--no-ff', '-m', 'Merge branch develop', 'develop');
+      return;
+    }
+    for (let i = 0; i < n; i++) r.commit(`src/fix${i}.js`, `export const fix${i} = 1;\n`, `fix: 급한 수정 ${i}`);
+    if (remote) r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    if (mergedBack) {
+      r.git('switch', '-q', 'develop');
+      r.git('merge', '-q', '--no-ff', '-m', 'Merge branch main into develop', 'main');
+      r.git('switch', '-q', 'main');
+    }
+  });
+// develop 을 main 과 같은 자리에서 딴 것뿐
+const keyedDevelopAtMain = keyed('develop-at-main', (r) => r.git('branch', 'develop'));
 // 로컬 main 을 지우고 origin/main 만 남긴 저장소, 지금 브랜치는 사흘 된 feature/old
 const originOnly = keyed('origin-only', (r) => {
   r.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
@@ -140,6 +182,8 @@ export default {
       B('git add src/a.js && git commit -m "feat: x"', '이은 명령', { setup: oldBranch }),
       S('git commit -m "feat: x"', '옛 origin/main 이 아니라 더 앞선 로컬 main 과 견줌', { setup: staleOrigin(11), opts: { commits: 10 }, reason: /11/ }),
       S('git push origin feature/old', '로컬 main 을 지우고 origin/main 만 있음', { setup: originOnly, reason: /feature\/old/ }),
+      S('git commit -m "feat: x"', 'Git Flow: develop 보다 11커밋 뒤(10 넘음) — main 이 아니라 develop 과 견줌', { setup: behindDevelop(11), opts: { commits: 10 }, rules: GIT_FLOW, reason: /develop/ }),
+      S('git commit -m "feat: t"', 'Git Flow 훅이 꺼져 있으면(트렁크 등) develop 이 있어도 main 과 견줌 — 사흘', { setup: developAhead }),
     ],
     pass: [
       S('git commit -m "feat: x"', 'main 에서 커밋(트렁크)'),
@@ -153,6 +197,25 @@ export default {
       S('git checkout --detach && git commit -m "feat: x"', '분리된 HEAD', { setup: oldBranch }),
       S('git commit -m "feat: x"', '아직 안 올린 로컬 main 의 사흘 전 커밋은 브랜치 나이에 넣지 않음', { setup: unpushedTrunk }),
       S('git commit -m "feat: x"', '로컬 main 만 9커밋 앞섬(10 안쪽)', { setup: staleOrigin(9), opts: { commits: 10 } }),
+      S('git commit -m "feat: t"', 'Git Flow: 오늘 딴 feature 는 develop 과 견줘 오늘 것(develop 의 사흘 된 커밋을 세지 않음)', { setup: developAhead, rules: GIT_FLOW }),
+      S('git commit -m "feat: x"', 'Git Flow: develop 보다 9커밋 뒤(10 안쪽)', { setup: behindDevelop(9), opts: { commits: 10 }, rules: GIT_FLOW }),
+    ],
+  },
+  'back-merge': {
+    block: [
+      S('git push origin main', 'main 에만 있는 hotfix 커밋 하나', { setup: hotfixOnMain(1), reason: /1/ }),
+      S('git push', '브랜치를 적지 않은 push', { setup: hotfixOnMain(2), reason: /2/ }),
+      S('git push origin develop', 'develop 을 올릴 때도', { setup: hotfixOnMain(1) }),
+      S('git push origin main', 'origin/main 에만 있어도(로컬과 함께 견줌)', { setup: hotfixOnMain(1, { remote: true }) }),
+      B('git switch main && git merge --no-ff hotfix/1.2.1 && git push origin main', '이은 명령', { setup: hotfixOnMain(1) }),
+    ],
+    pass: [
+      S('git push origin main', 'develop 에 되돌려 합침', { setup: hotfixOnMain(1, { mergedBack: true }) }),
+      S('git push origin main', 'main 에 병합 커밋만 더해짐(병합 커밋은 세지 않음)', { setup: hotfixOnMain(0, { mergeOnly: true }) }),
+      S('git push origin main', 'develop 이 없는 저장소(main 하나 — GitOps)'),
+      S('git commit -m "fix: x"', 'push 가 아님', { setup: hotfixOnMain(1) }),
+      S('git status', '읽기', { setup: hotfixOnMain(1) }),
+      S('git push origin main', 'develop 이 main 을 품음', { setup: keyedDevelopAtMain }),
     ],
   },
 };

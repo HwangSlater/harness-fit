@@ -1,6 +1,6 @@
 # 결정 — 훅
 
-> 최종 수정: 2026-11-19 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-23 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다 — 고쳐 온 차례는 git 기록과 archive 에 있다.
 
@@ -14,7 +14,7 @@
 ### 훅은 모두 엄격하게 테스트한다 (2026-11-06)
 - 결정: 훅마다 detail 의 꼴마다 막음·통과 사례를 Bash·PowerShell 로 실제 진입점에 넣어 본다. 사례가 3개씩 없으면 테스트가 실패한다. 꼴을 넓힐 때마다 헛막음을 다시 본다.
 - 예: `SECRET_KEY` 꼴을 넓히자 `api_key_header = "X-Api-Key"` 가 걸려, 값을 가리키는 이름·켜고 끄는 값·JS·TS 따옴표 속 글은 뺐다.
-- 어디서: `hooks/test/strict.test.mjs`, `node scripts/dev/fp-scan.mjs <폴더>`
+- 어디서: `hooks/test/strict-run.mjs`, `node scripts/dev/fp-scan.mjs <폴더>`
 
 ### Node 하나, 때마다 진입점 하나
 - 결정: 외부 패키지 없이 `node:` 내장만. 이벤트마다 스크립트 하나만 등록하고 켜진 규칙만 돌린다. `.claude/harness.json` 이 없으면 규칙 모듈도 안 불러온다. Stop 은 `stop_hook_active` 면 통과.
@@ -83,6 +83,21 @@
 - git 규칙은 바꾸지 않았다: 명령이 닿는 저장소(cwd·`cd … &&`·`git -C`)의 브랜치로 본다. 맨 위(저장소 아님)에서 저장소에 닿지 않는 명령은 볼 것이 없어 통과.
 - 같이 고친 것: 보호 경로의 git add 검사(commit.mjs protectedCommit)는 저장소 기준 경로만 견줘서 작업 폴더 기준으로 적은 `messenger/data/raw/` 가 하나도 맞지 않았다 — 프로젝트가 저장소의 위 폴더면 저장소 이름을 붙인 경로로도 본다. migration-edit 은 프로젝트 맨 위의 저장소만 찾아 작업 폴더에서는 한 번도 묻지 않았다 — 지금 폴더의 저장소, 그다음 대상이 든 저장소를 본다(파일 경로를 그대로 repoRoot 에 주면 저장소 아님으로 읽었다 — 가장 가까운 있는 폴더부터).
 - 어디서: `hooks/lib/core.mjs` loadConfig·workspaceConfig, `hooks/rules/commit.mjs`, `hooks/rules/migration.mjs` rootOf. 시험 `hooks/test/workspace.test.mjs`(설정 찾기·새지 않음·보호 브랜치 세 꼴·보호 경로·마이그레이션·진입점·git pre-commit 본체).
+
+### 호출이 닿는 저장소의 설정도 본다 (2026-11-23)
+- 무엇이 틀렸나: 설정이 없는 폴더(orca/projects/naver)에서 연 세션이 `cd …/portal-deploy && git …`·`git -C …` 로 작업 폴더 설정(orca/arasoft/.claude/harness.json)이 덮는 팀 저장소를 만졌는데, run.mjs 가 `loadConfig(세션 cwd)` 가 null 이라 바로 통과해 PreToolUse 규칙(protect-branch·merge-flow·branch-name…)이 하나도 돌지 않았다(2026-11-21). 플러그인이 사용자 범위로 켜져 있어 훅이 도는 경우의 이야기다 — 프로젝트 범위로만 켠 것은 적용 때 알리는 쪽이 맡는다.
+- 결정: cwd 의 설정(own)에 더해 도구 호출이 닿는 저장소의 설정도 본다(`hooks/lib/target-config.mjs` configsFor). 닿는 곳: 셸은 명령 조각마다(바깥 명령 + `bash -c "…"` 속 명령 — judge 가 도는 조각과 같다) commandCwd(`cd X &&`·`Set-Location`·`pushd`·`git -C X`), 파일 도구(Write·Edit·MultiEdit·NotebookEdit·Read)는 파일의 폴더.
+  - own 이 있으면 own 은 늘 호출 전체를 지금처럼 판정한다. 대상 설정은 그 위에 더해 자기에게 닿는 조각만 판정하고, 막는 글·물음·알림을 합친다(같은 글은 한 번). own 이 없을 때만 대상 설정 단독. 파일 도구도 같다.
+  - 처음 커밋(50a39af)은 대상 설정이 own 을 대신했다 — 독립 검토가 회귀를 찾았다: 첫 `cd`·`git -C` 가 느슨한·빈·깨진 설정 폴더를 가리키면 그 조각을 그 설정으로만 봐서 cwd 저장소에서 실제로 도는 위험 명령이 통과했다(`cd ../lax && cd - && git push --force origin main`, `git -C ../lax status; git commit -m x`, `cd ../emp; cd -; rm -rf ~`, Write `../brk/.env` 등 1→0). 모델이 빈 설정을 먼저 써 두고 cd 로 돌아가는 우회도 됐다. 그래서 「대신」이 아니라 「더해서」(사용자 쪽 조정자 결정).
+  - 맞바꾼 것: cwd 의 보호 브랜치가 트렁크 기반인 대상 저장소의 main 커밋도 막을 수 있다(전에도 그랬다 — 덜 막는 쪽으로 바꾸지 않는다).
+- 대상으로 치는 설정은 loadConfig 가 저장소 맨 위(.git 이 있는 폴더)나 작업 폴더(workspace 표시)에서 찾은 것뿐이다. 저장소 밖 아무 폴더나 저장소 속 하위 폴더의 `.claude/harness.json` 은 대상으로 치지 않는다(target 쪽에서 거른다 — cwd 쪽 loadConfig 는 그대로).
+- 깨진 대상 설정: 알림만 더한다. own 이 있으면 own 판정은 그대로, own 도 없고 볼 설정이 없으면 지금처럼 알리고 통과.
+- 서로 다른 대상 폴더가 16개(MAX_TARGETS)를 넘으면 대상 설정은 보지 않고 own 만(own 도 없으면 통과) — 조각 수천 개짜리 명령에 폴더마다 설정 찾기를 하지 않게. 나눈 조각·닿는 폴더는 judge 에 넘겨 두 번 나누지 않는다(`scope.commands`).
+- 같이 고친 것(commandCwd): `git -C` 도 따옴표 밖에서만 찾는다(`echo "git -C ../other …"`·커밋 메시지 속 글이 다른 저장소로 읽혔다), `git -C a -C b` 는 git 처럼 이어서, Windows 에서 Git Bash 경로 `/c/…` 는 `C:/…` 로, 줄바꿈도 명령 구분으로, `Set-Location -LiteralPath`.
+- 한계: 한 조각 안에서는 처음 `cd` 하나만 따른다(`cd .. && cd own`·`cd a && …; cd b && …` 의 두 번째는 보지 않는다). 바깥 `cd` 를 `bash -c "…"` 속 명령이 물려받는 것도 보지 않는다(속 명령은 세션 cwd 기준). 둘 다 own 판정은 그대로라 덜 막히는 것은 대상 설정 쪽뿐이다.
+- 빠르기: git 을 띄우지 않는다. 셸은 cd·chdir·pushd·Set-Location·Push-Location 이나 ` -C` 가 글에 있을 때만 명령을 나누고, 닿는 곳이 cwd 와 다를 때만 설정을 한 번 더 찾는다(stat 몇 번). 아직 없는 폴더는 있는 폴더까지 먼저 올라가고(층마다 stat 두 번을 한 번으로 — `a/a/…` 2만 층 경로가 27초 걸렸다), 4096자를 넘는 경로는 닿는 곳으로 보지 않는다. 설정 없는 저장소에서 프로세스 안 한 번(2,000번 평균): `loadConfig(cwd)` 만 167µs → `ls` 173µs · `cd 다른저장소 && git status` 464µs · `git -C` 380µs · 4단 아래 파일 Write 684µs. 진입점 전체(Node 띄우기 포함, 30번 중앙값)는 전 99~103ms · 뒤 103~105ms 로 잴 수 있는 차이가 없다(같은 때 잰 값끼리도 ±10ms 흔들린다).
+- Stop·SessionStart·UserPromptSubmit(`hooks/lib/entry.mjs`)은 세션 cwd 그대로 둔다: 도구 입력이 없어 닿는 곳을 알려면 대화 기록을 읽어야 하는데, 사용자 범위로 켜면 설정 없는 모든 프로젝트의 답·메시지마다 기록을 읽게 된다. 그 때의 훅(commit-hash·answer-lang·docs-check·work-checklist·stale-scratch)은 세션 프로젝트에 대한 것이고, 다른 저장소를 만지는 위험한 일(커밋·push·쓰기)은 PreToolUse 가 이제 막는다.
+- 어디서: `hooks/lib/target-config.mjs`, `hooks/run.mjs`, `hooks/lib/evaluate.mjs`, `hooks/lib/pretool.mjs` judge(`scope`), `hooks/lib/core.mjs` commandCwd. 시험 `hooks/test/target-config.test.mjs`(독립 검토 회귀 사례 포함).
 
 ### 훅 종류: block 과 notice (2026-11-06·11-09)
 - 결정: 명령·쓰기를 막으면 block, 알리거나 끝낼 때 되묻기만 하면 notice(commit-hash·work-checklist·answer-lang·prefer-gh). 「차단하는 것만」은 block 훅 중 이 저장소에 맞는 것만 켠다 — 이미 있는 훅과 겹침·지금 브랜치 전략이 끄는 것·다른 스택 전용·어느 조합·브랜치 전략도 기본으로 켜지 않는 훅(docs-check·squash-push)은 뺀다.
@@ -157,7 +172,7 @@
 - kubectl 틀: 꺼내는 칸이 모두 metadata·type·kind·apiVersion 아래일 때만(맨 앞 items 는 건너뜀, 점 없는 custom-columns 칸도) 안 묻는다. `{@}`·`{$}`·`{{.}}`·`{{index . "data"}}`·`custom-columns=V:data`·`{..data}` 는 묻는다.
 - kubectl: metadata 는 name·namespace·labels·creationTimestamp·uid·resourceVersion 만 안전 — annotations 의 `kubectl.kubernetes.io/last-applied-configuration` 에 data 가 통째로 들고 `{.metadata}` 는 그것까지 찍는다. 종류 쓰는 법 `secret.v1`·`secrets.v1.`·`secrets.v1/이름`, `kubectl get --raw` 경로에 `/secrets` 가 들면 비밀값 명령.
 - 남은 놓침(헛물음보다 낫다고 둠): `if …; then`·`for …; do`·`{ …; }` 안의 비밀값 명령은 보지 않는다(앞 낱말을 벗기면 `done > f`·`} > f` 넘겨쓰기도 따라가야 해서 이번엔 안 함). PowerShell `$s.Length` 같은 속성 읽기는 물음으로 둔다(드묾).
-- 어디서: `hooks/lib/secret-read.mjs`·`secret-sink.mjs`·`secret-stage.mjs`, 시험 `hooks/test/strict-cases/infra.mjs`·`infra-review.mjs`·`infra-review2.mjs`·`infra-review3.mjs`(strict.test.mjs 가 이어 붙임)
+- 어디서: `hooks/lib/secret-read.mjs`·`secret-sink.mjs`·`secret-stage.mjs`, 시험 `hooks/test/strict-cases/infra.mjs`·`infra-review.mjs`·`infra-review2.mjs`·`infra-review3.mjs`(strict-run.mjs 가 이어 붙임)
 
 ### 비밀값 꼴 (`hooks/lib/secrets.mjs`, 역할극 2~14 회차와 검토, 2026-11-11~13)
 - 비밀값 꼴: Slack 앱 토큰(xapp-)·설정 토큰(xoxe-), Voyage 키(pa- 뒤 대문자·숫자가 섞인 32~64자 — 소문자 낱말 이음은 아님), wandb.login(key=…) 의 40자리 키, os.environ["X_API_KEY"] = "…" 처럼 [" "] 안의 이름. `hooks/lib/secrets.mjs`.
@@ -171,7 +186,7 @@
 - 키 파일 이름에 .provisionprofile(16 회차). .cer·.certSigningRequest 는 넣지 않는다 — 공개 인증서·요청이라 SSL 고정용 .cer 커밋까지 막았다(독립 검토 2026-11-13). 16 회차의 무시 목록 .cer 를 add -f 한 커밋은 아래 「무시 파일 새로 넣기」 검사가 막는다.
 - 미리 거르는 조각(MAY_HIT)에 띄어쓰기 묶음 둘을 바로 잇지 않는다: `[ \t]*:?=?[ \t]*` 가 「aKey」+ 띄어쓰기 30만 자에 84초(훅 시간 15초를 넘겨 뒤의 진짜 토큰이 지나갔다 — git 훅도 같은 검사). 둘 사이에 `:`·`=` 가 있어야 둘째 묶음을 본다. 7c9e4f8·ab1a918 이 더한 다른 정규식은 묶음 사이에 꼭 있는 글자가 있거나 길이를 묶어 같은 꼴이 없다. review4.test.mjs 가 30만 자 200ms 안을 본다.
 - 새 터짐 시험(`python -m a.a.a…` 100KB)이 password-cli 의 주소 속 비밀번호 정규식 제곱 시간(11초)을 드러냈다 — 시작을 `\b` 대신 스킴 글자가 이어지는 첫 자리로(뒤보기) 바꿔 고쳤다(뜻은 같다).
-- 어디서: `hooks/lib/git-writes.mjs`(isRef·wideSpec·askGit·wideTouched), `hooks/rules/shell.mjs` protectedShell, `hooks/rules/migration.mjs`(folderFromCommit), `hooks/lib/ask-match.mjs` dryMarked, `hooks/lib/secrets.mjs` upperAssigned·labelValue, 시험 `hooks/test/strict-cases/followup.mjs`(strict.test.mjs 가 같은 훅 사례에 이어 붙임)·`write.mjs`, `hooks/test/review4.test.mjs`, `hooks/test/crash-cases.mjs`
+- 어디서: `hooks/lib/git-writes.mjs`(isRef·wideSpec·askGit·wideTouched), `hooks/rules/shell.mjs` protectedShell, `hooks/rules/migration.mjs`(folderFromCommit), `hooks/lib/ask-match.mjs` dryMarked, `hooks/lib/secrets.mjs` upperAssigned·labelValue, 시험 `hooks/test/strict-cases/followup.mjs`(strict-run.mjs 가 같은 훅 사례에 이어 붙임)·`write.mjs`, `hooks/test/review4.test.mjs`, `hooks/test/crash-cases.mjs`
 
 ### 파일 보호 protected-files (역할극 2~4·8·11·15 회차와 검토, 2026-11-11~12)
 - protected-files 는 셸로 바꾸거나 지우는 것도 막는다(> · >> · tee · sed -i · cp·mv 받는 쪽 · mv·rm·truncate · PowerShell Set-Content·Remove-Item 등, `hooks/lib/shell-writes.mjs`). 변수로 정한 경로는 못 본다. 사용자가 적은 경로는 앞 `./`·뒤 `/`·`\` 를 고르게 맞추고 경로 낱말 단위로 본다(`data` 는 `metadata.py` 를 막지 않음, `.hdf5` 처럼 점으로 시작하면 확장자). 역할극 2·3·4 회차(2026-11-11). 독립 검토(2026-11-11)로 고친 것: 따옴표 친 넘겨쓰기 대상, PowerShell 스위치(-Force·-Recurse) 뒤 경로, Copy-Item·Move-Item 의 둘째 위치 인자, 보호 경로를 품은 폴더 지우기. `cp .env.example .env` 는 .env 가 아직 없거나 `cp -n` 이면 허용(값을 쓰지 않는 첫 설정) — 이미 있으면 막는다(gitignore 된 진짜 값을 되살릴 수 없어서). 두 번째 검토: 경로는 프로젝트 맨 위 기준으로 맞춘다(절대 경로·cd 뒤 ../·끝 /* 글롭). 폴더째 지우기는 맨 위 기준 앞부분이 같을 때만(이름만 같은 다른 raw/ 는 아님). PowerShell 공통 매개변수(-ErrorAction 등)의 값, cp -t, ni 별칭. 「덮어쓰기」 문구는 받는 파일이 있을 때만. 옵션 목록은 항목마다 거르고(한 줄이 틀렸다고 전부 버리지 않음) 경로의 \ 는 / 로, 한글 경로도 받는다. 끝이 / 인 폴더 꼴(data/)은 프로젝트 맨 위 기준이다(소스 폴더 pick_policy/data/ 까지 막던 일 — 역할극 3 회차 2차). 사용자가 보호한 경로는 비밀값 안내(.gitignore 에 넣으라) 대신 「사용자에게 물어보라」고 알린다.
@@ -310,6 +325,25 @@
 - 알아 둘 점: 세션마다 브랜치마다 처음 커밋·푸시 때 한 줄(토큰 조금).
 - 어디서: `hooks/rules/flow.mjs`(branchAge·measure·oldestOf), `hooks/lib/stamp.mjs`, 문구 `branchAge.*`, 시험 `hooks/test/strict-cases/flow.mjs`·`hooks/test/flow-hooks.test.mjs`, 겹침 시험은 `setup.daysAgo`(그 커밋을 며칠 전 것으로 — `scripts/lib/probe-run.mjs`)
 - 문구: 이름 뒤에 바로 붙으면 끝소리에 따라 틀리는 조사(「main 를」·「develop 를」)를 쓰지 않는다 — 「이 브랜치(`{source}`)를」·「트렁크({trunk})의」처럼 앞 낱말에 조사를 붙인다. 시험 `flow-hooks.test.mjs` 가 mergeFlow·branchAge 문구를 본다.
+- 2026-11-23: Git Flow 에서도 켠다(기본 72시간·50커밋 — feature 는 트렁크 기반보다 오래 산다). feature·bugfix·release 는 develop 과 견준다 — main 과 견주면 아직 배포 안 한 develop 커밋까지 이 브랜치 나이로 셌다. hotfix·모르는 이름은 main. develop 이 없으면 main. 문구는 「트렁크 기반에서는」을 빼고 「오래 살수록 합칠 때 충돌이 커져요」로.
+
+### PR·MR 은 사람이 병합 self-merge, 보호 설정 바꾸기는 묻기 protect-rules (사용자 요청, 2026-11-23)
+- 계기(2026-11-21, GitLab 팀 저장소, Git Flow·팀 조합): Claude 가 MR !1~!5 를 같은 계정으로 열고 병합했다(!5 는 REST `PUT …/merge_requests/5/merge`) — 팀원 검토 0번. pr-merge 는 `gh pr merge` 의 방식만 보고 병합 자체·GitLab 은 보지 않았다. 승인 규칙·보호 브랜치를 API 로 바꾸는 것도 그대로 통과했다.
+- 결정 self-merge(막음): GitHub `gh pr merge`(--auto 포함, --disable-auto 는 통과)·`gh pr review --approve`·`gh api` PUT …/pulls/N/merge·리뷰 승인·GraphQL mergePullRequest·enablePullRequestAutoMerge, GitLab `glab mr merge|accept|approve`·`glab api` …/merge_requests/N/merge|approve|merge_when_pipeline_succeeds·GraphQL mergeRequestAccept·mergeRequestSetAutoMerge·`git push -o merge_request.merge_when_pipeline_succeeds|auto_merge`, 같은 주소로 가는 curl·wget·httpie·Invoke-RestMethod(GET 은 통과). 풀어 주는 환경 변수는 두지 않는다(사용자 결정 「무조건 MR 만 올리는 식으로」) — 사람이 직접 누르거나 훅을 끈다.
+- 결정 protect-rules(물음): GET 이 아닌 호출이 GitHub …/branches/<b>/protection(아래 포함)·rulesets, GitLab projects·groups/<id>/protected_branches·protected_tags·approval_rules·approvals·merge_request_approval_setting·push_rule 로 갈 때. 막지 않고 묻는다 — 사용자가 시킨 보호 강화(승인 규칙 걸기)도 같은 주소라서.
+- 켜는 곳: self-merge 는 GitHub Flow·Git Flow(PR·MR 로 합치는 방식). 트렁크·정하지 않음은 끈다 — 혼자 쓰는 저장소는 main 직접 push·스스로 병합이 정상이다. protect-rules 는 보호 브랜치를 쓰는 세 방식. pr-merge 는 그대로 둔다(self-merge 를 끄고 Claude 에게 병합을 맡기는 팀의 병합 방식).
+- 읽는 법: 명령 낱말로만 본다(cmdline commandSegments — 따옴표 속·heredoc 본문은 낱말이 아니다). 글자만 보던 임시 전역 훅은 커밋 메시지·문서에 그 글이 들면 헛막았다. GraphQL 본문은 그 호출 조각의 글에서, 표준 입력(@-·--input -)이면 명령 전체에서, mutation 낱말이 있을 때만 찾는다(`git log --grep=<변경 이름>` 에 걸리지 않게). 방법을 안 적은 gh api·glab api 는 GET, 필드(-f·-F·--input)가 있으면 POST(두 CLI 와 같다). curl 은 몸(-d·--json·-F·-T)이 있으면 POST.
+- 못 막는 것: 스크립트 파일 안의 호출(node merge.mjs), 웹 화면의 병합 버튼 — 서버 설정이 막아야 한다. GitLab Free 는 필요한 승인 수를 강제하지 못하므로 setup 이 요금제를 읽어 대신할 장치를 알린다(decisions-recommend.md).
+- 독립 검토 반영(2026-11-23): ① Git Flow 는 보호 브랜치 훅이 바로 올리기를 막지 않아 「로컬에서 합치고 develop·main 으로 push」로 그대로 비켜 갔다 → self-merge 가 보호 브랜치(보호 브랜치 훅의 목록, 없으면 main·master·develop)로 바로 올리는 push 도 막는다(태그만·원격에 아직 없는 브랜치 만들기는 통과). 로컬에서 release·hotfix 를 합쳐 올리는 전통 Git Flow 도 막히므로 downside 에 적었다. ② 주소를 변수로 만든 호출("$API/projects/$ID/merge_requests/$IID/merge"·`repos/$REPO/pulls/$PR/merge`)·scheme 없는 주소를 놓쳤다 → 경로는 끝부분만 보고(번호 자리는 아무 마디), HTTP 도구는 값 받는 옵션의 값을 건너뛴 / 든 낱말을 모두 주소로 본다. ③ env·sudo·timeout·xargs 앞붙이 → run-prefix runWords. ④ curl -sXPUT 묶음·-G(GET)·-I(HEAD), httpie 옵션 뒤 방법, PowerShell 5.1 의 curl·wget 별칭(-Method·-Uri), `gh pr -R o/r merge`, --help 는 통과. ⑤ PR 없는 서버 병합(…/merges)·병합 열차, MR 하나의 승인 규칙·필요 승인 수(protect-rules). ⑥ 따옴표 속 APPROVE 글·주석·다른 조각의 heredoc 으로 막던 것 → 리뷰 승인은 event=APPROVE 필드(또는 그 호출 본문의 event: APPROVE)만, GraphQL 은 주석을 뺀 그 호출 글과 그 호출의 heredoc 본문만. ⑦ CLAUDE.md 줄 「PR·MR 은 열고 멈춘다」는 훅이 켜져 있을 때 넣는다({{hook:self-merge}}, GitHub Flow·Git Flow 지침) — 훅이 못 보는 길(스크립트 파일)도 모델이 시도하지 않게. 훅을 끈 저장소(혼자 쓰는 저장소)는 Claude 가 병합해도 되므로 빠진다.
+- 어디서: `hooks/rules/review.mjs`, 문구 `selfMerge.*`·`protectRules.ask`, 시험 `hooks/test/strict-cases/review.mjs`, 겹침 시험 `catalog/probes.json`
+
+### Git Flow 되돌려 합치기 알림 back-merge (사용자 요청, 2026-11-23)
+- 결정: 새 훅(kind notice, Git Flow 에서만). `git push` 때 main(로컬·origin) 에 있고 develop(로컬·origin) 어디에도 없는 커밋(병합 커밋 빼고)이 있으면 그 수와 확인·되돌려 합치는 법을 한 줄. hotfix 를 main 에만 합쳐 다음 배포에서 그 수정이 사라지는 일, release 뒤 develop 되합치기 누락을 잡는다.
+- git 한 번(`rev-list --count --no-merges <main들> ^<develop들>`, 1.5초 한도). 한 세션에서 main·develop 끝 커밋(ref 파일로 읽음 — repo-files refValue)이 그대로면 git 을 부르지 않는다. develop 이 없으면(main 하나로 쓰는 GitOps 저장소) 보지 않는다.
+- 한계: release 를 main 에 squash·rebase 로 합치는 저장소는 그 커밋이 develop 에 영영 없어 늘 알린다 — 끄면 된다(downside 에 적음). 실행 전 판정이라 `git merge main && git push` 처럼 그 명령 안에서 되합치는 중에도 알린다(알림뿐).
+- 독립 검토 반영(2026-11-23): 시간 초과도 「봤음」으로 적는다(branch-age 와 같게). 알림의 확인 명령은 센 것과 같은 ref 들로(`git log --no-merges main origin/main ^develop ^origin/develop` — 로컬 main 을 안 받아 와 origin 에만 있는 커밋도 보이게). branch-age 는 Git Flow 훅(merge-flow·back-merge)이 켜졌을 때만 feature 를 develop 과 견준다 — 보호 브랜치 목록이 없으면 flowNames 가 develop 을 기본으로 주어 트렁크 저장소의 옛 develop 과 견줬다. 알림 훅 git 한도는 시험만 HARNESS_FIT_NOTICE_GIT_MS 로 늘린다(전체 시험이 CPU 를 다 쓰면 흔들렸다).
+- 함께 넣은 규칙 줄(rules/git-flow·github-flow·collab): PR·MR 은 열고 멈춘다(훅이 켜졌을 때), release·hotfix 를 main 에 합치면 develop 에도 바로 되돌려 합친다, main 하나로 쓰는 저장소는 develop 없이 PR·MR, push·PR 전에 올라갈 커밋이 이번 작업의 것뿐인지(다른 세션 커밋 섞임), 병합된 PR·MR 되돌리기도 revert 커밋을 PR·MR 로. 다른 세션 커밋은 커밋에 세션 표시가 없어 훅으로 가를 수 없다.
+- 어디서: `hooks/rules/flow.mjs`(backMerge), `hooks/lib/repo-files.mjs`(refValue), 문구 `backMerge.missing`, 시험 `hooks/test/strict-cases/flow.mjs`, 겹침 시험은 `setup.branches`·`setup.on`(`scripts/lib/probe-run.mjs`)
 
 ## 이미 있는 훅과의 겹침
 
@@ -331,6 +365,8 @@
 - 팀원 공유면 목록에서 못 찾은 이름(Claude 가 --similar 로 짚은 이 PC 의 스킬)도 겹침으로 치지 않는다. `picker/dup.js`.
 
 ## 바뀐 이력
+- 2026-11-23: 사용자 요청(GitLab MR 스스로 병합 사고) — self-merge(PR·MR 병합·승인 막기, GitHub·GitLab 전 경로)·protect-rules(보호 설정 바꾸기 묻기)·back-merge(develop 되돌려 합치기 알림), branch-age 를 Git Flow 에서도(feature 는 develop 과 견줌).
+- 2026-11-23: 호출이 닿는 저장소의 설정도 본다 — 설정 없는 cwd 에서 `cd 저장소 &&`·`git -C`·파일 경로로 설정 있는 저장소를 만지면 그 설정으로, cwd 설정이 있으면 늘 그대로 보고 대상 설정을 더한다(독립 검토 회귀로 「대신」에서 바꿈), 대상은 저장소 맨 위·작업 폴더 설정만·16개까지, commandCwd 의 따옴표 밖 `git -C`·`-C` 여러 번·Git Bash 경로·줄바꿈·-LiteralPath.
 - 2026-11-19: 사용자 요청 — 작업 폴더: 저장소 안 cwd 에서도 바로 위 작업 폴더 설정(workspace 표시가 있을 때만), 보호 경로 git add·migration-edit 이 작업 폴더에서도 돈다.
 - 2026-11-17: merge-flow·branch-age 독립 검토 — branch-age 는 세션마다 브랜치마다 한 번(표시 파일), git 두 번(rev-list --count · log --format=%at)으로 바꾸고 로컬·origin 트렁크를 함께 견줌, 조사 안 틀리는 문구. merge-flow 는 보호 목록의 배포 꼴이 아닌 이름을 통합 브랜치로(develop 을 채워 넣지 않음), 윈도 대소문자, 같은 이름 태그는 통과, git 을 부르는 때와 하지 않는 것 바로잡음.
 - 2026-11-17: 새 훅 둘 — Git Flow 합치기 방향(merge-flow, 막음, Git Flow 에서만)과 오래 산 브랜치 알림(branch-age, 알림, 트렁크 기반에서만). git() 에 timeout 칸, 모든 훅 켠 커밋·push 의 git 한도 하나씩 올림.

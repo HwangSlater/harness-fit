@@ -5,3 +5,4 @@
 - One feature per PR (split it at roughly 400 lines). {{judge}}
 - Squash-merge, then delete the merged branch. {{!hook:pr-merge}}
 - When finishing work, open a PR (an MR on GitLab) instead of merging locally. {{skill:finishing-a-development-branch}}
+- Open the PR/MR and stop. Teammates review, approve and merge — Claude does not merge, approve or schedule auto-merges, nor merge locally and push straight to a protected branch. {{hook:self-merge}}

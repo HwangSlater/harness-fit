@@ -1,6 +1,6 @@
 // v0.4.1 — 역할극 13·15·16 회차에서 미룬 훅 쪽 고칠 점(2026-11-16): 인프라 안전장치 끄기 묻기(iac-edit),
 // 비밀 파일 읽기 묻기(protected-files askRead), "use client" 의 비공개 환경 변수 알림(unsafe-html), 키체인 비밀번호 찍기 묻기(ask-cmd).
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { S, B, P, W, E, R, M, keyed, FAKE } from './helpers.mjs';
 
 const ask = (extra = {}) => ({ decision: 'ask', ...extra });

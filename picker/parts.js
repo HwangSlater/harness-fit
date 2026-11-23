@@ -75,6 +75,9 @@ export const flash = ({ title, desc, act, cls = '', role = 'note' }) =>
 // 카탈로그 글의 `…` 를 <code> 로(글자는 그대로 textContent). 백틱을 글자로 보이지 않게 — 화면의 다른 명령·경로와 같은 꼴
 export const withCode = (text) => String(text ?? '').split(/`([^`]+)`/).map((x, i) => (i % 2 ? h('code', {}, x) : x));
 
+// 굵은 제목 + 글머리 목록(확인 단계 「이 순서로 진행돼요」·GitLab 「대신 이렇게 지켜요」). ordered 면 번호 목록
+export const noteList = ({ title, items, ordered = false }) =>
+  h('div.note-list', {}, h('b', {}, title), h(ordered ? 'ol' : 'ul', {}, items.map((x) => h('li', {}, withCode(x)))));
 export const label = (text, cls = '') => h(`span.label${cls}`, {}, text);
 export const onCount = (t, on, all) => t('onCount', { on, all });
 export const link = (key, text, onClick, extra = {}) => h('button.link', { type: 'button', 'data-key': key, on: { click: onClick }, ...extra }, text);

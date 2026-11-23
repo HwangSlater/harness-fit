@@ -130,11 +130,14 @@ test('브랜치 방식이 훅을 켜고 끈다', async () => {
   const { applyFlow } = await import('../lib/catalog.mjs');
   const sel = { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'branch-name'] };
   assert.deepEqual(applyFlow(all, { ...sel }, 'none').hooks, ['secrets']);
-  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['branch-age', 'protect-branch', 'secrets']);
-  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['branch-name', 'merge-flow', 'protect-branch', 'secrets']);
-  // 전략을 바꾸면 앞 전략만의 훅은 꺼진다(트렁크 → Git Flow: 오래 산 브랜치 알림 대신 합치기 방향)
+  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['branch-age', 'protect-branch', 'protect-rules', 'secrets']);
+  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['back-merge', 'branch-age', 'branch-name', 'merge-flow', 'protect-branch', 'protect-rules', 'secrets', 'self-merge']);
+  // 전략을 바꾸면 앞 전략만의 훅은 꺼진다(GitHub Flow → 트렁크: PR 병합은 사람이·PR 병합 방식 대신 오래 산 브랜치 알림)
+  const fromGithub = applyFlow(all, { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'pr-merge', 'self-merge'] }, 'trunk').hooks;
+  assert.ok(fromGithub.includes('branch-age') && !fromGithub.includes('self-merge') && !fromGithub.includes('pr-merge'), fromGithub.join(','));
+  // Git Flow 는 오래 산 브랜치 알림도 켠다(feature 는 develop 과 견줌 — 2026-11-23)
   const fromTrunk = applyFlow(all, { flow: 'trunk', hooks: ['secrets', 'protect-branch', 'branch-age'] }, 'git-flow').hooks;
-  assert.ok(fromTrunk.includes('merge-flow') && !fromTrunk.includes('branch-age'), fromTrunk.join(','));
+  assert.ok(fromTrunk.includes('merge-flow') && fromTrunk.includes('branch-age') && fromTrunk.includes('back-merge'), fromTrunk.join(','));
 });
 
 test('팀원 설치 안내: 기존 설정은 두고 두 항목만 더한다', async () => {

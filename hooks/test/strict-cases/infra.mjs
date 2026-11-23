@@ -1,5 +1,5 @@
 // 역할극 15 회차(인프라 저장소, 2026-11-12)에서 나온 꼴: 보호 경로 글롭(* · **), Argo CD·Vault·terraform force-unlock, 비밀값을 찍는 명령.
-// strict.test.mjs 가 followup.mjs 처럼 같은 훅의 사례에 이어 붙인다. 사례마다 opts 를 따로 준다.
+// strict-run.mjs 가 followup.mjs 처럼 같은 훅의 사례에 이어 붙인다. 사례마다 opts 를 따로 준다.
 import { S, B, P, W, E, keyed } from './helpers.mjs';
 
 const INFRA = { paths: ['*.tfstate*', 'kubeconfig*', '*.tfplan', '.terraform/', '.vault_pass*', 'infra/**/*.tfvars', 'secrets/*.json'] };

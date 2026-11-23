@@ -1,6 +1,7 @@
 // PreToolUse 판정. 프로젝트 .claude/harness.json 의 rules 에서 켜진 규칙만 돌린다.
 // rules 값: true(기본 옵션으로 켬) · false(끔) · { ...옵션 }(켬).
 // 규칙 모듈은 도구 종류(셸·쓰기·웹)에 켠 id 가 있는 것만 불러온다(모두 부르면 호출마다 70ms 쯤 — 2026-11-09 측정).
+import path from 'node:path';
 import { commandCwd, repoRoot, repoState, shellOf } from './core.mjs';
 import { innerCommands } from './cmdline.mjs';
 import { allowReport, allowNotice } from './allow.mjs';
@@ -19,7 +20,8 @@ export const RULE_MODULES = [
   { on: 'shell', ids: ['git-add-all', 'protect-branch', 'commit-msg', 'branch-name', 'no-verify'], load: () => import('../rules/git.mjs') },
   { on: 'shell', ids: ['squash-push'], load: () => import('../rules/push.mjs') },
   { on: 'shell', ids: ['no-rewrite-pushed', 'pr-merge'], load: () => import('../rules/history.mjs') },
-  { on: 'shell', ids: ['merge-flow', 'branch-age'], load: () => import('../rules/flow.mjs') },
+  { on: 'shell', ids: ['merge-flow', 'branch-age', 'back-merge'], load: () => import('../rules/flow.mjs') },
+  { on: 'shell', ids: ['self-merge', 'protect-rules'], load: () => import('../rules/review.mjs') },
   { on: 'shell', ids: ['secrets', 'protected-files', 'file-size', 'unsafe-html', 'pin-deps', 'gha-inject', 'swift-unsafe', 'python-unsafe'], load: () => import('../rules/commit.mjs') },
   { on: 'fetch', ids: ['prefer-gh'], load: () => import('../rules/web.mjs') },
   { on: 'read', ids: ['protected-files'], load: () => import('../rules/files.mjs') },
@@ -44,7 +46,9 @@ export const loadRules = async (on, cfg = null) => {
 // hints: 막지 않고 Claude 에게 건넬 글(notice 규칙 — prefer-gh). 부른 쪽이 additionalContext 로 낸다.
 // asks: 실행 전에 사용자에게 물을 까닭(ask 규칙 — ask-cmd). 막는 글이 없을 때 부른 쪽이 permissionDecision ask 로 낸다.
 // rules: loadRules(on, cfg) 결과. t: 문구.
-export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints = [], asks = []) => {
+// scope: lib/target-config.mjs configsFor 가 준 것 — { only, commands }. only: 이 설정으로 볼 조각의 닿는 폴더(Set, null 이면 모든 조각),
+//   commands: 이미 나눈 명령 조각 [{ cmd, shell, dir }](null 이면 여기서 나눈다 — 같은 명령을 두 번 나누지 않게).
+export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints = [], asks = [], scope = null) => {
   if (!rules.some((r) => cfg.rules[r.id])) return [];
   const cwd = input.cwd || process.cwd();
   const command = input.tool_input?.command;
@@ -52,7 +56,8 @@ export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints =
   // 따옴표·이스케이프를 읽는 방법이 셸마다 다르다(bash ↔ PowerShell). 규칙은 이 값으로 명령을 읽는다.
   // `bash -c "…"`·`pwsh -Command "…"` 처럼 따옴표 속 글을 실행하는 꼴은 그 안쪽 명령도 따로 본다.
   const shell = shellOf(input.tool_name || '');
-  const commands = on === 'shell' ? [{ cmd: outer, shell }, ...innerCommands(outer, shell)] : [{ cmd: '', shell }];
+  const only = scope?.only || null;
+  const commands = on !== 'shell' ? [{ cmd: '', shell }] : scope?.commands || [{ cmd: outer, shell }, ...innerCommands(outer, shell)];
 
   const out = new Set();
   const allows = allowReport(); // 규칙들이 허용 주석으로 넘긴 줄을 여기에 적는다
@@ -60,8 +65,9 @@ export const judge = (input, cfg, on, rules, t, errors = [], notes = [], hints =
   // 맨 위는 .git 을 파일로 찾고(git 0번), 브랜치·HEAD 는 그것이 필요한 조각(commit·push…)이 있는 규칙이 처음 물을 때 구한다.
   const roots = new Map();
   const repos = new Map();
-  for (const { cmd, shell: sh } of commands) {
-    const cmdCwd = on === 'shell' ? commandCwd(cmd, cwd) : cwd;
+  for (const { cmd, shell: sh, dir } of commands) {
+    const cmdCwd = on === 'shell' ? dir || commandCwd(cmd, cwd) : cwd;
+    if (only && !only.has(path.resolve(cmdCwd))) continue; // 이 설정이 보지 않는 조각
     const mentionsGit = on === 'shell' && /\bgit\b/.test(cmd);
     if (mentionsGit && !roots.has(cmdCwd)) roots.set(cmdCwd, repoRoot(cmdCwd));
     const root = mentionsGit ? roots.get(cmdCwd) : null;

@@ -20,6 +20,7 @@ import { ruleTexts, ruleDropped } from './lib/claude-md.mjs';
 import { pluginActive } from './lib/installed.mjs';
 import { currentListing } from './lib/skill-budget.mjs';
 import { offerAll } from './lib/github-settings.mjs';
+import { gitlabPlans, gitlabRelevant } from './lib/gitlab-settings.mjs';
 import { readStatic } from './lib/static.mjs';
 import { SHARED_KINDS } from '../picker/team.js';
 import { uncommittedShared } from './lib/shared-files.mjs';
@@ -52,6 +53,11 @@ const rel = (p) => path.relative(root, p).split(path.sep).join('/');
 let progress = null; // 적용하는 동안 { done, total, current }
 let applying = false;
 let githubOffer = null; // GET /api/github 의 답(약속)
+// GitLab 저장소면 같은 답에 요금제(gitlab — lib/gitlab-settings.mjs)를 얹는다. 화면이 확인 단계에서 한 번 묻고, 적용 결과에도 같은 것을 싣는다
+const hostOffer = () => Promise.all([
+  offerAll(root, all.packs.flows).catch(() => ({ offered: false, reason: 'error' })),
+  gitlabPlans(root, ctx.det, all.packs).catch(() => null),
+]).then(([gh, gitlab]) => (gitlab ? { ...gh, gitlab } : gh));
 
 const readBody = (req) =>
   new Promise((resolve, reject) => {
@@ -106,7 +112,7 @@ const routes = {
   'GET /api/fresh': () => fresh(),
   // GitHub 저장소 설정을 켤 수 있는지 + 브랜치 방식마다 바뀔 값(현재 → 새 값). gh 를 몇 번 부르므로 처음 한 번만 읽는다.
   // ?refresh=1 은 「다시 확인」(오프라인·로그인 전이었을 때).
-  'GET /api/github': (url) => (url.searchParams.get('refresh') && (githubOffer = null), githubOffer ||=offerAll(root, all.packs.flows).catch(() => ({ offered: false, reason: 'error' }))),
+  'GET /api/github': (url) => (url.searchParams.get('refresh') && (githubOffer = null), githubOffer ||= hostOffer()),
   'GET /api/progress': () => progress || {},
   // 「원문 보기」: 카탈로그에 있는 스킬만, 고정 커밋의 SKILL.md 글.
   'GET /api/skill': async (url) => {
@@ -118,10 +124,10 @@ const routes = {
   'POST /api/preview': async (url, req) => {
     const sel = cleanSelection(ctx, await readBody(req), lang);
     const active = pluginActive(root);
-    const { changes, manual, warnings, skipped, keptSkills, gitHookCmd, skillBudget } = plan(root, sel, all, { active, listing: listingNow() });
+    const { changes, manual, warnings, skipped, keptSkills, gitHookCmd, skillBudget, userScopeCmd } = plan(root, sel, all, { active, listing: listingNow() });
     // 지침 글은 적용과 같은 기준으로(plan.mjs mdSelection)
     const mdSel = mdSelection(sel, active);
-    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, removedSkill: c.removedSkill, path: rel(c.path) })), uncommittedShared: uncommittedShared(root, sel.skills), manual, warnings, skipped, keptSkills, gitHookCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
+    return { changes: changes.map((c) => ({ action: c.action, kind: c.kind, skill: c.skill, removedSkill: c.removedSkill, path: rel(c.path) })), uncommittedShared: uncommittedShared(root, sel.skills), manual, warnings, skipped, keptSkills, gitHookCmd, userScopeCmd, skillBudget, ruleTexts: ruleTexts(mdSel), ruleDropped: ruleDropped(mdSel) };
   },
   'POST /api/apply': async (url, req) => {
     // 적용은 한 번에 하나만(두 번 눌리면 같은 임시 폴더를 두고 다투고 결과가 두 번 나간다).
@@ -133,7 +139,10 @@ const routes = {
       const sel = cleanSelection(ctx, await readBody(req), lang);
       const teammates = teammatesOf(sel);
       const result = await apply(root, sel, (p) => (progress = p), { listing: listingNow() });
-      return reply(200, result, () => finish({ status: 'applied', root, selection: sel, ...result, ...(teammates ? { teammates } : {}) }));
+      // GitLab 요금제 알림(화면이 이미 물었으면 그 답, 아니면 지금 한 번 — 짧은 시간 한도). Claude 가 보고에 옮긴다(SKILL.md)
+      const gitlab = githubOffer ? (await githubOffer)?.gitlab : await gitlabPlans(root, ctx.det, all.packs).catch(() => null);
+      const gl = gitlabRelevant(gitlab, sel) ? { gitlab } : {};
+      return reply(200, result, () => finish({ status: 'applied', root, selection: sel, ...result, ...gl, ...(teammates ? { teammates } : {}) }));
     } catch (e) {
       // 화면이 되돌리기를 권할지 가르도록 알린다: partial 이 아니면 apply-run 이 스스로 되돌렸다(바뀐 것 없음).
       // 그때 되돌리기를 권하면 지난 적용까지 지워진다(검토 2026-11-13 — 명령줄 SKILL.md 와 같은 기준)

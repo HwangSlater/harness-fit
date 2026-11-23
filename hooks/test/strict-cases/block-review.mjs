@@ -1,6 +1,6 @@
 // 역할극 13·14·15 회차 판정(2026-11-13)에서 나온 훅 쪽 고칠 점: ask-cmd 의 막기(block), 읽기 kubectl·helm 은 묻지 않기,
 // make 변수=값, 운영 마디가 든 글자 주소로 가는 goose, vercel alias(set 없는 꼴), GitLab 저장소의 MR 글, 낙타 이름 …Key := 무작위 값.
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다. c.decision 은 결정 꼴(deny·ask), c.reason 은 글을 본다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다. c.decision 은 결정 꼴(deny·ask), c.reason 은 글을 본다.
 import fs from 'node:fs';
 import { S, B, W, keyed, onBranch, both } from './helpers.mjs';
 

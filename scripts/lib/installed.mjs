@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { claudeHome, readInstalledPlugins } from '../../hooks/lib/claude-home.mjs';
-import { subdirs } from './paths.mjs';
+import { subdirs, readJson } from './paths.mjs';
 import { parseFrontmatter } from './skill-meta.mjs';
 
 const SELF = 'harness-fit@harness-fit';
@@ -38,6 +38,19 @@ export const pluginActive = (root, home, argv = process.argv) => {
   if (argv.includes(IN_PLUGIN_FLAG)) return true;
   if (process.env.CLAUDE_PLUGIN_ROOT && samePath(process.env.CLAUDE_PLUGIN_ROOT, OWN_ROOT)) return true;
   return installsOf(readInstalledPlugins(home), SELF).some((p) => p.scope === 'user' || (p.projectPath && samePath(p.projectPath, root)));
+};
+
+// harness-fit 이 어느 범위로 깔렸나 → { scope: 'user' } | { scope: 'folder', folders } | null(알 수 없음 — 아무 말도 하지 않는다).
+// project·local 범위로만 깔면 그 폴더에서 연 세션에서만 훅이 돈다. 다른 폴더에서 연 세션이 cd·git -C 로 이 저장소를 건드리면
+// 검사가 없다(2026-11-21 실제 팀 저장소 — 작업 폴더에만 깔려 있었다). 사용자 설정 settings.json 의 enabledPlugins 에 켜 뒀어도 어디서나 돈다.
+// installed_plugins.json 이 없거나 harness-fit 항목이 없으면(--plugin-dir 로 단 개발 중·체험판 사이트의 빈 임시 홈) 알 수 없다 — 헛알림을 내지 않는다.
+export const pluginScope = (home) => {
+  const list = installsOf(readInstalledPlugins(home), SELF);
+  if (!list.length) return null;
+  const userOn = readJson(path.join(claudeHome(home), 'settings.json'))?.enabledPlugins?.[SELF] === true;
+  if (userOn || list.some((p) => p.scope === 'user')) return { scope: 'user' };
+  const folders = [...new Set(list.map((p) => (typeof p.projectPath === 'string' ? p.projectPath : null)).filter(Boolean))];
+  return { scope: 'folder', folders };
 };
 
 // SKILL.md 머리말의 name·description 만 읽는다(본문은 안 읽음 — 문맥에 안 넣으려고). 블록 값(description: >)도 읽는다.

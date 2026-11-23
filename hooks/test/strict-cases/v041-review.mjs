@@ -1,6 +1,6 @@
 // v0.4.1 독립 검토(2026-11-16)에서 찾은 헛물음·놓침: iac-edit 의 heredoc·시험 자리·개발 자리·.tf.json·.tofu·Argo CD apiVersion,
 // protected-files askRead 의 kubeconfig 코드·문서·helm 틀, 공개 인증서 .pem, 시험 자료 키, 셸 넘겨쓰기·bash type·붙여 쓴 <.
-// strict.test.mjs 가 같은 훅 사례에 이어 붙인다.
+// strict-run.mjs 가 같은 훅 사례에 이어 붙인다.
 import { S, B, P, W, R, keyed, FAKE } from './helpers.mjs';
 
 const ask = (extra = {}) => ({ decision: 'ask', ...extra });

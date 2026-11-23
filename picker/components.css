@@ -307,8 +307,10 @@ pre.raw, pre.paths { max-height: var(--pre-max); overflow: auto; margin: var(--s
 .opt > p.err { color: var(--danger); }
 .cg-names.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
 .lrow.gh.fail .main b { color: var(--danger); }
-.steps-ol { margin-top: var(--s4); }
-.steps-ol ol { margin: var(--s1) 0 0; padding-left: var(--s5); color: var(--ink-2); }
+/* 제목 + 글머리 목록(parts.js noteList) */
+.note-list ol, .note-list ul { margin: var(--s1) 0 0; padding-left: var(--s5); color: var(--ink-2); }
+.note-list li + li { margin-top: var(--s1); }
+.qb > .note-list { margin-top: var(--s4); }
 .dlg.sm { width: min(480px, 92vw); }
 .dlg.sm .dlg-b p + p { margin-top: var(--s2); }
 /* 지침 창(md): 설명 · 넣을 줄 · 뺀 줄 */

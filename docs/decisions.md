@@ -1,6 +1,6 @@
 # 결정
 
-> 최종 수정: 2026-11-17 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-23 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 긴 근거·측정값·옛 이름은 archive 의 원문에 있다. 훅 원칙과 훅별 결정은 [decisions-hooks.md](decisions-hooks.md), 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정은 [decisions-recommend.md](decisions-recommend.md) 에 있다.
 
@@ -28,6 +28,7 @@
 - 결정: 영어 id·전문 용어 대신 쉬운 이름을 보인다.
 - 이유: 1차 화면이 「무슨 뜻인지 모르겠다」는 지적을 받았다.
 - 어디서: `catalog/titles.json`
+- 소개 문구(README 첫머리 등)는 처음 쓰는 사람만 겨냥하지 않는다 — 이미 스킬·훅·규칙을 쓰는 사람과 팀도 대상(사용자 지적, 2026-11-17).
 
 ### 스킬·훅마다 쉬운 한 줄과 「알아 둘 점」 (사용자 요청, 2026-11-09)
 - 결정: 스킬 81개 모두 `effect`(무엇이 달라지나, 한 문장)를, 실제 대가가 있을 때만 `downside`(알아 둘 점)를 한·영으로 둔다(76개, 근거 있는 대가가 없는 5개는 비움 — 지어내지 않는다). 훅 23개 모두 `downside`(헛막음·늘어나는 단계·알림 훅의 토큰)를 두고, 넘기는 방법(옵션·`lint:allow`)을 같이 적는다. 기술 낱말만 늘어놓던 훅 `desc` 12개를 풀어 썼다.
@@ -352,8 +353,10 @@
 - 어디서: `Downloads/find-your-skill-시안/`
 
 ## 바뀐 이력
+- v0.7.0 (2026-11-23, https://github.com/HwangSlater/harness-fit/releases/tag/v0.7.0): Git Flow·팀 저장소 보강 — PR·MR 은 사람이 병합(self-merge)·보호 설정 바꾸기 묻기(protect-rules)·develop 되돌려 합치기 알림(back-merge) 훅(32개), 오래 산 브랜치 알림을 Git Flow 에서도, 다른 폴더에서 연 세션도 닿는 저장소의 설정으로 검사, 적용 때 설치 범위·GitLab 요금제로 강제 못 하는 것 알리기, 시험 시간 433초 → 186초.
+- v0.6.0 (2026-11-19, https://github.com/HwangSlater/harness-fit/releases/tag/v0.6.0): 작업 폴더 — 저장소 여럿을 한 폴더에서 열어도 팀 저장소처럼 추천하고 검사한다.
 - v0.5.0 (2026-11-17, https://github.com/HwangSlater/harness-fit/releases/tag/v0.5.0): 끝낼 때 지우기(setup remove), 다시 적용 때 뺀 스킬·git 훅 지우기, 내 규칙과 반대면 묻고 기억하기, 커밋·PR 을 저장소 형식으로, Git Flow 합치기 방향·트렁크 오래 산 브랜치 훅(29개).
-- 2026-11-17: 사용자 결정 — 내 규칙과 반대인 줄·훅은 적용 전에 묻고 고른 쪽만 남김(`--conflicts`, selection.conflicts, 「내 규칙과 반대라 뺐어요」 이름표).
+- 2026-11-17: 사용자 결정 — 내 규칙과 반대인 줄·훅은 적용 전에 묻고 고른 쪽만 남김(`--conflicts`, selection.conflicts, 「내 규칙과 반대라 뺐어요」 이름표). 소개 문구는 처음 쓰는 사람만 겨냥하지 않기(사용자 지적).
 - 2026-11-16: 지우기 검토 — CLAUDE.md 표시는 줄 전체·코드 밖만, 짝이 안 맞으면 손대지 않음, 다른 이름 스킬 복사본·사용자 false·적용 전부터 있던 .gitignore 줄 남기기, 파일 모양 지키기, 방식 겹침·하위 폴더, pre-commit 실행 파일 빼기.
 - 2026-11-16: 프로젝트를 끝낼 때 `setup remove`(백업 없이 우리 것만 빼기, 고친 스킬·남의 훅·연결은 남기고 알림), 다시 적용할 때 고르지 않은 받은 그대로의 스킬과 커밋 훅을 다 끈 뒤의 우리 git 훅 빼기.
 - v0.4.1 (2026-11-16, https://github.com/HwangSlater/harness-fit/releases/tag/v0.4.1): 인프라 안전장치 끄기를 묻는 iac-edit 훅(27개), 비밀 파일 읽기 묻기, use client 비공개 env 알림, pre-commit 프레임워크 저장소 지원, Next.js 지침(18개), Argo CD·sqlc·iOS 마이그레이션 시험 줄, 옵션 설명 한 줄, 검토 네 번.
@@ -361,10 +364,6 @@
 - 2026-11-13: 화면 역할 평가 반영 — 제안 값 「+」 단추, 긴 까닭 목록 「외 N개」, 팀원 「아니요」에도 저장소 보호 경로 유지, 적용 실패 안내를 오류 종류별로.
 버전별 자세한 내용은 GitHub 릴리스(v0.3.0 부터)나 태그 메시지에 있다. 날짜별 옛 이력은 [decisions-archive.md](decisions-archive.md#바뀐-이력).
 
-- v0.1.0 (2026-11-02): 첫 공개. 태그 메시지만.
-- v0.2.0 (2026-11-02): 이름을 harness-fit 로. 태그 메시지만.
-- v0.2.1 (2026-11-02): 스킬·훅·규칙 구분 표시. 태그 메시지만.
-- v0.2.2 (2026-11-02): 빈 저장소 질문, 전체 검토 1~3차 반영. 태그 메시지만.
 - v0.3.0 (2026-11-06): 새 고르기 화면, 훅 23개, git 커밋 전 훅, GitHub 저장소 설정, 용어 통일 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.0)
 - v0.3.1 (2026-11-07): 스킬 목록 예산 경고, CLAUDE.md 지침 손질, 사용자 rules 도 겹침 견주기 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.1)
 - v0.3.2 (2026-11-09, https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.2): 조합 기본값을 저장소에 맞춤, prefer-gh 알림, 확인 단계 알림 한 줄, 스킬·훅 쉬운 한 줄과 알아 둘 점, 지침 창, 겹침 이름표, git 그래프 그림, 훅 한 번 30~60ms 줄임·테스트 나누기, 용어(테스트·코드 검사·한도), README·결정 문서 줄이기.

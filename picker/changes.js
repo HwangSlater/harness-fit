@@ -48,8 +48,8 @@ export function outcomeItems({ S, sel, ui, t }) {
 }
 // 적용은 되지만 약속대로 동작하지 않을 것(apply.mjs plan 의 warnings): [id, 제목 한 줄, 자세한 설명]
 // skill-budget 은 숫자·단추가 있어 따로 그린다(budget-view.js budgetBox)
-// list: 고친 스킬이라 빼지 않은 것(skill-kept-edited — plan.mjs keptSkills)
-export const warningsOf = ({ S, ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).filter((w) => w !== 'skill-budget').map((w) => [w, t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '', list: (ui.preview.keptSkills || []).map((id) => title(S, id)).join(', ') })]);
+// list: 고친 스킬이라 빼지 않은 것(skill-kept-edited — plan.mjs keptSkills) · installCmd: 사용자 범위 설치 명령(plugin-folder-only — plan.mjs userScopeCmd)
+export const warningsOf = ({ S, ui, t }) => (ui.preview && !ui.preview.error ? ui.preview.warnings || [] : []).filter((w) => w !== 'skill-budget').map((w) => [w, t(`warn_${w}`), t(`warn_${w}_d`, { cmd: ui.preview.gitHookCmd || '', installCmd: ui.preview.userScopeCmd || '', list: (ui.preview.keptSkills || []).map((id) => title(S, id)).join(', ') })]);
 
 const SIGN = { create: '+', remove: '-' };
 const removedSkills = (S, p) => p.changes.filter((x) => x.kind === 'skill-remove').map((x) => title(S, x.removedSkill));

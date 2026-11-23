@@ -21,7 +21,7 @@ test('훅마다 시험 입력이 있다', () => {
   for (const h of all.packs.hooks) assert.ok(probes[h.id]?.block?.length && probes[h.id]?.pass?.length, `시험 입력 없음: ${h.id}`);
 });
 
-// 도구 호출 시험만 여기서(Stop 등·저장소 준비가 있는 시험은 hooks/test/strict.test.mjs 가 실제 진입점으로 본다)
+// 도구 호출 시험만 여기서(Stop 등·저장소 준비가 있는 시험은 hooks/test/strict-run.mjs 가 실제 진입점으로 본다)
 test('harness-fit 훅은 시험 입력의 block 을 막고 pass 를 통과시킨다(도구 호출)', () => {
   const dir = makeProbeRepo();
   try {

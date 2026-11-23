@@ -18,7 +18,7 @@ export { PROTECT_KEYS };
 const APPROVALS = [0, 1, 2];
 const MAX_APPROVALS = 6; // GitHub 이 받는 최대값
 // 연결이 안 될 때 gh·git 이 내는 글(오프라인으로 알린다)
-const OFFLINE = /timeout|timed out|could not resolve|no such host|dial tcp|connection refused|network is unreachable|error connecting|ENOTFOUND|ECONNRESET|EAI_AGAIN/i;
+export const OFFLINE = /timeout|timed out|could not resolve|no such host|dial tcp|connection refused|network is unreachable|error connecting|ENOTFOUND|ECONNRESET|EAI_AGAIN/i;
 const REPO_NAME = /^[\w.-]+\/[\w.-]+$/;
 const BRANCH_NAME = /^[\w.-]+(\/[\w.-]+)*$/;
 
@@ -31,16 +31,20 @@ const timeoutMs = () => {
 };
 
 // 기본 실행기. 기다리는 동안 고르기 화면 서버가 멈추지 않게 비동기로 돌린다.
-// HARNESS_FIT_GH: 시험·화면 점검용 가짜 gh(.mjs 면 node 로 실행). 사용자 환경 변수라 따로 권한을 넓히지 않는다.
-export const defaultRunner = (cmd, args, { input } = {}) =>
+// HARNESS_FIT_GH·HARNESS_FIT_GLAB: 시험·화면 점검용 가짜 gh·glab(.mjs 면 node 로 실행). 사용자 환경 변수라 따로 권한을 넓히지 않는다.
+// timeout: 따로 주면 그 값(GitLab 요금제 읽기는 짧게 — gitlab-settings.mjs), 아니면 githubTimeoutMs. env: 덧붙이거나 뺄(undefined) 환경 변수
+const STUB_ENV = { gh: 'HARNESS_FIT_GH', glab: 'HARNESS_FIT_GLAB' };
+export const defaultRunner = (cmd, args, { input, timeout, env } = {}) =>
   new Promise((resolve) => {
-    const stub = cmd === 'gh' ? process.env.HARNESS_FIT_GH : null;
+    const stub = STUB_ENV[cmd] ? process.env[STUB_ENV[cmd]] : null;
     const [bin, argv] = stub ? (/\.m?js$/.test(stub) ? [process.execPath, [stub, ...args]] : [stub, args]) : [cmd, args];
     let out = '';
     let err = '';
     let child;
     try {
-      child = spawn(bin, argv, { windowsHide: true, timeout: timeoutMs(), env: { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1' } });
+      const childEnv = { ...process.env, GH_PROMPT_DISABLED: '1', NO_COLOR: '1', ...env };
+      for (const k of Object.keys(childEnv)) if (childEnv[k] === undefined) delete childEnv[k];
+      child = spawn(bin, argv, { windowsHide: true, timeout: timeout ?? timeoutMs(), env: childEnv });
     } catch (e) {
       return resolve({ code: null, stdout: '', stderr: '', error: e });
     }
