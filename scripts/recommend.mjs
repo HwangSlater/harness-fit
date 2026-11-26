@@ -37,7 +37,7 @@ const autoSelectionOf = (all, det, lang, raw) => {
   const { skills, hooks, rules } = labelsFor(all, { combo: '', flow: '', ...fresh }, lang);
   return {
     previous: true,
-    selection: { ...previous, lang, why, covered, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null, vcs: det.vcs || null },
+    selection: { ...previous, lang, why, covered, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null, vcs: det.vcs || null, host: det.host || null },
     newSince: { ...fresh, labels: { skills, hooks, rules } },
   };
 };

@@ -50,11 +50,9 @@
 "documentation-and-adrs": "Records design decisions as ADRs and public API changes as docs to preserve context",
 "doc-coauthoring": "Co-writes specs, proposals and decision docs through context gathering, drafting and review",
 "humanizer": "Rewrites AI-sounding text using Wikipedia's AI-writing signs (English-focused)",
-"git-workflow-and-versioning": "Sets rules for atomic commits, branches, conflict resolution, splitting messy trees and PRs",
 "using-git-worktrees": "Creates an isolated git worktree before feature work to separate it from the current workspace",
 "finishing-a-development-branch": "After tests pass, picks merge, PR, keep or discard, and cleans up the worktree",
 "pr-writer": "Writes or refreshes PR titles and descriptions that are easy for reviewers to read",
-"iterate-pr": "Revises a PR repeatedly until CI is green and important review comments are resolved",
 "handoff": "Compacts the current conversation into a handoff document for another agent (16 lines)",
 "ci-cd-and-automation": "Sets up CI quality gates, test runners and deployment strategies",
 "shipping-and-launch": "Provides pre-launch checklists, monitoring, staged rollout and rollback plans",
@@ -77,7 +75,5 @@
 "dispatching-parallel-agents": "Splits 2+ independent tasks with no shared state across subagents to run in parallel",
 "context-optimization": "Cuts context budget and token cost via observation masking, cache-friendly prefixes and partitioning",
 "caveman": "Answers in an ultra-terse style that keeps technical content to save output tokens",
-"session-report": "Builds an HTML report of tokens, cache and costly prompts from ~/.claude/projects transcripts",
-"careful": "Warns before destructive Bash/PowerShell commands (rm -rf, DROP, force push) via a built-in hook",
-"git-guardrails": "Installs a PreToolUse hook that blocks push, reset --hard, clean and branch -D"
+"session-report": "Builds an HTML report of tokens, cache and costly prompts from ~/.claude/projects transcripts"
 }

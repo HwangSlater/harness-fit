@@ -1,7 +1,7 @@
 ## Commands in this repo
-- Test: {{cmd:test}} — run it before finishing whenever you changed code. {{judge}}
+- Test: {{cmd:test}} — run tests and lint before finishing whenever you changed code. {{judge}}
 - One test only: {{cmd:testOne|pkg=package}} {{judge}}
-- Lint: {{cmd:lint}} — run it before finishing whenever you changed code. {{judge}}
+- Lint: {{cmd:lint}} {{judge}}
 - Type check: {{cmd:typecheck}} {{judge}}
 - Format: {{cmd:format}} {{judge}}
 - Build: {{cmd:build}} {{judge}}

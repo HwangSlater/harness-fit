@@ -152,13 +152,14 @@ test('구조 지침에서 뻔한 일반론 3줄을 뺐다', () => {
 });
 
 test('뺀 줄: 훅·스킬이 맡거나 이미 CLAUDE.md 에 있는 줄을 이유와 자리와 함께 낸다', () => {
-  const sel = { lang: 'ko', flow: 'none', rules: ['lean', 'security'], hooks: ['pin-deps'], skills: ['caveman'], skipLines: { lean: [1] } };
+  const sel = { lang: 'ko', flow: 'none', rules: ['lean', 'security'], hooks: ['pin-deps'], skills: ['caveman'], skipLines: { security: [1] } };
   const d = ruleDropped(sel);
-  assert.deepEqual(d.lean.map((x) => [x.by, x.who, x.at]), [['existing', [], 1], ['skill', ['caveman'], 1]]);
-  assert.deepEqual(d.security.map((x) => [x.by, x.who]), [['hook', ['pin-deps']]]);
+  // 토큰 아끼기 지침은 이제 한 줄(마지막 점검 2026-11-26 — 「500줄 넘는 파일은 검색부터」를 지움)
+  assert.deepEqual(d.lean.map((x) => [x.by, x.who, x.at]), [['skill', ['caveman'], 1]]);
+  assert.deepEqual(d.security.map((x) => [x.by, x.who]), [['existing', []], ['hook', ['pin-deps']]]);
   const rows = ruleTexts(sel).security.split('\n');
-  assert.ok(d.security[0].at <= rows.length, '자리는 들어간 글의 줄 번호');
-  assert.match(d.security[0].text, /^- /);
+  assert.ok(d.security[1].at <= rows.length, '자리는 들어간 글의 줄 번호');
+  assert.match(d.security[1].text, /^- /);
   // 꺼진 훅 전용 줄이 훅을 꺼서 안 들어가는 것은 「뺀 줄」이 아니다({{hook:id}} 줄)
   assert.equal(ruleDropped({ ...sel, hooks: [], skills: [], skipLines: {} }).security, undefined);
 });
@@ -168,7 +169,7 @@ test('줄을 대신 맡는 훅: rules/*.md 의 {{!hook:id}} 를 지침마다 모
   for (const lang of ['ko', 'en']) {
     const tags = ruleHookTags(lang);
     assert.ok(tags.security.includes('pin-deps'));
-    assert.ok(tags['github-flow'].includes('pr-merge'));
+    assert.ok(tags['github-flow'].includes('self-merge'));
     for (const list of Object.values(tags)) for (const id of list) assert.ok(ids.has(id), id);
   }
   assert.deepEqual(ruleHookTags('ko'), ruleHookTags('en'));
@@ -187,8 +188,8 @@ test('화면 상태: 명령이 없으면 「이 저장소 명령」을 숨기고
 
 test('훅마다 종류(block·notice·ask)가 있고, 알리기만 하는 훅은 notice, 묻는 훅은 ask', () => {
   for (const h of all.packs.hooks) assert.ok(['block', 'notice', 'ask'].includes(h.kind), `${h.id}: kind`);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'ask').map((h) => h.id), ['ask-cmd', 'iac-edit', 'protect-rules']);
-  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['answer-lang', 'back-merge', 'branch-age', 'commit-hash', 'prefer-gh', 'stale-scratch', 'work-checklist']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'ask').map((h) => h.id), ['ask-cmd', 'iac-edit', 'protect-rules', 'ask-publish']);
+  assert.deepEqual(all.packs.hooks.filter((h) => h.kind === 'notice').map((h) => h.id).sort(), ['back-merge', 'branch-age', 'commit-hash', 'prefer-gh', 'work-checklist']);
 });
 
 test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만', () => {
@@ -198,11 +199,12 @@ test('「차단하는 것만」: 막는 훅만, 이 저장소에 맞는 것만',
   const kind = Object.fromEntries(S.hooks.map((h) => [h.id, h.kind]));
   for (const id of on) assert.equal(kind[id], 'block', id);
   for (const id of ['secrets', 'danger-cmd', 'commit-msg', 'python-unsafe']) assert.ok(on.has(id), id);
-  for (const id of ['commit-hash', 'work-checklist', 'answer-lang']) assert.ok(!on.has(id), `알림 훅 ${id}`);
+  for (const id of ['commit-hash', 'work-checklist']) assert.ok(!on.has(id), `알림 훅 ${id}`);
   assert.ok(!on.has('swift-unsafe'), '다른 스택 전용 훅');
-  for (const id of ['squash-push', 'docs-check']) assert.ok(!on.has(id), `어느 조합도 기본으로 켜지 않는 훅 ${id}`);
-  for (const id of ['protect-branch', 'branch-name', 'pr-merge', 'merge-flow', 'branch-age']) assert.ok(!on.has(id), `브랜치 전략 「정하지 않음」이 끄는 ${id}`);
-  assert.ok(blockingHooks(S, { flow: 'github-flow', share: false }).has('pr-merge'));
+  for (const id of ['docs-check']) assert.ok(!on.has(id), `어느 조합도 기본으로 켜지 않는 훅 ${id}`);
+  for (const id of ['protect-branch', 'branch-name', 'self-merge', 'merge-flow', 'branch-age']) assert.ok(!on.has(id), `브랜치 전략 「정하지 않음」이 끄는 ${id}`);
+  // GitHub Flow 는 병합 자체를 막는 「PR·MR 병합은 사람이」를 켜고 PR 병합 방식은 기본에서 뺀다(둘이 함께면 쉬기만 해서 — 2026-11-26)
+  assert.ok(blockingHooks(S, { flow: 'github-flow', share: false }).has('self-merge'));
   // Git Flow 합치기 방향은 막는 훅, 트렁크의 오래 산 브랜치 알림은 알림 훅이라 「차단하는 것만」에 들지 않는다
   assert.ok(blockingHooks(S, { flow: 'git-flow', share: false }).has('merge-flow'));
   assert.ok(!blockingHooks(S, { flow: 'trunk', share: false }).has('branch-age'));

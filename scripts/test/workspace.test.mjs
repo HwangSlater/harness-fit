@@ -152,7 +152,7 @@ test('추천: 팀 Git Flow 저장소처럼 — GitLab 이라 GitHub 전용 훅�
   assert.equal(sel.combo, 'team');
   assert.equal(sel.flow, 'git-flow');
   for (const id of ['protect-branch', 'branch-name', 'merge-flow', 'git-add-all', 'no-verify']) assert.ok(sel.hooks.includes(id), id);
-  for (const id of ['prefer-gh', 'pr-merge']) assert.ok(!sel.hooks.includes(id), id);
+  for (const id of ['prefer-gh']) assert.ok(!sel.hooks.includes(id), id);
   const labels = labelsFor(all, sel, 'ko');
   assert.equal(labels.combo, '팀 협업');
   assert.equal(labels.flow, 'Git Flow');

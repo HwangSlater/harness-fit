@@ -1,4 +1,4 @@
-// 훅 3개(no-rewrite-pushed · gha-inject · pr-merge) 시험. node --test hooks/test
+// 훅 2개(no-rewrite-pushed · gha-inject) 시험(pr-merge 는 지웠다 — 2026-11-26). node --test hooks/test
 // 잘못 막는 것이 놓치는 것보다 나쁘다 — 「막아야 할 것」과 「통과해야 할 것」을 함께 둔다.
 // 막아야 할 코드 글은 이어 붙여 만든다(이 파일을 고칠 때 harness-fit 훅이 이 파일을 막지 않게).
 import { test, before, after } from 'node:test';
@@ -9,7 +9,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { evaluate } from '../lib/evaluate.mjs';
 import { untrustedIn } from '../lib/gha-inject.mjs';
-import { parseRebase, parsePrMerge } from '../rules/history.mjs';
+import { parseRebase } from '../rules/history.mjs';
 import { loadAll, expandCombo, applyFlow } from '../../scripts/lib/catalog.mjs';
 import { renderRule } from '../../scripts/lib/claude-md.mjs';
 
@@ -81,18 +81,6 @@ test('gha-inject: 바깥 값 판정', () => {
   assert.deepEqual(untrustedIn(' github.event.pull_request.number '), []);
 });
 
-test('pr-merge: squash·브랜치 지우기가 없으면 막는다', () => {
-  setRules({ 'pr-merge': true });
-  for (const c of ['gh pr merge 12', 'gh pr merge 12 --merge --delete-branch', 'gh pr merge --squash', 'git fetch && gh pr merge 3 -s', 'gh pr merge 3 --rebase -d'])
-    assert.equal(bash(c).length, 1, c);
-  assert.match(bash('gh pr merge 12')[0], /--squash.*--delete-branch/);
-  for (const c of ['gh pr merge 12 --squash --delete-branch', 'gh pr merge 12 -s -d --auto', 'gh pr merge -sd 12', 'gh pr view 12', 'git commit -m "gh pr merge 12"', 'echo "gh pr merge"', 'gh pr merge 12 --squash --delete-branch --subject "-m x"'])
-    assert.deepEqual(bash(c), [], c);
-  assert.deepEqual(parsePrMerge(['12', '-t', '-s', '-d']), { squash: false, del: true });
-  assert.equal(run('PowerShell', { command: '& gh pr merge 12' }).length, 1);
-  assert.deepEqual(run('PowerShell', { command: 'gh pr merge 12 --squash --delete-branch' }), []);
-});
-
 test('규칙 글: 훅이 켜지면 그 줄만 빠지고, 스킬이 맡는 줄(주입·권한·로그)은 스킬이 있을 때만 빠진다', () => {
   const noSkill = renderRule('security', 'ko', ['secrets', 'danger-cmd', 'pin-deps']);
   assert.match(noSkill, /SQL·셸·파일 경로/);
@@ -116,18 +104,19 @@ test('규칙 글: 훅이 켜지면 그 줄만 빠지고, 스킬이 맡는 줄(�
   assert.doesNotMatch(collab, /다시 쓰지 않는다/);
   assert.match(collab, /reset·filter-branch/);
   assert.doesNotMatch(renderRule('collab', 'ko', []), /reset·filter-branch/);
-  assert.doesNotMatch(renderRule('github-flow', 'en', ['pr-merge']), /Squash-merge/);
+  // 「스쿼시 병합하고 브랜치를 지운다」는 Claude 가 병합할 때(self-merge 꺼짐)만 쓸모 있는 줄
+  assert.doesNotMatch(renderRule('github-flow', 'en', ['self-merge']), /Squash-merge/);
   assert.match(renderRule('github-flow', 'en', []), /Squash-merge/);
 });
 
-test('pr-merge 는 GitHub Flow 를 쓰는 조합에만 들어간다(브랜치 방식으로)', () => {
+test('self-merge 는 GitHub Flow 를 쓰는 조합에만 들어간다(브랜치 방식으로)', () => {
   const all = loadAll();
   const det = { stack: [], existing: {} };
   for (const c of all.combos.combos) {
     const sel = expandCombo(all, c.id, det);
-    assert.equal(sel.hooks.includes('pr-merge'), c.flow === 'github-flow', c.id);
+    assert.equal(sel.hooks.includes('self-merge'), c.flow === 'github-flow', c.id);
     const pick = applyFlow(all, { ...sel, hooks: [...sel.hooks] }, 'trunk');
-    assert.ok(!pick.hooks.includes('pr-merge'), `${c.id} → trunk`);
+    assert.ok(!pick.hooks.includes('self-merge'), `${c.id} → trunk`);
   }
 });
 

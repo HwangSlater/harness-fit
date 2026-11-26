@@ -172,7 +172,8 @@ export const detectGithub = async (root, specs, { run = defaultRunner } = {}) =>
 };
 
 // 고를 항목 목록(지금 값·추천 값 포함). 형태는 picker/github-plan.js 첫머리.
-export const itemsFor = (spec, det) => {
+// solo: 혼자 쓰는 저장소 — 필요한 승인 수 추천을 0 으로(본인은 자기 PR 을 승인할 수 없어 아무것도 병합하지 못한다 — 검토 2026-11-26)
+export const itemsFor = (spec, det, { solo = false } = {}) => {
   if (!spec || !det?.offered) return [];
   const items = [];
   const r = det.current.repo;
@@ -196,7 +197,7 @@ export const itemsFor = (spec, det) => {
         // 이미 PR 을 요구하면 지금 수가 추천 값(바꾸지 않음). 고를 수 있는 값에 지금 수도 넣는다.
         const from = now.approvals;
         const choices = [...new Set([...APPROVALS, ...(from == null ? [] : [Math.min(from, MAX_APPROVALS)])])].sort((x, y) => x - y);
-        items.push({ id, key, type: 'select', branch: b, choices, default: from ?? spec.protect.approvals ?? 0, from, prNow: now.pullRequest });
+        items.push({ id, key, type: 'select', branch: b, choices, default: from ?? (solo ? 0 : spec.protect.approvals ?? 0), from, prNow: now.pullRequest });
       } else items.push({ id, key, type: 'toggle', branch: b, default: spec.protect[key] === true, from: now[key], already: now[key] });
     }
   }
@@ -208,7 +209,7 @@ export const offerAll = async (root, flows, opts) => {
   const specs = flows.filter((f) => f.github);
   const det = await detectGithub(root, specs.map((f) => f.github), opts);
   if (!det.offered) return { offered: false, reason: det.reason, repo: det.repo || null };
-  return { offered: true, repo: det.repo, private: det.private, flows: Object.fromEntries(specs.map((f) => [f.id, itemsFor(f.github, det)])) };
+  return { offered: true, repo: det.repo, private: det.private, flows: Object.fromEntries(specs.map((f) => [f.id, itemsFor(f.github, det, { solo: !!opts?.solo })])) };
 };
 
 // auto 용 미리보기(apply.mjs --dry-run --github-settings): 읽기만 한다. 항목·추천 값·추천대로 하면 바뀔 것.
@@ -216,7 +217,7 @@ export const previewGithub = async (root, spec, opts) => {
   if (!spec) return { offered: false, reason: 'no-settings', items: [] };
   const det = await detectGithub(root, [spec], opts);
   if (!det.offered) return { offered: false, reason: det.reason, repo: det.repo || null, items: [] };
-  const items = itemsFor(spec, det);
+  const items = itemsFor(spec, det, { solo: !!opts?.solo });
   const defaults = defaultChoice(items);
   return { offered: true, repo: det.repo, private: det.private, items, defaults, changes: changesFor(items, defaults) };
 };

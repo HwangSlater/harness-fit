@@ -25,7 +25,7 @@ const CONV = ['feat: 로그인', 'fix(api): 빈 응답', 'docs: 설치', 'chore:
 const put = (dir, rel, text) => writeFiles(dir, { [rel]: text });
 
 test('개인 습관·엄격한 훅은 어느 조합도 기본으로 켜지 않지만 고를 수는 있다', () => {
-  for (const id of ['commit-hash', 'work-checklist', 'stale-scratch', 'docs-check']) {
+  for (const id of ['commit-hash', 'work-checklist', 'docs-check']) {
     assert.ok(all.packs.hooks.some((h) => h.id === id), `${id} 는 훅 목록에 남는다`);
     for (const c of all.combos.combos) assert.ok(!c.hooks.includes(id), `${c.id}: ${id}`);
   }

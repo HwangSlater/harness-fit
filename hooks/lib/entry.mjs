@@ -8,8 +8,8 @@ import { readInput, loadConfig, pickLang, translator, crashNotice } from './core
 
 // 때마다 켜질 수 있는 훅 id(규칙 모듈을 불러오기 전에 거르려고 — hooks/test 가 lib/events.mjs 의 규칙과 같은지 본다)
 export const EVENT_HOOK_IDS = {
-  stop: ['commit-hash', 'answer-lang', 'docs-check'],
-  'session-start': ['work-checklist', 'stale-scratch'],
+  stop: ['commit-hash', 'docs-check'],
+  'session-start': ['work-checklist'],
   prompt: ['work-checklist'],
 };
 const EVENT_NAME = { stop: 'Stop', 'session-start': 'SessionStart', prompt: 'UserPromptSubmit' };

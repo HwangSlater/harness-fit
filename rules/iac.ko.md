@@ -1,5 +1,5 @@
 ## 인프라 코드
-- 반영 전에 `terraform plan`(Kubernetes 는 `kubectl diff`·`helm template`, Ansible 은 `--check --diff`)을 돌리고, 지워지거나 교체(-/+)되는 자원을 자원마다 이유와 함께 PR 설명에 요약한다. {{judge}}
+- 반영 전에 `terraform plan`(Kubernetes 는 `kubectl diff`·`helm template`, Ansible 은 `--check --diff`)을 돌리고, 지워지거나 교체(-/+)되는 자원을 자원마다 이유와 함께 {{pr}} 설명에 요약한다. {{judge}}
 - `.tf` 를 고쳤으면 `terraform fmt`·`terraform validate`·`tflint` 를 돌린다. provider·모듈·차트 버전은 고정한다(`required_providers` 의 `version`, 모듈 `?ref=`). {{judge}} {{kind:terraform}}
 - 차트를 고쳤으면 `helm lint`·`helm template` 을 환경마다의 values 파일(dev·prod)로 모두 돌린다. {{judge}} {{kind:helm}}
 - apply·destroy·클러스터 반영은 사용자가 하라고 할 때만 실행한다. {{judge}}

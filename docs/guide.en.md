@@ -1,6 +1,6 @@
 # harness-fit guide
 
-> Last updated: 2026-11-23 · The detailed parts moved out of the README: the screens, hooks, team sharing and GitHub settings
+> Last updated: 2026-11-26 · The detailed parts moved out of the README: the screens, hooks, team sharing and GitHub settings
 
 If you are new, the [README](../README.en.md) is enough. Read only the parts you need here.
 
@@ -8,7 +8,7 @@ If you are new, the [README](../README.en.md) is enough. Read only the parts you
 - [Working with teammates](#working-with-teammates)
 - [When you already have something](#when-you-already-have-something)
 - [GitHub repository settings](#github-repository-settings)
-- [The 32 hooks](#the-32-hooks)
+- [The 29 hooks](#the-29-hooks)
 - [Hooks each combo turns on](#hooks-each-combo-turns-on)
 - [Hook options](#hook-options)
 - [Git pre-commit hook](#git-pre-commit-hook)
@@ -29,7 +29,7 @@ One question per screen. The step tabs at the top and the "Your picks" summary o
 
 1. **How much should Claude help?** (combo & branch strategy) Light · Solo · Team · Thorough. "What it turns on" on each card previews its skills, hooks and instructions. Stack-specific skills (React, Supabase, GitHub Actions…) are added automatically. Below the combos you pick a **branch strategy** (GitHub Flow · Git Flow · Trunk-based · None); the related hooks follow your choice. Each strategy is drawn as a git graph with branch colours (main blue, develop purple, feature green, release yellow).
 2. **Which skills should go in?** Click chips to turn skills on or off in each stage: plan → design & UI → build → test & debug → review & security → ship. "Also recommended" is matched to your stack; "See all skills" searches the catalog (78 of the 81 — the 3 that do a hook's job are left out). In that window each skill shows a plain one-line effect, when to use it, tokens and source, and — when there is a real cost — a "Keep in mind" note (many tokens when used, slower because of questions or checks, a separate tool to install, …). If a skill doing the same job is already picked, you see "A similar skill is already in"; click the name to jump to that skill and switch either one on or off.
-3. **Which mistakes should be blocked?** The 32 hooks in 6 groups (Secrets & danger / Git history / Code / Per language / Way of working / Saving tokens). "Details" shows what each one blocks, a "Keep in mind" note (false blocks, extra steps, tokens for notice hooks) and its options. A hook left off because it doesn't match this repo's history says why in one line (e.g. "Off by default: this repository's commits don't follow this format (4 of the last 30)"). "Blocking only" turns on just the hooks that block a command or file write and fit this repo, and turns off the ones that only ask or notify (Ask before running, Ask before turning off infra safety switches, Report commit hashes, Work checklist, Leftover temp folders, Answer language, Read GitHub with gh, Long-lived branch notice, Ask before changing protection, Back-merge reminder).
+3. **Which mistakes should be blocked?** The 29 hooks in 6 groups (Secrets & danger / Git history / Code / Per language / Way of working / Saving tokens). "Details" shows what each one blocks, a "Keep in mind" note (false blocks, extra steps, tokens for notice hooks) and its options. A hook left off because it doesn't match this repo's history says why in one line (e.g. "Off by default: this repository's commits don't follow this format (4 of the last 30)"). "Blocking only" turns on just the hooks that block a command or file write and fit this repo, and turns off the ones that only ask or notify (Ask before running, Ask before turning off infra safety switches, Report commit hashes, Work checklist, Read GitHub with gh, Long-lived branch notice, Ask before changing protection, Back-merge reminder, Ask before push, PR or MR).
 
    Hook options sit one per row. Choice options open a menu with a one-line description for each choice; list options (commands to confirm first, extra files and folders, protected branches, extra commit types) hold one chip per value. Press Enter to add and × to remove; pasting text with commas or line breaks splits it into chips. A value that isn't accepted stays as a red chip with the reason right under the field. Values found in the repo and filled in for you carry the reason they were found, one line each (e.g. "the Makefile calls a remote script (deploy.sh)", "Default for iOS repos"). When more than 4 values share a reason, only the first three are shown, followed by "and N more". Values that are only suggested, not filled in (committed result and paper folders), are added with the "+ value" buttons under the field.
 4. **Which instructions go into CLAUDE.md?** The exact text that will be written, matched to the hooks you turned on, is previewed on the right (short / full). The top block, **"Commands in this repo"**, lists the test, lint, type-check, format and build commands read from package.json scripts (using pnpm, yarn or bun when their lockfile is there), Makefile, pyproject (pytest, ruff, mypy, tox, hatch), Cargo, go.mod, Gradle and Maven (`./gradlew` or `./mvnw` when the wrapper is there), ROS 2 colcon and Django's `manage.py`. Cargo follows the options in your CI config (GitHub Actions, GitLab CI), such as `--workspace` or `-- -D warnings`. The "Other commands" line holds up to 10 more: package.json scripts such as the dev server or migrations, Makefile targets, commands your pyproject installs, and Procfile processes. Python scripts or modules and cargo subcommands written in README or CONTRIBUTING code blocks and in GitHub Actions `run:` lines are added after them when the file or package really exists in the repo (commands under install or deploy headings, from deploy or release workflows, with production values such as `ENV=prod`, or with wipe or migrate words are left out). Only what the repo really has goes in; if nothing is found, or your CLAUDE.md already lists them, it is left out. Commands under "Ask before running" (deploy or release targets, …) are kept out of the everyday commands. When the test runner is certain (vitest, jest, Playwright, bun, node --test, pytest, cargo, go), a "One test only" command is added too. With a sqlc config (`sqlc.yaml` and the like), a line says to change the queries and regenerate instead of hand-editing generated code, naming the repo's make target (or `sqlc generate`). **"Commit and PR format"** reads only the clearly dominant patterns (60% or more of at least 8) in the last 50 commits (bots left out) and writes them with 2–3 real subjects, e.g. "Commit format: `type(scope): summary` (scopes such as `api` · `ui`), in English — e.g. …": type and scope, an issue key (`[ABC-123]`, `#123`), gitmoji, language, first-letter case, trailing period, and body trailers (`Signed-off-by:` and the like). With a PR or MR template (`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE/*.md`, `docs/`, the repo root, `.gitlab/merge_request_templates/*.md`) a line says to fill it in, and when squash subjects (`… (#123)`) or merge commits show a PR title style, a title line is added. So when you say "commit this" or "open a PR" in chat, Claude writes it the way this repo does. Mixed history adds nothing; with the commit message hook on, the type and language it enforces are left out and only the examples stay. If you pick the PR description writer skill and the repo has a template or a different title style, a line says the repo's format comes before the skill's default. Subjects that look like secrets are never used as examples. Click an instruction (or press Enter or Space) to open a small dialog with its full description, the lines it adds to CLAUDE.md, the lines dropped because a hook or skill covers them, its size in lines and tokens, and an on/off switch. Turning on a chip under "Hooks that take over a line" lets that hook enforce the rule, so the overlapping line is dropped; "Show removed lines" shows the dropped lines struck through with the reason. Confusing spots, decisions that aren't in the repo and anything you've corrected twice are things Claude can't learn by reading the repo — write them yourself outside the harness-fit markers (e.g. "`src/legacy/` is still used, but new code doesn't follow it.").
@@ -71,8 +71,8 @@ Hooks only see the commands Claude runs. Merging from the GitHub web UI, through
 | --- | --- | --- | --- |
 | Squash merging only (merge-commit and rebase buttons go away) | on | not offered | not offered |
 | Automatically delete merged branches | on | not offered | not offered |
-| Require a pull request before merging | on | **off** — release and hotfix are merged locally and pushed | not offered |
-| Required approvals (0, 1, 2) | 0 | 0 | not offered |
+| Require a pull request before merging | on | on — releases and hotfixes go through PRs too (turn it off if your team merges them locally and pushes) | not offered |
+| Required approvals (0, 1, 2) | 0 | 1 | not offered |
 | Block force pushes | on | on | on |
 | Block deletion | on | on | on |
 | Include administrators (you cannot push straight to the branch either) | on | on | on |
@@ -86,9 +86,9 @@ Protected branches: the default branch for GitHub Flow and trunk-based, main (or
 - Without the picker (`auto`), Claude shows the items with their recommended values and passes only the ones you pick (`--github-settings=squash,pr:main,…`).
 - Undo puts the changed settings back. Values someone changed on GitHub since then are left alone.
 
-## The 32 hooks
+## The 29 hooks
 
-Rules that need no judgment are enforced by hooks, not prose, and you only hear from them when they fire. A hook only exists if it can catch every form it promises; things that would need guessing (hard-coded values, SQL/shell injection, secrets in logs) stay as instructions and skills instead (the one heuristic hook, "Answer language", is harmless when it misses, so it is an opt-in, off by default). Every hook has tests that feed "must block" and "must pass" inputs through the real entry point (`hooks/test/strict-run.mjs`).
+Rules that need no judgment are enforced by hooks, not prose, and you only hear from them when they fire. A hook only exists if it can catch every form it promises; things that would need guessing (hard-coded values, SQL/shell injection, secrets in logs) stay as instructions and skills instead. Every hook has tests that feed "must block" and "must pass" inputs through the real entry point (`hooks/test/strict-run.mjs`).
 
 **Secrets & danger**
 
@@ -112,13 +112,12 @@ Rules that need no judgment are enforced by hooks, not prose, and you only hear 
 | Branch naming | New branches (`switch -c`, `checkout -b`, `branch`, `worktree add -b`) must start with `feature/`, `fix/`, … |
 | Block --no-verify | `--no-verify`, `commit -n`, `HUSKY=0`, `SKIP=`, changing `core.hooksPath` |
 | Block rewriting pushed commits | `git commit --amend` or `git rebase` on commits already pushed (`git pull --rebase` is fine) |
-| PR merge style | `gh pr merge` without `--squash` and `--delete-branch` (GitHub Flow only) |
 | Git Flow merge direction | Blocks `git merge` (and `git pull` with a branch named) of feature/*, bugfix/* or develop into main, feature/* into release/*, and develop or feature/* into hotfix/*, and says where it should go. release/* and hotfix/* into main are fine, and anything into develop. Names it does not know (tags, commit hashes, staging …) pass (Git Flow only) |
 | Long-lived branch notice | On commit or push from a branch other than main, tells Claude in one line to merge small and often when the branch is over a day old or more than 20 commits behind main. In Git Flow, feature, bugfix and release branches are compared with develop and the limits are three days and 50 commits. Once per branch per session (does not block, trunk-based and Git Flow) |
+| Ask before push, PR or MR | Shows a confirmation before Claude runs `git push`, `gh pr create`, `glab mr create` or an API call that creates a PR or MR, so you see the changes before they go up (`--dry-run` is fine) (GitHub Flow, Git Flow) |
 | People merge PRs and MRs | Blocks Claude from merging, approving or scheduling an auto-merge of a PR/MR with `gh pr merge`, `gh pr review --approve`, `glab mr merge`, `glab mr approve`, the same API calls (REST or GraphQL through gh api, glab api, curl or Invoke-RestMethod) or `git push -o merge_request.merge_when_pipeline_succeeds`. Opening and reading are fine (GitHub Flow, Git Flow) |
 | Ask before changing protection | Asks before API calls that change protected branches, approval rules or rulesets (such as `glab api -X DELETE …/protected_branches/main`). Reads are not asked about (GitHub Flow, Git Flow, trunk-based) |
 | Back-merge reminder | On push, when main has commits that develop does not (a hotfix or release merged into main only), tells Claude in one line to merge them into develop too (does not block, Git Flow only) |
-| Block unsquashed pushes | `git push` with two or more commits that are not on the remote, with how to squash them via `git reset --soft` (teams differ, so it is off in every combo) |
 
 **Code**
 
@@ -142,9 +141,7 @@ Rules that need no judgment are enforced by hooks, not prose, and you only hear 
 | --- | --- |
 | Report commit hashes | Asks once when an answer leaves out the hash of a commit made in that turn (off by default) |
 | Work checklist | Gives each session a checklist file and shows what is left when you send a message (never blocks, off by default) |
-| Leftover temp folders | At session start, at most once a day, says when old sessions' work folders pile up in Temp so Claude asks you whether to delete them (never deletes, off by default) |
 | Docs format check | Only docs and images in `docs/`; `# Title`, date line and index link for changed docs (off by default) |
-| Answer language | Asks for a rewrite when the final answer is not in the chosen language (a word-count heuristic, so off by default) |
 
 **Saving tokens**
 
@@ -163,7 +160,7 @@ Rules that need no judgment are enforced by hooks, not prose, and you only hear 
 | --- | --- |
 | Light | Block secrets, Protect files, Block dangerous commands, Block passwords on the command line |
 | Solo | Light + Block unsafe HTML and eval, Block GitHub Actions injection, Read GitHub with gh |
-| Team | Solo + Block git add -A, Protected branches, Commit message format, Branch naming, Block --no-verify, Block rewriting pushed commits, PR merge style (GitHub Flow) |
+| Team | Solo + Block git add -A, Protected branches, Commit message format, Branch naming, Block --no-verify, Block rewriting pushed commits + the branch strategy's hooks |
 | Thorough | Team + Ask before running, Block large new files, Pin dependency versions |
 
 - In Solo, Team and Thorough, the detected stack and clues in the repo add the following.
@@ -177,16 +174,16 @@ Rules that need no judgment are enforced by hooks, not prose, and you only hear 
   - Found in the repo → commands for Ask before running: long training or search scripts (train, tune, sweep) named in the README, Makefile or shell scripts; deploy scripts and Makefile targets that reach a remote host or use a production option (`--target prod`); Makefile targets described as "lead only"; targets that roll back migrations; fastlane release lanes; dbt production targets (`--target prod`) and `--full-refresh` for incremental models; production `spark-submit` in continued lines or sent over ssh; `cargo test -- --ignored` when Rust tests have `#[ignore]`
   - Found in the repo → extra paths for Protect files: groups in `.gitignore` under a comment that calls them secret or personal, secret config files (`*.env`, dbt `profiles.yml`), raw-data folders (`/data/`) and data or checkpoint files (`.parquet`, `.ckpt`, …), infrastructure state files (`*.tfstate*`, kubeconfig)
   - Committed result and paper folders (`bench-results/` or `results/` holding only data, paper drafts `paper/**/*.tex` and `*.bib`, raw data a figure script reads) → not added up front; you are asked at apply time whether Protect files should cover them. The picker offers them as "+ value" buttons under the field. A thesis repo where the manuscript is more than half the repo, or a folder tests read as expected values, is not asked about.
-  - GitLab repos → the GitHub-only hooks "Read GitHub with gh" and "PR merge style" and the PR-writing skill are left out of the defaults. Repos with only infrastructure code and no app code → the test-first skills (Test first, Light test-first) are left out. Each one left out gets a one-line reason.
+  - GitLab repos → the GitHub-only hook "Read GitHub with gh" and the PR-writing skill are left out of the defaults. Repos with only infrastructure code and no app code → the test-first skills (Test first, Light test-first) are left out. Each one left out gets a one-line reason.
   - CLAUDE.md instruction packs: Claude API → "LLM apps" (mask personal data before sending, cap loops, test with a fake client, run evals after changes), Django → "Django" (makemigrations, never edit committed migrations, ask before prod settings, template `|safe` and csrf, Celery args are ids), Spring Boot → "Spring Boot" (secrets via `${…}`, owner checks, transactions and N+1, events and responses only gain fields, no internals in error responses), PyTorch, scikit-learn, XGBoost, MLflow, Optuna, Hydra, wandb → "ML experiments" (fixed seeds, config and commit hash per run, compare with the baseline, never overwrite checkpoints), dbt → "dbt" (`dbt build`/`test` changed models and their downstream models, ask before `--target prod`, never weaken tests, keep seeds and snapshots), Terraform (including OpenTofu), Ansible → "Infrastructure as code" (summarise plan before apply, keep `prevent_destroy` and prod PDBs, no `0.0.0.0/0`, public buckets or public EKS endpoints, never commit state, pin versions, with Argo CD change clusters only through the repo and Argo CD), iOS → "iOS apps" (permission texts, new Core Data model versions with a migration test, ask before signing changes, `guard let` instead of force unwrap), Next.js → "Next.js" (secrets only in server code, never as props to client components, with login also check inside route handlers and server actions, `dangerouslySetInnerHTML` through one sanitizer), Rust → "Rust" (ask before `unsafe` and add `// SAFETY:` comments, clippy and test with the same options as CI, `?` instead of `unwrap()` in libraries), payment SDK dependencies (stripe, Toss Payments, PortOne …) or ledger, payment and settlement code → "Payments and money" (amounts as minor-unit integers, ask before changing rounding, idempotency keys and webhook dedupe, reversing ledger entries, no card numbers in logs)
 - The branch strategy turns hooks on and off.
-  - GitHub Flow: turns on Protected branches (main, master, direct pushes blocked too), Branch naming, PR merge style, People merge PRs and MRs and Ask before changing protection, and turns off Git Flow merge direction, Long-lived branch notice and Back-merge reminder.
-  - Git Flow: turns on Protected branches (main, master, develop), Branch naming (Git Flow list), Git Flow merge direction, People merge PRs and MRs, Ask before changing protection, Back-merge reminder and Long-lived branch notice (features compared with develop, three days and 50 commits), and turns off PR merge style. The merge direction hook follows the names in the Protected branches list (production if you wrote that instead of main).
-  - Trunk-based: turns on Protected branches (main, master, direct commits allowed), Long-lived branch notice and Ask before changing protection, and turns off Branch naming, PR merge style, Git Flow merge direction, People merge PRs and MRs and Back-merge reminder.
-  - None: turns off all five. When GitHub Flow comes with the finishing-a-development-branch skill, the instructions gain "When finishing work, open a PR (an MR on GitLab) instead of merging locally" (so the skill's "merge locally" option isn't picked).
+  - GitHub Flow: turns on Protected branches (main, master, direct pushes blocked too), Branch naming, People merge PRs and MRs, Ask before changing protection and Ask before push, PR or MR, and turns off Git Flow merge direction, Long-lived branch notice and Back-merge reminder.
+  - Git Flow: turns on Protected branches (main, master, develop), Branch naming (Git Flow list), Git Flow merge direction, People merge PRs and MRs, Ask before changing protection, Back-merge reminder and Long-lived branch notice (features compared with develop, three days and 50 commits) and Ask before push, PR or MR. The merge direction hook follows the names in the Protected branches list (production if you wrote that instead of main).
+  - Trunk-based: turns on Protected branches (main, master, direct commits allowed), Long-lived branch notice, Ask before changing protection and Ask before push (only pushes to main), and turns off Branch naming, Git Flow merge direction, People merge PRs and MRs and Back-merge reminder.
+  - None: turns off all branch-strategy hooks. GitHub Flow and Git Flow instructions always include "When the work is done, commit on the branch, show what changed and stop. Push and open the PR or MR only when the user asks" (so the finishing-a-development-branch skill's "merge locally" or "push and open a PR" options are not picked without asking).
 - **Commit message format** is on by default only when at least 70% of the last 30 commit subjects follow it, and **Branch naming** only when at least 70% of branch names (other than main, master, develop and the default branch) follow the strategy's pattern. Turned on in a repo that doesn't follow them, they would block the very first commit. With fewer than 5 commits or 3 branches, the repo counts as new and they are on.
 - **Pin dependency versions** is on only in Thorough, and never for a library package (package.json has `main`, `exports` or `types` and is not `private: true`): exact pins in a library make consumers install several copies of the same package.
-- Report commit hashes, Work checklist, Leftover temp folders, Docs format check, Answer language and Block unsquashed pushes are off in every combo (they differ per person and team). You can still turn them on.
+- Report commit hashes, Work checklist and Docs format check are off in every combo (they differ per person and team). You can still turn them on.
 
 ## Hook options
 
@@ -203,7 +200,6 @@ Rules that need no judgment are enforced by hooks, not prose, and you only hear 
 | Long-lived branch notice | Branch age (12 hours, 1 day, 2 days, 3 days), commits behind main (10, 20, 50, 100) |
 | Block large new files | Line limit (300, 400, 600, 800) |
 | Docs format check | Check the date line |
-| Answer language | Language (Korean, English, Japanese, Chinese) |
 
 ## Git pre-commit hook
 
@@ -229,7 +225,7 @@ It lets the action through but does not go quiet: "harness-fit: the … hook cra
 
 ## Tokens used by hooks
 
-Hooks send Claude about one line (roughly 20–100 tokens) only when they fire: the reason for a block, the "Read GitHub with gh" tip, or the end-of-answer (Stop) follow-ups from Report commit hashes, Docs format check and Answer language, and Leftover temp folders at session start (at most once a day). Only Work checklist adds text routinely: about 100 tokens at session start and, while items are left, about 50 tokens plus the items on each message. The checklist and the three Stop follow-ups are off by default.
+Hooks send Claude about one line (roughly 20–100 tokens) only when they fire: the reason for a block, the "Read GitHub with gh" tip, or the end-of-answer (Stop) follow-ups from Report commit hashes and Docs format check. Only Work checklist adds text routinely: about 100 tokens at session start and, while items are left, about 50 tokens plus the items on each message. The checklist and the three Stop follow-ups are off by default.
 
 The token table in the README was measured on an example Next.js · TypeScript · Supabase · Vitest · GitHub Actions repo (test (vitest), lint, typecheck, build and dev scripts in package.json, 3 committers), re-measured on 2026-11-13 with an empty settings folder, so nothing was dropped as overlapping an existing hook or skill. The dev script goes into the "Other commands" line of "Commands in this repo". Skill counts include one skill you install yourself (React performance), the instruction counts include "Commands in this repo" and the Next.js pack, and the 7 in Team and Thorough also include the branch strategy (GitHub Flow).
 
@@ -239,7 +235,7 @@ The space where Claude keeps the list of skill names and descriptions has a limi
 
 ## Where do the skills come from?
 
-- 81 skills from 24 GitHub repositories with 1,000+ stars, updated within the last six months (`catalog/catalog.json`).
+- 77 skills from 23 GitHub repositories with 1,000+ stars, updated within the last six months (`catalog/catalog.json`).
 - A saved list goes stale, so every time the picker opens it reruns the same searches for **repositories that appeared or were updated after the catalog date** and lists them at the bottom of the skills step. They are not vetted, so nothing is installed; tick one and Claude reviews it after setup.
 - "More" in "See all skills" shows each skill's source, license, pinned commit, any executable files it contains, and the original text.
 - Only permissively licensed skills (MIT, Apache-2.0, …) are copied; others link to their own install instructions. Downloaded skills are never run.
@@ -278,6 +274,8 @@ When you apply again and leave out a skill that an earlier setup downloaded, its
 There are no runtime dependencies (Node 18 or later, `node:` built-ins only). Why things are the way they are is in [decisions.md](decisions.md) (Korean).
 
 ## Change history
+- 2026-11-26: Final check — 29 hooks (removed PR merge style, Block unsquashed pushes, Leftover temp folders and Answer language), 77 skills, trunk-based asks only before pushes to main.
+- 2026-11-26: Brought to 33 hooks — the Ask before push, PR or MR row and the hooks each branch strategy turns on.
 - 2026-11-23: Brought to 32 hooks — rows for People merge PRs and MRs, Ask before changing protection and Back-merge reminder, Long-lived branch notice in Git Flow too, and the hooks each branch strategy turns on and off.
 - 2026-11-09: Moved the detailed parts out of the README; added the combo defaults, plain effects and "Keep in mind" notes, the instruction dialog, overlap labels, git graph pictures and test commands to match the current code.
 - 2026-11-11: Brought to 26 hooks — added Ask before running, Block edits to applied migrations and Leftover temp folders to the tables, and updated the rows for Block secrets, Protect files, Block dangerous commands, Block unsafe HTML and eval and the Python hook to match what they do now. Listed the hooks and instruction packs (LLM apps, Django, Spring Boot) added by stack and repo clues, and the Ask before running options.

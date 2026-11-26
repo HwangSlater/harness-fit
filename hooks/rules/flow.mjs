@@ -2,11 +2,14 @@
 // Git Flow 의 develop 되돌려 합치기 알림(back-merge, 알림만).
 // 이름은 보호 브랜치(protect-branch) 옵션의 브랜치 목록을 따른다 — 사용자가 main 대신 production 을 적었으면 그것이 배포 브랜치다.
 // 원칙: 확실할 때만 막는다. 지금 브랜치·합칠 브랜치 가운데 하나라도 모르는 이름이면(태그·커밋 해시·HEAD~1·다른 이름) 통과.
-import { git, gitSegments, repoState } from '../lib/core.mjs';
+import { git, gitSegments, repoState, repoRoot } from '../lib/core.mjs';
+import { commandSegments } from '../lib/cmdline.mjs';
+import { runWords } from '../lib/run-prefix.mjs';
 import { timelineOf } from '../lib/branches.mjs';
 import { findRepo, refExists, refValue, safeRefName } from '../lib/repo-files.mjs';
 import { stampFile, readStamp, writeStamp } from '../lib/stamp.mjs';
 import { localDate } from '../lib/dates.mjs';
+import { prWordOf } from '../lib/forge.mjs';
 
 // 배포 브랜치로 볼 이름. 보호 목록에서 이 꼴이 아닌 것은 통합 브랜치(develop·integration 등) — 환경 이름(staging·qa…)만 빼고.
 const PROD = /^(?:main|master|production|prod|trunk|stable)$/i;
@@ -111,16 +114,47 @@ export const mergesOf = (cmd, shell) => {
   return out;
 };
 
+// 이 명령이 여는 PR·MR 의 대상: [{ start, target, source|null, word }]. 대상을 적었을 때만(gh pr create --base·glab mr create --target-branch) —
+// 적지 않으면 서버의 기본 브랜치라 파일로는 모른다. 로컬 git merge 만 보던 것을 PR·MR 로 여는 길에도(점검 2026-11-26)
+const valueOf = (w, longs, short) => {
+  for (let i = 0; i < w.length; i++) {
+    const eq = w[i].indexOf('=');
+    if (eq > 0 && longs.includes(w[i].slice(0, eq))) return w[i].slice(eq + 1);
+    if (longs.includes(w[i]) || w[i] === short) return w[i + 1] || null;
+  }
+  return null;
+};
+export const prsOf = (cmd, shell) => {
+  const out = [];
+  for (const seg of commandSegments(cmd, shell)) {
+    const w = runWords(seg.words);
+    const rest = w.slice(1).filter((a, i, all) => !/^(?:-R|--repo)$/.test(a) && !/^(?:-R|--repo)$/.test(all[i - 1] || '') && !/^--repo=/.test(a));
+    const [noun, verb, ...args] = rest;
+    if (!['create', 'new'].includes(verb)) continue;
+    if (w[0] === 'gh' && noun === 'pr') {
+      const target = valueOf(args, ['--base'], '-B');
+      if (target) out.push({ start: seg.start, target, source: valueOf(args, ['--head'], '-H'), word: 'PR' });
+    } else if (w[0] === 'glab' && noun === 'mr') {
+      const target = valueOf(args, ['--target-branch'], '-b');
+      if (target) out.push({ start: seg.start, target, source: valueOf(args, ['--source-branch'], '-s'), word: 'MR' });
+    }
+  }
+  return out;
+};
+
 // 막는 글의 「갈 곳」: 보호 목록에 적은 통합 브랜치 이름들(없으면 이름 없이 「통합 브랜치」)
 const devText = (names, t) => (names.dev.length ? t('mergeFlow.dev', { names: names.dev.map((n) => `\`${n}\``).join('·') }) : t('mergeFlow.devNone'));
 
 export const mergeFlow = {
   id: 'merge-flow',
   on: 'shell',
-  check({ cmd, shell, root, repo, rules, t }) {
-    if (!root) return null;
+  check({ cmd, shell, cwd, root, repo, rules, t }) {
     const merges = mergesOf(cmd, shell);
-    if (!merges.length) return null;
+    const prs = prsOf(cmd, shell);
+    if (!merges.length && !prs.length) return null;
+    // gh·glab 명령에는 git 낱말이 없어 root 가 비어 있다 — 명령이 도는 폴더의 저장소로
+    root ||= repoRoot(cwd);
+    if (!root) return null;
     const names = flowNames(rules);
     const state = repo || repoState(root);
     const branchAt = timelineOf(cmd, shell, root, state);
@@ -132,8 +166,16 @@ export const mergeFlow = {
       files ??= findRepo(root) || null;
       for (const source of m.sources) {
         const key = blocked[sourceKind(source, names, files)];
-        if (key) return t(key, { source, target, develop: devText(names, t), main: names.prod[0] });
+        if (key) return t(key, { source, target, develop: devText(names, t), main: names.prod[0], pr: prWordOf(root) });
       }
+    }
+    for (const p of prs) {
+      const blocked = BLOCKED[flowKind(p.target, names)];
+      if (!blocked) continue;
+      files ??= findRepo(root) || null;
+      const source = p.source || branchAt(p.start);
+      const key = source && blocked[p.source ? sourceKind(source, names, files) : flowKind(source, names)];
+      if (key) return t(key, { source, target: p.target, develop: devText(names, t), main: names.prod[0], pr: p.word });
     }
     return null;
   },
@@ -256,7 +298,7 @@ export const backMerge = {
   id: 'back-merge',
   notice: true,
   on: 'shell',
-  check({ input, cmd, shell, root, repo, rules, t }) {
+  check({ input, cmd, shell, cwd, root, repo, rules, t }) {
     if (!root || !gitSegments(cmd, 'push', shell).length) return null;
     const names = flowNames(rules);
     if (!names.dev.length) return null;
@@ -278,7 +320,7 @@ export const backMerge = {
     // 확인 명령은 센 것과 같은 ref 들로(로컬 main 을 안 받아 와 origin/main 에만 있는 커밋도 보이게 — 독립 검토 2026-11-23)
     const short = (r) => r.replace(/^refs\/(?:heads|remotes)\//, '');
     const range = [...prod.map(short), ...dev.map((r) => `^${short(r)}`)].join(' ');
-    return t('backMerge.missing', { n, main: prod.map(short).join('·'), develop: dev.map(short).join('·'), range });
+    return t('backMerge.missing', { n, main: prod.map(short).join('·'), develop: dev.map(short).join('·'), range, pr: prWordOf(root || cwd) });
   },
 };
 

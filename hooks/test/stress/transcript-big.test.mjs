@@ -73,7 +73,7 @@ test('줄바꿈 없는 10MB·큰 기록·80MB 기록에서 터지지 않는다(�
 });
 
 test('아주 큰 기록(사람 메시지가 64MB 밖)에서도 끝낼 때 훅이 금방 끝난다', async (t) => {
-  const repo = repoWith('stop3', { 'commit-hash': true, 'answer-lang': true, 'docs-check': true });
+  const repo = repoWith('stop3', { 'commit-hash': true, 'docs-check': true });
   const chunk = (bash('ls') + result('파일 '.repeat(2000)) + say('계속 볼게요 '.repeat(300)) + other('z'.repeat(3000))).repeat(200);
   const f = path.join(tmp, 'huge72.jsonl');
   const fd = fs.openSync(f, 'w');

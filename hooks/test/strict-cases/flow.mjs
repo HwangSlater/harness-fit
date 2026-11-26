@@ -120,6 +120,11 @@ export default {
   'merge-flow': {
     block: [
       S('git merge feature/login', 'main 에서 feature 합치기'),
+      // PR·MR 로 여는 길도(마지막 점검 2026-11-26 — 로컬 git merge 만 보던 것)
+      S('git switch -c feature/login && gh pr create --base main --fill', 'feature 브랜치에서 main 대상 PR'),
+      S('gh pr create --base main --head feature/login --fill', '--head 로 적은 feature → main PR'),
+      S('glab mr create --target-branch main --source-branch feature/login --fill', 'GitLab: feature → main MR'),
+      S('git switch -c release/1.0 && gh pr create -B release/1.0 -H feature/x', 'feature → release PR'),
       S('git switch main && git merge feature/login', '같은 명령에서 main 으로 옮긴 뒤'),
       S('git switch main && git merge --no-ff feature/login', '--no-ff'),
       S('git switch main && git merge --squash bugfix/empty-cart', '--squash · bugfix'),
@@ -143,6 +148,10 @@ export default {
       ...(WIN ? caseCases : []),
     ],
     pass: [
+      S('git switch -c feature/login && gh pr create --base develop --fill', 'feature → develop PR'),
+      S('gh pr create --fill', '대상을 적지 않은 PR(서버 기본 브랜치 — 파일로 모름)'),
+      S('glab mr create --target-branch main --source-branch release/1.2.0', 'release → main MR'),
+      S('gh pr create --base main --head hotfix/crash', 'hotfix → main PR'),
       S('git switch main && git merge --no-ff release/1.2.0', 'release 를 main 에'),
       S('git switch main && git merge hotfix/crash', 'hotfix 를 main 에'),
       S('git switch develop && git merge feature/login', 'feature 를 develop 에'),

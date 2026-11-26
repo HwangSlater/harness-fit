@@ -18,7 +18,7 @@ import { readHarnessConfig } from './lib/picker-state.mjs';
 import { readPluginJson } from './lib/paths.mjs';
 import { ruleFileLines, kindFits } from './lib/rule-files.mjs';
 import { listSkills } from './lib/installed.mjs';
-import { TAG, START, END, setBlock, fillCmd } from './lib/claude-md.mjs';
+import { TAG, START, END, setBlock, fillCmd, prWord } from './lib/claude-md.mjs';
 import { vcsTexts } from './lib/vcs-text.mjs';
 import { listUserRules } from './lib/user-rules.mjs';
 
@@ -95,7 +95,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
     installed,
     catalog: installed.length ? all.catalog.skills.map((s) => ({ id: s.id, title: L(titles[s.id]?.title) || s.id, when: L(titles[s.id]?.when) || L(s.summary) })) : [],
     // 「커밋·PR 형식」 줄({{fmt:…}})도 감지한 글로 채워 보인다 — 사용자 CLAUDE.md 에 이미 같은 형식 설명이 있는지 견줄 수 있게
-    rules: ruleLines(lang, overlapRuleIds(all, det, raw), { ...(det.commands || {}), fmt: vcsTexts(det.vcs, lang) }, det.kinds),
+    rules: ruleLines(lang, overlapRuleIds(all, det, raw), { ...(det.commands || {}), fmt: vcsTexts(det.vcs, lang), pr: prWord(det.host, lang) }, det.kinds),
   };
   out.hooks = overlapHooks(all, det, raw, lang);
   // 지난번에 사용자가 고른 쪽(selection.conflicts). known: 사용자 글이 그대로라 다시 묻지 않을 것(규칙은 지문 hash 로 다시 찾은 지금 줄 번호 line) ·

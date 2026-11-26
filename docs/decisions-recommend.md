@@ -1,6 +1,6 @@
 # 결정 — 추천·감지
 
-> 최종 수정: 2026-11-23 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-26 · 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정. 훅은 [decisions-hooks.md](decisions-hooks.md), 화면·지침·스킬·git 은 [decisions.md](decisions.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다.
 
@@ -135,7 +135,7 @@
 - 인프라 지침: 「클러스터는 저장소와 Argo CD 로만, prod 에 kubectl apply 직접 금지」 줄은 kinds 의 argocd(Argo CD 앱 정의 감지 — helm 과 같은 증거 종류, general 이어도 안 넣음)일 때만. EKS 공개 엔드포인트는 공개 범위 줄에, prod PDB 는 보호 장치 줄에 넣었다(15 회차 4c~e). 8줄·1500자 한도를 지키려고 버전 고정 줄을 fmt·validate 줄에 합쳤다. 새 줄은 조각 끝에 둬 이미 적용한 저장소의 「뺀 줄 번호」(skipLines)가 덜 밀리게.
 - sqlc(14 회차 M6): `sqlc.yaml`·`.yml`·`.json` 을 맨 위와 흔한 DB 폴더(db·sql·internal/db…)에서 찾아 스택 sqlc. 「이 저장소 명령」 끝에 「생성 코드는 손으로 고치지 않고 쿼리를 고친 뒤 다시 만든다」 줄({{cmd:sqlc}}): sqlc generate 를 부르는 Makefile 대상이 있으면 `make <대상>`, 없으면 `sqlc generate`(설정이 폴더 안이면 `-f`). 그 make 대상은 「그 밖의 명령」에서 뺀다. 손 고치기 막기 훅은 하지 않았다(protected-files 는 git add 까지 막음 — 쓰기만 막는 옵션이 필요). `scripts/lib/sqlc.mjs`.
 - iOS: 새 줄 대신 Core Data 줄에 「옛 버전에서 옮겨 오는 마이그레이션 시험을 기존 시험 타깃(`<앱>Tests`)에」를 이었다(16 회차).
-- finishing-a-development-branch(15 회차 9): 팀 조합에서 빼지 않고(작업 마치기 확인 단계가 쓸모 있다) GitHub Flow 조각에 「작업을 마칠 때는 로컬 병합 대신 PR(GitLab 은 MR)을 연다」 줄을 `{{skill:finishing-a-development-branch}}`(그 스킬이 들어갈 때만)로 넣었다.
+- finishing-a-development-branch(15 회차 9): 팀 조합에서 빼지 않고(작업 마치기 확인 단계가 쓸모 있다) GitHub Flow 조각에 「작업을 마칠 때는 로컬 병합 대신 PR 을 연다」 줄을 그 스킬이 들어갈 때만 넣었다 → 2026-11-24 「작업을 마치면 커밋까지 하고 멈춘다, push·PR·MR 은 사용자가 올리라고 할 때만」으로 바꾸고 GitHub Flow·Git Flow 에 늘 넣는다(Claude 가 「끝나면 PR 을 연다」로 읽어 묻지 않고 올렸다 — decisions-hooks.md ask-publish).
 - `.terraform/` 은 그대로 보호 경로로 제안하지 않는다(위 「묻는 명령·보호 경로」, 15 회차 7).
 - 시험: `scripts/test/rules-v041.test.mjs`.
 
@@ -195,6 +195,7 @@
 - 남은 것: sqlc 생성 파일 손 고치기 막기(쓰기만 막는 보호 옵션), Argo CD 없이 매니페스트만 있는 저장소의 지침(인프라 지침은 Terraform·Ansible·Argo CD 에만 붙는다).
 
 ## 바뀐 이력
+- 2026-11-26: 작업 마치기 줄을 「커밋까지 하고 멈춘다, 올리기는 사용자가 말할 때만」으로(사용자 지적).
 - 2026-11-23: 독립 검토 — self-merge 훅 줄은 카탈로그에 있을 때만, 끝나는 날 모르는 체험판 제목, 토큰 변수 대소문자·CI_JOB_TOKEN·GITLAB_HOST, ssh 별칭·:443, 유료 제목, 「다시 확인」, 목록 부품 하나로(noteList), 체험판 사이트와 GitLab 체험판 낱말 나눔.
 - 2026-11-23: 실제 팀 저장소 — 프로젝트 범위로만 깔렸으면 사용자 범위 설치를 알림(plugin-folder-only), GitLab 이면 요금제를 읽어 강제 못 하는 것과 대신 쓸 것을 알림.
 - 2026-11-19: 감지의 파일 목록을 git 한 번으로(-z), 한글 경로 감지가 고쳐짐 — 시험 시간 줄이기에서 나옴, 독립 검토 반영.

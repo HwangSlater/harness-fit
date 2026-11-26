@@ -136,7 +136,7 @@ test('역할극 14·15 회차: 하위 폴더의 Terraform·Ansible·Helm, Ansibl
     assert.equal(g.host, 'gitlab');
     for (const s of ['Go', 'PostgreSQL', 'SQL migrations']) assert.ok(g.stack.includes(s), g.stack.join(','));
     const sel = expandCombo(all, 'team', g);
-    assert.ok(sel.hooks.includes('migration-edit') && !sel.hooks.includes('prefer-gh') && !sel.hooks.includes('pr-merge') && !sel.skills.includes('pr-writer'), JSON.stringify(sel.hooks));
+    assert.ok(sel.hooks.includes('migration-edit') && !sel.hooks.includes('prefer-gh')  && !sel.skills.includes('pr-writer'), JSON.stringify(sel.hooks));
   } finally {
     for (const d of [infra, go]) fs.rmSync(d, { recursive: true, force: true });
   }

@@ -100,14 +100,19 @@ const main = async () => {
   // 저장소 종류: recommend 가 선택 파일에 남긴 것(--stack 힌트 반영)을 쓰고, 없으면(옛 파일·손으로 만든 파일) 다시 읽는다
   // 작업 폴더(lib/workspace.mjs)는 맨 위가 저장소가 아니라 명령·형식을 저장소마다 읽어 합친 감지 결과에서 가져온다(맨 위에서 읽으면 비었다)
   const ws = workspaceRepos(root) ? detect(root) : null;
-  const kinds = Array.isArray(raw.kinds) && raw.kinds.every((k) => typeof k === 'string' && /^[a-z]+$/.test(k)) ? raw.kinds : (ws || detect(root)).kinds;
+  // 선택 파일에 없으면 다시 읽되 감지는 한 번만
+  let det0 = ws;
+  const redetect = () => (det0 ??= detect(root));
+  const kinds = Array.isArray(raw.kinds) && raw.kinds.every((k) => typeof k === 'string' && /^[a-z]+$/.test(k)) ? raw.kinds : redetect().kinds;
+  // 저장소 위치(지침의 {{pr}} — PR·MR, claude-md.mjs prWord)도 선택 파일 값을 쓰고 없으면 다시 읽는다
+  const host = typeof raw.host === 'string' && /^[a-z]+$/.test(raw.host) ? raw.host : redetect().host;
   // 커밋·PR 형식(CLAUDE.md 「커밋·PR 형식」 줄)도 선택 파일 값이 아니라 저장소에서 다시 읽는다 — 명령과 같은 까닭
-  const sel = { ...cleanSelection({ all, cfg, det: { commands: ws ? ws.commands : detectCommands(root).commands, kinds, vcs: ws ? ws.vcs : vcsOf(root) } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
+  const sel = { ...cleanSelection({ all, cfg, det: { commands: ws ? ws.commands : detectCommands(root).commands, kinds, host, vcs: ws ? ws.vcs : vcsOf(root) } }, raw, raw.lang || 'en'), github: withGithub, githubChoice: listed };
   const spec = all.packs.flows.find((f) => f.id === sel.flow)?.github;
   if (args.includes('--dry-run')) {
     const { changes, manual, warnings, keptSkills, gitHookCmd, skillBudget, workspace, pluginFolders, userScopeCmd } = plan(root, sel, all);
     // --dry-run --github-settings: 읽기만 해서(GET) 무엇이 바뀔지 보여 준다. 묻기 전에 Claude 가 이것으로 목록을 만든다.
-    const github = withGithub ? await previewGithub(root, spec) : undefined;
+    const github = withGithub ? await previewGithub(root, spec, { solo: (ws || redetect()).team === false }) : undefined;
     // GitLab 이면 같은 때(--github-settings) 요금제를 읽어 서버에서 강제할 수 없는 것을 알린다(읽기만 — lib/gitlab-settings.mjs). 못 읽어도 미리보기는 그대로
     const gl = withGithub ? await gitlabPlans(root, ws || detect(root), all.packs).catch(() => null) : null;
     const gitlab = gitlabRelevant(gl, sel) ? gl : null;

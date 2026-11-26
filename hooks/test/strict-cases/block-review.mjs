@@ -26,8 +26,9 @@ const origin = (url) => keyed(`origin\0${url}`, (r) => r.git('remote', 'add', 'o
 const GITLAB = origin('git@gitlab.example.com:team/payments.git');
 const GITHUB = origin('https://github.com/team/payments.git');
 const GITLAB_CI = keyed('gitlab-ci-file', (r) => r.put('.gitlab-ci.yml', 'stages: [test]\n'));
-const MR = /merge request \(MR\)/;
-const PR = /through a PR\.|open a PR\./;
+// 막는 글의 낱말(2026-11-26: 「push·PR 은 사용자가 올리라고 할 때만」 글로 바뀜 — open a PR · open an MR)
+const MR = /\ban MR\b/;
+const PR = /\ba PR\b/;
 
 // 비밀값처럼 생긴 글은 이어 붙여 만든다(이 파일을 쓸 때 훅이 막지 않게)
 const RANDOM = 'q7Zr' + 'Xk2Lm9Pw4Tn8Vb3Hs6Jd1Fg5Ca0A1b2';

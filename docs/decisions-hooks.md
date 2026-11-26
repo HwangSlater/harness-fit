@@ -1,6 +1,6 @@
 # 결정 — 훅
 
-> 최종 수정: 2026-11-23 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-26 · 훅 원칙과 훅마다 지금 유효한 결정. 고르기 화면·지침·스킬·git 은 [decisions.md](decisions.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정과 검토 회차 기록은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 여러 번 고친 결정은 지금 모양만 적는다 — 고쳐 온 차례는 git 기록과 archive 에 있다.
 
@@ -345,6 +345,20 @@
 - 함께 넣은 규칙 줄(rules/git-flow·github-flow·collab): PR·MR 은 열고 멈춘다(훅이 켜졌을 때), release·hotfix 를 main 에 합치면 develop 에도 바로 되돌려 합친다, main 하나로 쓰는 저장소는 develop 없이 PR·MR, push·PR 전에 올라갈 커밋이 이번 작업의 것뿐인지(다른 세션 커밋 섞임), 병합된 PR·MR 되돌리기도 revert 커밋을 PR·MR 로. 다른 세션 커밋은 커밋에 세션 표시가 없어 훅으로 가를 수 없다.
 - 어디서: `hooks/rules/flow.mjs`(backMerge), `hooks/lib/repo-files.mjs`(refValue), 문구 `backMerge.missing`, 시험 `hooks/test/strict-cases/flow.mjs`, 겹침 시험은 `setup.branches`·`setup.on`(`scripts/lib/probe-run.mjs`)
 
+### push·PR·MR 올리기 전에 묻기 ask-publish (사용자 결정, 2026-11-24·26)
+- 계기: 「개발해 줘」 하나로 Claude 가 커밋 → push → PR·MR 열기까지 했다(v0.7.0 은 병합만 막았다). 사용자: 「사용자가 확인하고 MR·PR 을 올려야 하는데 무작정 올리는 게 문제」. 원인은 지침 「작업을 마칠 때는 로컬 병합 대신 PR 을 연다」를 Claude 가 「끝나면 PR 을 연다」로 읽은 것과, 막는 장치가 없던 것.
+- 결정(사용자가 고름: 지침+훅 둘 다, PR·MR 쓰는 전략에만): 새 훅(kind ask, GitHub Flow·Git Flow 의 hooksOn — 트렁크·정하지 않음은 끔). `git push`(작업 브랜치·태그 모두, --dry-run·-n·--help 는 통과), `gh pr create`, `glab mr create|new`, PR·MR 을 만드는 API(POST …/pulls·…/merge_requests, GraphQL createPullRequest·mergeRequestCreate) 전에 확인 창. 지침 줄은 「작업을 마치면 브랜치에 커밋까지 하고 바뀐 것을 보여 준 뒤 멈춘다. push 와 {{pr}} 열기는 사용자가 올리라고 할 때만」({{judge}} — 훅이 묻기 전에 Claude 가 시도하지 않게). 사용자가 올리라고 했어도 확인 창이 한 번 더 뜬다(downside).
+- 보호 브랜치로 바로 올리는 push 는 self-merge 가 막는다(막음이 물음보다 앞선다). 판정은 self-merge 와 같은 읽기(review.mjs apiCalls·runWords — 따옴표·heredoc·주석 속 글은 보지 않음).
+- 안내 글의 PR·MR: 저장소가 GitLab 이면 MR, 아니면 PR, 저장소 밖이면 「PR/MR」(`hooks/lib/forge.mjs` prWordOf — git.mjs 의 onGitlab 을 옮겨 review·flow 가 같이 쓴다). 막거나 물을 때만 origin 을 읽는다.
+- 어디서: `hooks/rules/review.mjs`(askPublish), 문구 `askPublish.*`, 시험 `hooks/test/strict-cases/review.mjs`, 겹침 시험 `catalog/probes.json`
+- 독립 검토 반영(2026-11-26): 보호 브랜치 막는 글(git.protectedCommit·Push)이 「push 하고 PR 을 여세요」라고 시켜 새 지침과 반대였다 → 「브랜치에 커밋하세요, push·PR 은 사용자가 올리라고 할 때만」. `gh pr new`·`hub pull-request`·변수로 만든 「$X/pulls」 POST 도 묻고, `-nv` 처럼 묶인 -n·`gh pr create --dry-run` 은 묻지 않는다. 낱말은 명령으로 정해지면 그것(gh·hub·/pulls 는 PR, glab·/merge_requests 는 MR), 아니면 저장소 위치(prWordOf 는 저장소 맨 위에서 .gitlab-ci.yml 을 본다). 확인 창에 보일 명령에서 주석은 뺀다. 확인 창 글은 사용자에게 보이는 말투(「허용하세요 · 올리라고 한 적이 없으면 거부하세요」). 확인할 사람이 없는 실행(claude -p·CI)에서는 묻기가 막힘이 된다 — downside 에 적음.
+- GitHub Flow 기본에서 PR 병합 방식(pr-merge)은 뺐다(hooksOff) — 「PR·MR 병합은 사람이」와 함께면 쉬기만 하는데 화면에 켜짐으로 보였다. 「스쿼시 병합하고 병합한 브랜치는 지운다」 줄은 둘 다 꺼졌을 때만({{!hook:pr-merge|self-merge}}, Claude 가 병합할 때만 쓸모).
+
+
+### 마지막 점검: 겹침·충돌 고치기와 지우기 (사용자 결정 「1번 고치고, 지울 후보는 다 지워」, 2026-11-26)
+- 고친 것: ① 확인 창(ask)이 같은 명령의 알림(notice)을 버렸다 — 기본 Git Flow 에서 ask-publish 가 모든 push 를 물어 back-merge·branch-age 알림이 Claude 에게 닿지 않았다 → ask 출력에 알림을 additionalContext 로 함께. ② merge-flow 가 로컬 git merge 만 봐서 `gh pr create --base main`(feature → main) 을 아무것도 막지 않았다 → PR·MR 대상(`--base`·`--target-branch`, 적었을 때만)도 본다. ③ 안내 글·지침이 다른 훅이 막는 다음 행동을 시켰다 — Git Flow 지침의 「develop 에도 바로 되돌려 합친다」, back-merge 「develop 으로 되돌려 합치세요」, merge-flow 「develop 에 합치세요」, protectedPick 「fix/ 로 따서 병합하세요」(Git Flow 이름 규칙이 fix/ 를 막음) → 「사용자에게 main → develop PR·MR 을 제안」, 접두어는 브랜치 이름 규칙이 받는 것(배포 브랜치면 hotfix/). ④ GitHub Flow 의 main push 에 막는 글이 둘(protect-branch·self-merge) → 보호 브랜치 훅이 막으면 self-merge 는 내지 않는다. ⑤ 트렁크 팀이 묻지 않고 공용 main 에 push → 트렁크에서 ask-publish 를 켜되 보호 브랜치로 올리는 push 만(옵션 protectedOnly). ⑥ branch-age 「합치세요」→ 「merge 로 받아 오고 사용자에게 알리기」.
+- 지운 훅: pr-merge(어떤 조합도 켜지 않고 self-merge 와 함께면 쉬기만 — GitHub 설정 squashOnly·autoDelete 가 대신), squash-push(기본 꺼짐, 지침 「이유가 다른 변경은 커밋을 나눈다」와 반대), stale-scratch·answer-lang(이 PC 정리용·짐작 — 프로젝트 맞춤과 멀다). 33 → 29개. 지침 줄 「스쿼시 병합하고 브랜치를 지운다」는 self-merge 가 꺼졌을 때만.
+- 어디서: `hooks/run.mjs`·`hooks/lib/core.mjs` ask, `hooks/rules/flow.mjs` prsOf, `hooks/rules/git.mjs` branchPrefix, `hooks/rules/review.mjs` askPublish protectedOnly
 ## 이미 있는 훅과의 겹침
 
 ### 이미 있는 훅과 겹치면 끈다 (사용자 요청·선택, 2026-11-05)
@@ -365,6 +379,8 @@
 - 팀원 공유면 목록에서 못 찾은 이름(Claude 가 --similar 로 짚은 이 PC 의 스킬)도 겹침으로 치지 않는다. `picker/dup.js`.
 
 ## 바뀐 이력
+- 2026-11-26: 마지막 점검 — 확인 창이 알림을 삼키던 것, PR·MR 대상의 Git Flow 방향, 로컬 병합을 시키던 글, 트렁크 main push 묻기. pr-merge·squash-push·stale-scratch·answer-lang 지움(29개).
+- 2026-11-26: 사용자 지적 「확인 없이 PR·MR 을 올린다」 — ask-publish(push·PR·MR 전에 묻기, GitHub Flow·Git Flow), 훅 안내 글의 PR·MR 을 저장소에 맞게(forge.mjs), pr-merge 는 self-merge 가 켜지면 쉼.
 - 2026-11-23: 사용자 요청(GitLab MR 스스로 병합 사고) — self-merge(PR·MR 병합·승인 막기, GitHub·GitLab 전 경로)·protect-rules(보호 설정 바꾸기 묻기)·back-merge(develop 되돌려 합치기 알림), branch-age 를 Git Flow 에서도(feature 는 develop 과 견줌).
 - 2026-11-23: 호출이 닿는 저장소의 설정도 본다 — 설정 없는 cwd 에서 `cd 저장소 &&`·`git -C`·파일 경로로 설정 있는 저장소를 만지면 그 설정으로, cwd 설정이 있으면 늘 그대로 보고 대상 설정을 더한다(독립 검토 회귀로 「대신」에서 바꿈), 대상은 저장소 맨 위·작업 폴더 설정만·16개까지, commandCwd 의 따옴표 밖 `git -C`·`-C` 여러 번·Git Bash 경로·줄바꿈·-LiteralPath.
 - 2026-11-19: 사용자 요청 — 작업 폴더: 저장소 안 cwd 에서도 바로 위 작업 폴더 설정(workspace 표시가 있을 때만), 보호 경로 git add·migration-edit 이 작업 폴더에서도 돈다.

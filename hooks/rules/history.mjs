@@ -1,10 +1,8 @@
-// 이력 규칙: 이미 올린 커밋 다시 쓰지 않기(amend·rebase), PR 합치기 방식(squash + 브랜치 지우기).
+// 이력 규칙: 이미 올린 커밋 다시 쓰지 않기(amend·rebase). PR 병합 방식(pr-merge)은 지웠다 — 병합은 사람이 하고(self-merge) 방식은 GitHub 설정(스쿼시만·브랜치 자동 삭제)이 맡는다(마지막 점검 2026-11-26).
 // 강제 push 는 여기서 보지 않는다 — 보호 브랜치(protect-branch)가 본다. 기능 브랜치에 rebase 뒤 강제 push 하는 것은
 // 그 앞의 rebase 를 여기서 막는다.
 // git 이 실패하면(저장소가 아님·원격 없음·upstream 없음) 막지 않는다.
 import { git, gitSegments } from '../lib/core.mjs';
-import { commandSegments } from '../lib/cmdline.mjs';
-import { commandWords } from '../lib/commit-args.mjs';
 import { timelineOf } from '../lib/branches.mjs';
 
 // 이 커밋을 가진 원격 브랜치 하나(origin/HEAD -> … 줄은 뺀다). 없거나 git 이 실패하면 null.
@@ -79,49 +77,4 @@ export const noRewritePushed = {
   },
 };
 
-// gh pr merge: 명령 자리(줄 처음, ; & | ( 뒤, PowerShell & 호출)에 있을 때만
-const FLOW_WORDS = new Set(['if', 'while', 'until', 'elif']);
-const GH_VALUE = new Set(['-b', '--body', '-F', '--body-file', '-t', '--subject', '-A', '--author-email', '--match-head-commit', '-R', '--repo']);
-const GH_VALUE_SHORT = 'bFtAR';
-
-// gh pr merge 낱말 → { squash, del }
-export const parsePrMerge = (words) => {
-  let squash = false;
-  let del = false;
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    if (GH_VALUE.has(w)) i++;
-    else if (w === '--squash' || w === '--squash=true') squash = true;
-    else if (w === '--delete-branch' || w === '--delete-branch=true') del = true;
-    else if (/^-[A-Za-z]/.test(w)) {
-      for (const ch of w.slice(1)) {
-        if (ch === 's') squash = true;
-        if (ch === 'd') del = true;
-        if (GH_VALUE_SHORT.includes(ch)) break;
-      }
-    }
-  }
-  return { squash, del };
-};
-
-export const prMerge = {
-  id: 'pr-merge',
-  on: 'shell',
-  check({ cmd, shell, t }) {
-    // 명령 조각마다: 앞붙은 환경 변수·흐름 낱말(if·then·{)을 떼고, gh 의 -R/--repo 를 건너뛴 뒤 pr merge 인지 본다.
-    for (const seg of commandSegments(cmd, shell)) {
-      let w = commandWords(seg.words);
-      while (FLOW_WORDS.has(w[0])) w = commandWords(w.slice(1));
-      if (!/^(?:.*[\\/])?gh(?:\.exe)?$/i.test(w[0] || '')) continue;
-      let i = 1;
-      while (/^(?:-R|--repo)$/.test(w[i] || '') || /^--repo=/.test(w[i] || '')) i += w[i].includes('=') ? 1 : 2;
-      if (w[i] !== 'pr' || w[i + 1] !== 'merge') continue;
-      const { squash, del } = parsePrMerge(w.slice(i + 2));
-      const missing = [squash ? null : '`--squash`', del ? null : '`--delete-branch`'].filter(Boolean);
-      if (missing.length) return t('prMerge.missing', { missing: missing.join(' · ') });
-    }
-    return null;
-  },
-};
-
-export default [noRewritePushed, prMerge];
+export default [noRewritePushed];

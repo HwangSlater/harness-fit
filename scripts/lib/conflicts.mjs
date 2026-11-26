@@ -8,7 +8,7 @@
 //   rule 은 줄 글의 지문(hash, lang 파일의 줄)으로 다시 찾는다. line 은 지금 번호(표시·짝 이름용) — 플러그인 업데이트로 줄이 끼어들어도 엉뚱한 줄을 빼지 않게.
 // 팀 저장소(share)에서는 ~/ 파일(사람마다 다른 전역 글) 기록을 받지 않는다 — 같은-말 겹침 단계가 전역 글을 보지 않는 것과 같다.
 import fs from 'node:fs';
-import { bulletLines, lineHash, lineByHash, TAG } from './rule-files.mjs';
+import { bulletLines, lineHash, lineByHash, TAG, PR_SLOT, prWord } from './rule-files.mjs';
 import { normFile, isGlobalFile, fileReader } from './conflict-files.mjs';
 import { conflictKey, mineHooks } from '../../picker/conflict.js';
 
@@ -186,10 +186,10 @@ export const withConflictHints = (det, all, root, raw, parsed, opts = {}) => {
 
 // 화면에 보일 harness-fit 쪽 글: 규칙 기록마다 그 줄 글({ 짝 이름: 글 }) — 「내 규칙과 반대」 창이 사용자 줄과 나란히 보인다.
 // 줄은 지문으로 찾고(기록의 언어 파일), 글은 화면 언어로
-export const conflictLines = (list, lang) => Object.fromEntries((list || []).filter((c) => c.kind === 'rule').map((c) => {
+export const conflictLines = (list, lang, host = null) => Object.fromEntries((list || []).filter((c) => c.kind === 'rule').map((c) => {
   const n = typeof c.hash === 'string' ? lineByHash(c.id, langOf(c.lang, lang), c.hash) : c.line;
   const line = (n && bulletLines(c.id, lang)[n - 1]) || '';
-  return [conflictKey(c), line.replace(TAG, '').replace(/\{\{cmd:\w+[^}]*\}\}/g, '…').slice(2)];
+  return [conflictKey(c), line.replace(TAG, '').replace(PR_SLOT, prWord(host, lang)).replace(/\{\{cmd:\w+[^}]*\}\}/g, '…').slice(2)];
 }));
 
 // 선택에 붙인다: 사용자 규칙을 따르기로 한 훅은 끈다(줄은 claude-md.mjs renderAll 이 conflicts 를 보고 뺀다)

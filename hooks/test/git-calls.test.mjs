@@ -80,7 +80,8 @@ test('버전 꼴 이름 push 는 태그·브랜치를 ref 파일로 찾는다(gi
   gitIn(repo, 'tag', 'v2.1');
   try {
     const branch = await bash('git push origin 3.12');
-    assert.doesNotMatch(branch.out, /"ask"/, '브랜치면 묻지 않는다');
+    // 브랜치 push 는 태그 묻기(ask-cmd)가 아니다 — 모든 훅을 켠 저장소라 push·PR 묻기(ask-publish)의 확인 창은 뜬다
+    assert.doesNotMatch(branch.out, /tag/i, '브랜치면 태그로 묻지 않는다');
     assert.deepEqual(branch.calls.filter((c) => c.startsWith('for-each-ref')), [], branch.calls.join(' | '));
     const tag = await bash('git push origin v2.1');
     assert.match(tag.out, /"ask"/, '태그면 묻는다');

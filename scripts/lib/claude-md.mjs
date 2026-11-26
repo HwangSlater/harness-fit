@@ -4,9 +4,12 @@
 //   `… {{!hook:commit-msg}}` 그 훅이 꺼졌을 때만 넣는다
 //   `… {{!skill:pr-writer}}`  그 스킬을 넣지 않았을 때만 넣는다(스킬이 같은 일을 하면 규칙 줄은 겹친다)
 //   `… {{judge}}`             판단이 필요해 검사로 막을 수 없는 줄(늘 넣는다)
-// 모든 줄은 이 넷 중 하나를 단다(scripts/test/rules.test.mjs). 검사로 막을 수 있는 것을 글로만 두지 않으려고 — 글은 놓친다(2026-11-05 사용자 지적).
+//   `… {{skill:id}}`          그 스킬을 넣었을 때만. 뒤에 `{{kind:…}}`(저장소 종류)·`{{fmt:…}}`(감지한 커밋·PR 형식)가 더 붙을 수 있다
+// 모든 줄은 이 가운데 하나를 단다(scripts/test/rules.test.mjs). 검사로 막을 수 있는 것을 글로만 두지 않으려고 — 글은 놓친다(2026-11-05 사용자 지적).
 // 훅이 켜졌을 때 「훅이 막는다」고 알리는 줄은 두지 않는다. 훅이 막을 때 이유를 알려 주므로 매 대화 읽히는 글로 또 적으면 겹친다.
-import { TAG, kindFits, fmtFits, ruleFiles, ruleFileLines, lineByHash } from './rule-files.mjs';
+// 예외: 「PR·MR 은 열고 멈춘다」({{hook:self-merge}}) — 훅이 못 보는 길(스크립트 파일)을 Claude 가 아예 시도하지 않게(decisions-hooks.md).
+// 줄 속 `{{pr}}` 은 저장소 위치에 맞는 낱말(PR·MR — rule-files.mjs prWord), `{{cmd:…}}` 은 이 저장소 명령으로 채운다.
+import { TAG, PR_SLOT, prWord, kindFits, fmtFits, ruleFiles, ruleFileLines, lineByHash } from './rule-files.mjs';
 import { vcsTexts, enforcedBy } from './vcs-text.mjs';
 import { askPatterns, matches, variants, dryMarked, blockHit, cmdList } from '../../hooks/lib/ask-match.mjs';
 import { runWords } from '../../hooks/lib/run-prefix.mjs';
@@ -18,10 +21,14 @@ export { TAG };
 // 줄 가운데 `{{cmd:test}}` 는 저장소에서 읽은 그 종류의 명령으로 채운다(scripts/lib/commands.mjs). 명령이 없으면 그 줄은 넣지 않는다.
 // `{{cmd:testOne|file=파일}}` 처럼 이름=말을 붙이면 명령 속 자리표시 `<file>` 을 그 언어 말 `<파일>` 로 바꾼다(말은 규칙 파일에 둔다).
 const CMD = /\{\{cmd:(\w+)((?:\|\w+=[^|}]+)*)\}\}/;
+// `{{pr}}` 은 저장소 위치에 맞는 낱말로(rule-files.mjs prWord — 충돌 창 conflicts.mjs 도 같이 쓴다)
+export { prWord };
 // → 명령을 채운 줄. 명령 자리가 없으면 그대로, 그 종류의 명령을 못 찾았으면 null(줄을 넣지 않는다).
 // `{{fmt:commit}}` 은 감지한 커밋·PR 형식 글(cmds.fmt — scripts/lib/vcs-text.mjs vcsTexts)로 채운다. 글이 없으면 그 줄은 넣지 않는다.
 const FMT = /\{\{fmt:(\w+)\}\}/g;
 export const fillCmd = (text, cmds = {}) => {
+  // {{pr}} 은 renderRuleDetail 이 먼저 채운다. 줄만 보여 주는 곳(overlap.mjs ruleLines)은 cmds.pr, 없으면 둘 다
+  text = text.replace(PR_SLOT, cmds.pr || 'PR/MR');
   const keys = [...text.matchAll(FMT)].map((x) => x[1]);
   if (keys.length) {
     if (keys.some((k) => typeof cmds.fmt?.[k] !== 'string' || !cmds.fmt[k])) return null;
@@ -43,8 +50,11 @@ export const fillCmd = (text, cmds = {}) => {
 // kinds: 저장소 종류(detect.mjs). {{kind:…}} 줄은 맞는 종류일 때만 넣는다(모르면 넣는다).
 // mine: 사용자 규칙과 반대라 넣지 않을 줄 번호(사용자가 「내 규칙」을 고른 것 — scripts/lib/conflicts.mjs). 뺀 줄에 by: 'conflict' 로 남는다.
 export const renderRuleDetail = (id, lang, hooks, skip = [], skills = [], cmds = {}, kinds = null, mine = []) => {
-  const lines = ruleFileLines(id, lang);
-  if (!lines) return { text: '', dropped: [] };
+  const raw = ruleFileLines(id, lang);
+  if (!raw) return { text: '', dropped: [] };
+  // {{pr}}: 저장소에 맞는 낱말 하나(GitHub PR · GitLab MR, 모르면 둘 다) — cmds.pr 는 renderAll 이 저장소 위치로 채운다
+  const word = cmds.pr || prWord(null, lang);
+  const lines = raw.map((l) => l.replace(PR_SLOT, word));
   const on = new Set([...hooks.map((x) => `hook:${x}`), ...skills.map((x) => `skill:${x}`)]);
   const drop = new Set(skip);
   const against = new Set(mine);
@@ -136,7 +146,7 @@ const renderAll = (sel) => {
   const base = hooks.includes('ask-cmd') ? { ...withoutAsked(sel.commands || {}, ask, block), asked: askedCmds(ask, block) } : sel.commands || {};
   // 감지한 커밋·PR 형식 글({{fmt:…}} — 「커밋·PR 형식」 지침을 넣을 때만). 우리 커밋 형식 훅이 막는 것(타입·언어)은 글에서 뺀다
   const fmt = (sel.rules || []).includes('vcs-format') ? vcsTexts(sel.vcs, sel.lang, enforcedBy(sel.hooks || [], sel.hookOpts?.['commit-msg'])) : {};
-  const cmds = { ...base, fmt };
+  const cmds = { ...base, fmt, pr: prWord(sel.host, sel.lang) };
   // 사용자 규칙과 반대라 「내 규칙」을 고른 줄(selection.conflicts — scripts/lib/conflicts.mjs). 순환 import 를 피하려고 여기서 바로 고른다.
   // 줄은 지문(hash)으로 다시 찾는다 — 번호만 믿으면 플러그인 업데이트로 줄이 끼어들 때 엉뚱한 줄이 빠진다. 못 찾으면 빼지 않는다
   const lineOf = (c) => (typeof c.hash === 'string' ? lineByHash(c.id, c.lang === 'en' || c.lang === 'ko' ? c.lang : sel.lang, c.hash) : c.line);

@@ -55,7 +55,7 @@ let applying = false;
 let githubOffer = null; // GET /api/github 의 답(약속)
 // GitLab 저장소면 같은 답에 요금제(gitlab — lib/gitlab-settings.mjs)를 얹는다. 화면이 확인 단계에서 한 번 묻고, 적용 결과에도 같은 것을 싣는다
 const hostOffer = () => Promise.all([
-  offerAll(root, all.packs.flows).catch(() => ({ offered: false, reason: 'error' })),
+  offerAll(root, all.packs.flows, { solo: ctx.det?.team === false }).catch(() => ({ offered: false, reason: 'error' })),
   gitlabPlans(root, ctx.det, all.packs).catch(() => null),
 ]).then(([gh, gitlab]) => (gitlab ? { ...gh, gitlab } : gh));
 

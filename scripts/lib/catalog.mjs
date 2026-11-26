@@ -145,7 +145,7 @@ export const expandCombo = (all, comboId, det) => {
   // share: 팀원도 같은 플러그인을 쓰게 안내할지(팀·꼼꼼 조합 기본). 화면과 auto 가 같은 값을 쓴다.
   const share = !!combo.share;
   // base: 겹침을 빼기 전 조합 그대로(화면이 팀원 공유를 바꿀 때 다시 계산하려고 남긴다)
-  // 조합의 브랜치 방식이 켜고 끄는 훅도 여기서 맞춘다(pr-merge 처럼 브랜치 방식으로만 들어가는 훅 — 화면 defaultsFor 와 같은 범위)
+  // 조합의 브랜치 방식이 켜고 끄는 훅도 여기서 맞춘다(merge-flow·self-merge 처럼 브랜치 방식으로만 들어가는 훅 — 화면 defaultsFor 와 같은 범위)
   const flowObj = all.packs.flows.find((f) => f.id === combo.flow) || null;
   const flowHooks = [...hooks.filter((h) => !(flowObj?.hooksOff || []).includes(h)), ...(flowObj?.hooksOn || [])];
   // fitDropped: 이 저장소 기록과 맞지 않아 기본에서 뺀 형식 훅(화면 훅 단계가 이유를 한 줄로 보여 준다)
@@ -174,7 +174,7 @@ export const expandCombo = (all, comboId, det) => {
   // 저장소가 이미 쓰는 표준 밖 타입(bench: 등)은 허용 — 기록이 그 꼴인데 막던 일(역할극 11 회차, 2026-11-11)
   const types = det.history?.extraTypes || [];
   if (types.length && kept.hooks.includes('commit-msg')) hookOpts['commit-msg'] = { ...hookOpts['commit-msg'], types };
-  return { combo: comboId, ...kept, hookOpts, base, already, covered, fit, fitDropped, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules, flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null, vcs: det.vcs || null };
+  return { combo: comboId, ...kept, hookOpts, base, already, covered, fit, fitDropped, stackSkills: added.filter((id) => kept.skills.includes(id)), addons, rules, flow: combo.flow, share, skipLines: det.skipLines || {}, commands: det.commands || {}, kinds: det.kinds || null, vcs: det.vcs || null, host: det.host || null };
 };
 
 // 원격·운영 명령 묻기를 이유 줄에 한 마디로: 감지된 스택의 명령(catalog/combos.json remoteSay) 몇 개 + ssh

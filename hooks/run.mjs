@@ -41,7 +41,7 @@ try {
 if (msgs.length) deny(msgs.join('\n'));
 if (asks.length) {
   if (errors.length) notes.unshift(crashNotice(errors, t));
-  ask(asks.join('\n'), notes.join('\n'));
+  ask(asks.join('\n'), notes.join('\n'), hints.join('\n'));
 }
 try {
   if (errors.length) notes.unshift(crashNotice(errors, t));

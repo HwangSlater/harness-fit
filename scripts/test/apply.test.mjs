@@ -81,7 +81,8 @@ test('언어별 훅은 그 언어를 쓰는 저장소에서만 기본으로 켜�
   assert.ok(expandCombo(all, 'team', det(['Python'])).hooks.includes('python-unsafe'));
   assert.ok(!expandCombo(all, 'solo', det([])).hooks.some((h) => h === 'swift-unsafe' || h === 'python-unsafe'));
   assert.ok(!expandCombo(all, 'light', det(['iOS', 'Python'])).hooks.includes('swift-unsafe'));
-  for (const c of all.combos.combos) for (const id of ['squash-push', 'answer-lang']) assert.ok(!expandCombo(all, c.id, det(['iOS', 'Python'])).hooks.includes(id), `${c.id}: ${id}`);
+  // 마지막 점검(2026-11-26)에서 지운 훅은 카탈로그에도 조합에도 없다
+  for (const id of ['pr-merge', 'squash-push', 'stale-scratch', 'answer-lang']) assert.ok(!all.packs.hooks.some((h) => h.id === id) && !all.combos.combos.some((c) => c.hooks.includes(id)), `지운 훅 ${id}`);
 });
 
 test('스택에 딸린 훅 옵션: ROS 2 면 ask-cmd 가 ros2 launch 를 묻고, Claude API·MCP 면 ask-cmd 가 켜진다(역할극 2·6 회차 2차)', () => {
@@ -130,11 +131,11 @@ test('브랜치 방식이 훅을 켜고 끈다', async () => {
   const { applyFlow } = await import('../lib/catalog.mjs');
   const sel = { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'branch-name'] };
   assert.deepEqual(applyFlow(all, { ...sel }, 'none').hooks, ['secrets']);
-  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['branch-age', 'protect-branch', 'protect-rules', 'secrets']);
-  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['back-merge', 'branch-age', 'branch-name', 'merge-flow', 'protect-branch', 'protect-rules', 'secrets', 'self-merge']);
+  assert.deepEqual(applyFlow(all, { ...sel }, 'trunk').hooks.sort(), ['ask-publish', 'branch-age', 'protect-branch', 'protect-rules', 'secrets']);
+  assert.deepEqual(applyFlow(all, { flow: 'none', hooks: ['secrets'] }, 'git-flow').hooks.sort(), ['ask-publish', 'back-merge', 'branch-age', 'branch-name', 'merge-flow', 'protect-branch', 'protect-rules', 'secrets', 'self-merge']);
   // 전략을 바꾸면 앞 전략만의 훅은 꺼진다(GitHub Flow → 트렁크: PR 병합은 사람이·PR 병합 방식 대신 오래 산 브랜치 알림)
-  const fromGithub = applyFlow(all, { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'pr-merge', 'self-merge'] }, 'trunk').hooks;
-  assert.ok(fromGithub.includes('branch-age') && !fromGithub.includes('self-merge') && !fromGithub.includes('pr-merge'), fromGithub.join(','));
+  const fromGithub = applyFlow(all, { flow: 'github-flow', hooks: ['secrets', 'protect-branch', 'self-merge'] }, 'trunk').hooks;
+  assert.ok(fromGithub.includes('branch-age') && !fromGithub.includes('self-merge'), fromGithub.join(','));
   // Git Flow 는 오래 산 브랜치 알림도 켠다(feature 는 develop 과 견줌 — 2026-11-23)
   const fromTrunk = applyFlow(all, { flow: 'trunk', hooks: ['secrets', 'protect-branch', 'branch-age'] }, 'git-flow').hooks;
   assert.ok(fromTrunk.includes('merge-flow') && fromTrunk.includes('branch-age') && fromTrunk.includes('back-merge'), fromTrunk.join(','));

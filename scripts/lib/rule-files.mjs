@@ -10,7 +10,12 @@ import { PLUGIN_ROOT } from './paths.mjs';
 //   화면 없는 로봇·연구 저장소에 웹 보안 줄이 들어가던 일(역할극 2·3 회차, 2026-11-11). 종류를 모르면(옛 선택 파일) 넣는다.
 // m[5]·m[6] = 감지한 형식 조건(맨 뒤): `… {{!fmt:commit}}` 은 커밋 형식을 감지해 「커밋·PR 형식」 지침이 그 형식을 적을 때 뺀다
 //   (협업 지침의 「타입: 설명」 과 저장소 꼴 줄이 함께 들어가지 않게, 2026-11-17). 형식 글은 claude-md.mjs 가 rules/vcs-format 이 들어갈 때만 넘긴다.
-export const TAG = /\s*\{\{(?:(!?)(hook|skill):([\w|-]+)|judge)\}\}(?:\s*\{\{kind:([\w|-]+)\}\})?(?:\s*\{\{(!?)fmt:([\w|-]+)\}\})?\s*$/;
+// 줄 속 `{{pr}}` — 저장소 위치에 맞는 낱말: GitHub 은 PR, GitLab 은 MR, 모르면(origin 없음·다른 호스트·섞인 작업 폴더) 둘 다.
+// GitLab 저장소에도 「PR(GitLab 은 MR)」이 그대로 들어가던 것(사용자 지적 2026-11-24). 지문(lineHash)은 채우기 전 줄로 만든다
+export const PR_SLOT = /\{\{pr\}\}/g;
+const PR_WORD = { github: 'PR', gitlab: 'MR' };
+export const prWord = (host, lang) => PR_WORD[host] || (lang === 'en' ? 'PR (MR on GitLab)' : 'PR(GitLab 은 MR)');
+export const TAG =/\s*\{\{(?:(!?)(hook|skill):([\w|-]+)|judge)\}\}(?:\s*\{\{kind:([\w|-]+)\}\})?(?:\s*\{\{(!?)fmt:([\w|-]+)\}\})?\s*$/;
 // 형식 조건이 맞는지. fmt: 채울 형식 글({ commit: '…' } — 없으면 감지하지 못한 것)
 export const fmtFits = (m, fmt) => {
   if (!m?.[6]) return true;

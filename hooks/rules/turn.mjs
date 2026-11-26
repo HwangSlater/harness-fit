@@ -1,14 +1,12 @@
-// 답을 끝낼 때(Stop) 보는 규칙: 커밋 해시 알리기(commit-hash), 답 언어 맞추기(answer-lang).
+// 답을 끝낼 때(Stop) 보는 규칙: 커밋 해시 알리기(commit-hash). 답 언어 맞추기(answer-lang)는 지웠다 — 짐작에 기대고 프로젝트 맞춤과 멀다(마지막 점검 2026-11-26).
 // 막으면 Claude 가 이유를 받고 답을 이어 쓴다. 이미 한 번 막아서 다시 도는 중(stop_hook_active)이면 디스패처가 통과시킨다.
 import { repoRoot, commandCwd } from '../lib/core.mjs';
-import { readTurnTail, humanTurn, finalTexts } from '../lib/transcript.mjs';
+import { readTurnTail, humanTurn } from '../lib/transcript.mjs';
 import { turnCommits } from '../lib/turn-commits.mjs';
-import { judgeLang, ANSWER_LANGS, DEFAULT_ANSWER_LANG } from '../lib/answer-lang.mjs';
 
 export const MAX_COMMITS = 6;
 const MAX_REPOS = 5;
 const HASH_TOKEN = /\b[0-9a-f]{7,40}\b/gi;
-const SAMPLE = 120;
 // 막는 글 맨 앞 표시. 같은 사람 턴에서 이 표시가 든 되먹임이 이미 있으면 다시 묻지 않는다.
 export const markOf = (id) => `[harness-fit · ${id}]`;
 
@@ -57,19 +55,4 @@ export const commitHash = {
   },
 };
 
-export const answerLang = {
-  id: 'answer-lang',
-  on: 'stop',
-  check({ input, opts, t, shared }) {
-    const want = ANSWER_LANGS.includes(opts.lang) ? opts.lang : DEFAULT_ANSWER_LANG;
-    let texts = finalTexts(tailOf(input, shared));
-    if (!texts.length && typeof input.last_assistant_message === 'string') texts = [input.last_assistant_message];
-    if (!texts.length) return null;
-    const { block, bad } = judgeLang(texts, want);
-    if (!block) return null;
-    const sample = (bad[0] || texts[texts.length - 1]).replace(/\s+/g, ' ').trim().slice(0, SAMPLE);
-    return `${markOf('answer-lang')} ${t('answerLang.wrong', { lang: t(`lang.name.${want}`), sample })}`;
-  },
-};
-
-export default [commitHash, answerLang];
+export default [commitHash];

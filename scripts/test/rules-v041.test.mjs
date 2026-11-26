@@ -85,14 +85,20 @@ test('iOS 지침: Core Data 줄에 마이그레이션 시험, 줄은 늘지 않�
   }
 });
 
-test('GitHub Flow: 작업 마치기 스킬이 있으면 「로컬 병합 대신 PR」 줄', () => {
+// 2026-11-24 사용자 지적 「확인 없이 PR·MR 을 올린다」 — 「작업을 마칠 때는 로컬 병합 대신 PR 을 연다」(스킬이 있을 때만)를
+// 「커밋까지 하고 보여 준 뒤 멈춘다, push·PR 은 올리라고 할 때만」(늘)으로. PR·MR 낱말은 저장소 위치에 맞춘다({{pr}})
+test('브랜치 전략 지침: 작업을 마치면 커밋까지 하고 멈추고, push·PR·MR 은 사용자가 올리라고 할 때만(스킬과 상관없이, 저장소에 맞는 낱말)', () => {
   const base = { lang: 'ko', rules: [], flow: 'github-flow', hooks: ['protect-branch'], skills: [] };
-  const PR = '로컬 병합 대신 PR(GitLab 은 MR)을 연다';
-  assert.ok(ruleTexts({ ...base, skills: ['finishing-a-development-branch'] })['github-flow'].includes(PR));
-  assert.ok(!ruleTexts(base)['github-flow'].includes(PR), '스킬이 없으면 줄도 없다');
-  // 팀 조합(GitHub Flow)은 스킬을 넣으므로 줄도 들어간다
+  const STOP = '작업을 마치면 브랜치에 커밋까지 하고 바뀐 것을 보여 준 뒤 멈춘다';
+  for (const flow of ['github-flow', 'git-flow']) {
+    assert.ok(ruleTexts({ ...base, flow })[flow].includes(STOP), `${flow}: 스킬이 없어도 늘`);
+    assert.ok(ruleTexts({ ...base, flow, skills: ['finishing-a-development-branch'] })[flow].includes(STOP));
+  }
+  assert.ok(!ruleTexts(base)['github-flow'].includes('로컬 병합 대신'), '옛 줄(마치면 PR 을 연다)은 없다');
+  assert.ok(ruleTexts({ ...base, host: 'gitlab' })['github-flow'].includes('push 와 MR 열기는 사용자가 올리라고 할 때만'));
+  assert.ok(ruleTexts({ ...base, host: 'github' })['github-flow'].includes('push 와 PR 열기는 사용자가 올리라고 할 때만'));
+  assert.ok(ruleTexts(base)['github-flow'].includes('push 와 PR(GitLab 은 MR) 열기'), '저장소 위치를 모르면 둘 다');
+  assert.doesNotMatch(ruleTexts({ ...base, host: 'gitlab' })['github-flow'], /PR|\{\{pr\}\}/, 'GitLab 저장소에는 PR 낱말이 없다');
   const sel = expandCombo(all, 'team', detect(repo({ ...NEXT })));
-  assert.ok(sel.flow === 'github-flow' && sel.skills.includes('finishing-a-development-branch'));
-  assert.ok(ruleTexts({ ...sel, lang: 'ko' })['github-flow'].includes(PR));
-  assert.ok(ruleTexts({ ...sel, lang: 'en' })['github-flow'].includes('open a PR (an MR on GitLab) instead of merging locally'));
+  assert.ok(ruleTexts({ ...sel, lang: 'en', host: 'gitlab' })['github-flow'].includes('Push and open the MR only when the user asks'));
 });

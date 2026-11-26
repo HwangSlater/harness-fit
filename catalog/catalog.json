@@ -3708,36 +3708,6 @@
    ]
   },
   {
-   "id": "git-workflow-and-versioning",
-   "repo": "addyosmani/agent-skills",
-   "path": "skills/git-workflow-and-versioning/SKILL.md",
-   "stages": [
-    "git"
-   ],
-   "stacks": [
-    "any"
-   ],
-   "needs": [],
-   "summary": {
-    "ko": "원자적 커밋·브랜치·충돌 해결·지저분한 작업 트리 쪼개기·PR 규칙",
-    "en": "Sets rules for atomic commits, branches, conflict resolution, splitting messy trees and PRs"
-   },
-   "always": 162,
-   "onUse": 3636,
-   "install": "copy",
-   "files": 1,
-   "scripts": [],
-   "overlapsHook": "commit-msg",
-   "descChars": 616,
-   "saysWhen": true,
-   "fileList": [
-    {
-     "path": "SKILL.md",
-     "size": 14403
-    }
-   ]
-  },
-  {
    "id": "using-git-worktrees",
    "repo": "obra/superpowers",
    "path": "skills/using-git-worktrees/SKILL.md",
@@ -3844,68 +3814,6 @@
     {
      "path": "evals/scenarios/concise-docs-pr.json",
      "size": 1753
-    }
-   ]
-  },
-  {
-   "id": "iterate-pr",
-   "repo": "getsentry/skills",
-   "path": "skills/iterate-pr/SKILL.md",
-   "stages": [
-    "git",
-    "ci"
-   ],
-   "stacks": [
-    "any"
-   ],
-   "needs": [
-    "gh",
-    "python"
-   ],
-   "summary": {
-    "ko": "CI 가 초록이 되고 중요 리뷰 지적이 해결될 때까지 PR 을 반복 수정한다",
-    "en": "Revises a PR repeatedly until CI is green and important review comments are resolved"
-   },
-   "always": 57,
-   "onUse": 1259,
-   "install": "copy",
-   "files": 7,
-   "scripts": [
-    "scripts/fetch_pr_checks.py",
-    "scripts/fetch_pr_feedback.py",
-    "scripts/monitor_pr_checks.py",
-    "scripts/reply_to_thread.py"
-   ],
-   "descChars": 213,
-   "saysWhen": true,
-   "fileList": [
-    {
-     "path": "SKILL.md",
-     "size": 5036
-    },
-    {
-     "path": "SPEC.md",
-     "size": 5355
-    },
-    {
-     "path": "agents/openai.yaml",
-     "size": 292
-    },
-    {
-     "path": "scripts/fetch_pr_checks.py",
-     "size": 9901
-    },
-    {
-     "path": "scripts/fetch_pr_feedback.py",
-     "size": 14742
-    },
-    {
-     "path": "scripts/monitor_pr_checks.py",
-     "size": 6699
-    },
-    {
-     "path": "scripts/reply_to_thread.py",
-     "size": 4610
     }
    ]
   },
@@ -4780,103 +4688,6 @@
    ],
    "descChars": 154,
    "saysWhen": false
-  },
-  {
-   "id": "careful",
-   "repo": "garrytan/gstack",
-   "path": "careful/SKILL.md",
-   "stages": [
-    "security",
-    "meta"
-   ],
-   "stacks": [
-    "any"
-   ],
-   "needs": [
-    "gstack 설치",
-    "bash"
-   ],
-   "summary": {
-    "ko": "켜 두면 Bash/PowerShell 의 파괴적 명령(rm -rf·DROP·force push)을 실행 전에 경고한다(스킬 내장 훅)",
-    "en": "Warns before destructive Bash/PowerShell commands (rm -rf, DROP, force push) via a built-in hook"
-   },
-   "always": 16,
-   "onUse": 1187,
-   "install": "copy",
-   "files": 5,
-   "scripts": [
-    "bin/check-careful.sh",
-    "bin/hook-extract.sh"
-   ],
-   "overlapsHook": "danger-cmd",
-   "descChars": 52,
-   "saysWhen": false,
-   "fileList": [
-    {
-     "path": "SKILL.md",
-     "size": 4739
-    },
-    {
-     "path": "SKILL.md.tmpl",
-     "size": 4965
-    },
-    {
-     "path": "bin/check-careful.sh",
-     "size": 20796
-    },
-    {
-     "path": "bin/hook-extract.sh",
-     "size": 10774
-    },
-    {
-     "path": "bin/mask-commit-message.awk",
-     "size": 4996
-    }
-   ]
-  },
-  {
-   "id": "git-guardrails",
-   "repo": "mattpocock/skills",
-   "path": "skills/misc/git-guardrails-claude-code/SKILL.md",
-   "stages": [
-    "git",
-    "security"
-   ],
-   "stacks": [
-    "any"
-   ],
-   "needs": [
-    "bash",
-    "jq"
-   ],
-   "summary": {
-    "ko": "push·reset --hard·clean·branch -D 를 막는 PreToolUse 훅을 프로젝트/전역에 설치한다",
-    "en": "Installs a PreToolUse hook that blocks push, reset --hard, clean and branch -D"
-   },
-   "always": 68,
-   "onUse": 579,
-   "install": "copy",
-   "files": 3,
-   "scripts": [
-    "scripts/block-dangerous-git.sh"
-   ],
-   "overlapsHook": "danger-cmd",
-   "descChars": 243,
-   "saysWhen": true,
-   "fileList": [
-    {
-     "path": "SKILL.md",
-     "size": 2313
-    },
-    {
-     "path": "agents/openai.yaml",
-     "size": 112
-    },
-    {
-     "path": "scripts/block-dangerous-git.sh",
-     "size": 507
-    }
-   ]
   }
  ]
 }

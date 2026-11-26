@@ -101,7 +101,7 @@ test('통합 브랜치 이름이 develop 꼴이 아니어도(integration) 목록
   assert.deepEqual(bash('git switch integration && git merge feature/login'), [], 'feature 를 통합 브랜치에');
   setRules({ 'merge-flow': true, 'protect-branch': { branches: ['production'] } });
   const [none] = bash('git merge feature/login');
-  assert.match(none, /통합 브랜치에 합치고/, '통합 브랜치를 적지 않았으면 이름 없이');
+  assert.match(none, /통합 브랜치 쪽으로 합치고/, '통합 브랜치를 적지 않았으면 이름 없이');
   assert.doesNotMatch(none, /develop/);
 });
 

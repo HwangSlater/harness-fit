@@ -128,9 +128,9 @@ export const makeState = ({ all, det, cfg, prev = null }, lang) => {
     // 지침마다 「켜면 그 줄을 대신 맡는 훅」(rules/*.md 의 {{!hook:id}}) — 화면 「줄을 대신 맡는 훅」 칩
     ruleHooks: ruleHookTags(lang),
     // 사용자 규칙과 반대인 규칙 줄마다 harness-fit 쪽 글(「내 규칙과 반대」 창) — 기록은 detected.conflicts
-    conflictText: conflictLines(det.conflicts, lang),
+    conflictText: conflictLines(det.conflicts, lang, det.host),
     // 형식 훅(fitOff): 이 저장소 기록과 맞지 않으면 브랜치 전략을 골라도 켜지 않는다(fitDropped 로 남겨 훅 단계가 이유를 보여 준다).
-    // 저장소 전체에 맞지 않는 훅(fit.hooks — GitLab 의 pr-merge)도 — 「추천대로」·브랜치 방식 다시 고르기가 다시 켜던 일(검토 2026-11-12)
+    // 저장소 전체에 맞지 않는 훅(fit.hooks — GitLab 의 prefer-gh)도 — 「추천대로」·브랜치 방식 다시 고르기가 다시 켜던 일(검토 2026-11-12)
     fit,
     flows: all.packs.flows.map((f) => ({ id: f.id, name: L(f.name), desc: L(f.desc), for: L(f.for), hooksOn: f.hooksOn.filter((h) => !fit.flows[f.id]?.[h] && !fit.hooks[h]), fitDropped: f.hooksOn.filter((h) => fit.flows[f.id]?.[h] || fit.hooks[h]), hooksOff: f.hooksOff, override: Lmap(f.override), hooks: f.hooks || {}, githubNotes: Object.fromEntries(Object.entries(f.github?.notes || {}).map(([k, v]) => [k, L(v)])) })),
     ruleTokens: tokens,
@@ -165,6 +165,8 @@ export const cleanSelection = ({ all, cfg, det }, sel, fallbackLang) => {
     vcs: det?.vcs && typeof det.vcs === 'object' ? det.vcs : null,
     // 저장소 종류도 서버가 읽은 것({{kind:…}} 규칙 줄을 고르는 데 쓴다 — claude-md.mjs)
     kinds: Array.isArray(det?.kinds) ? det.kinds : null,
+    // 저장소 위치도 서버가 읽은 것(지침의 {{pr}} 을 PR·MR 가운데 하나로 — claude-md.mjs prWord)
+    host: ['github', 'gitlab'].includes(det?.host) ? det.host : null,
     explore: (Array.isArray(sel.explore) ? sel.explore : []).filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r)).slice(0, 10),
     share: sel.share === true,
     // GitHub 저장소 설정도 바꿀지(화면의 스위치를 켰을 때만 true. 기본 꺼짐 — scripts/lib/github-settings.mjs)

@@ -226,7 +226,7 @@ test('16 회차: fastlane test·SwiftLint·Xcode 시험 폴더·Appfile 보호, 
   const sel = { ...recommend(all, { ...d, authors: 3, team: true }, 'ko'), lang: 'ko' };
   const t = ruleTexts(sel).commands;
   assert.ok(/사람이 직접 실행하는 명령: .*`fastlane beta`/.test(t), t);
-  assert.ok(/검사: `swiftlint lint` — 코드를 고쳤으면 끝내기 전에/.test(t), t);
+  assert.ok(/테스트: `bundle exec fastlane test` — 코드를 고쳤으면 끝내기 전에 테스트·검사를 돌린다/.test(t) && /검사: `swiftlint lint`/.test(t), t);
   // Makefile 의 lint 가 있으면 그것을
   assert.deepEqual(detectCommands(repo({ '.swiftlint.yml': '', 'Makefile': 'lint:\n\t./scripts/lint.sh\n' })).commands.lint, ['make lint']);
 });

@@ -1,4 +1,4 @@
-// git 훅 엄격 사례: git-add-all · protect-branch · branch-name · pr-merge.
+// git 훅 엄격 사례: git-add-all · protect-branch · branch-name.
 // protect-branch·branch-name 의 기본 옵션은 GitHub Flow(packs.json flows), 다른 방식은 사례의 opts 로.
 import { S, B, P, onBranch, both, keyed } from './helpers.mjs';
 
@@ -179,30 +179,4 @@ export default {
     ],
   },
 
-  'pr-merge': {
-    block: [
-      S('gh pr merge 12', '옵션 없음'),
-      S('gh pr merge 12 --merge --delete-branch', '--merge'),
-      S('gh pr merge --squash', '--delete-branch 없음'),
-      S('gh pr merge 3 --rebase -d', '--rebase'),
-      P('& gh pr merge 12', 'PowerShell & 호출'),
-      S('gh.exe pr merge 12 -s', 'gh.exe'),
-      B('git fetch && gh pr merge 3 -s', '이은 명령'),
-      B('bash -c "gh pr merge 12"', 'bash -c 안'),
-      S('gh -R owner/repo pr merge 12', 'gh -R'),
-      S('gh --repo owner/repo pr merge 12 --merge', 'gh --repo'),
-      B('GH_TOKEN=$T gh pr merge 12', '환경 변수 앞붙임'),
-      P('gh pr checks 12; if ($?) { gh pr merge 12 }', 'PowerShell if ($?) { }'),
-      B('if gh pr checks 12; then gh pr merge 12; fi', 'bash if … then'),
-    ],
-    pass: [
-      S('gh pr merge 12 --squash --delete-branch', '맞는 꼴'),
-      S('gh pr merge 12 -s -d --auto', '짧은 옵션 + --auto'),
-      S('gh pr merge -sd 12', '묶음'),
-      S('gh pr view 12', '다른 하위 명령'),
-      S('git commit -m "docs: gh pr merge 12"', '메시지'),
-      S('echo "gh pr merge"', 'echo'),
-      S('gh pr merge 12 --squash --delete-branch --subject "-m x"', '값 속 옵션 글'),
-    ],
-  },
 };

@@ -1,4 +1,5 @@
-// 검토 규칙: PR·MR 을 Claude 가 스스로 병합·승인하지 않기(self-merge, 막음), 저장소 보호 설정 바꾸기는 묻기(protect-rules, 물음).
+// 검토 규칙: PR·MR 을 Claude 가 스스로 병합·승인하지 않기(self-merge, 막음), 저장소 보호 설정 바꾸기는 묻기(protect-rules, 물음),
+// push·PR·MR 올리기 전에 묻기(ask-publish, 물음 — 맨 아래).
 // 실제로 있었던 일(2026-11-21, GitLab 팀 저장소): Claude 가 MR !1~!5 를 같은 계정으로 열고 REST API 로 병합했다 — 팀원 검토 0번.
 // gh pr merge 만 보던 pr-merge 는 병합 자체를 막지 않았고 GitLab(glab·REST·GraphQL·push 옵션)은 아예 보지 않았다.
 // 보는 길: gh·glab 명령, gh api·glab api, HTTP 도구(curl·wget·httpie·Invoke-RestMethod·Invoke-WebRequest), git push -o,
@@ -14,6 +15,7 @@ import { timelineOf } from '../lib/branches.mjs';
 import { findRepo, refExists } from '../lib/repo-files.mjs';
 import { parsePush } from './git.mjs';
 import { flowNames } from './flow.mjs';
+import { prWordOf } from '../lib/forge.mjs';
 
 // ── 병합·승인으로 가는 곳(앞부분은 무엇이든 — 변수로 만든 주소 "$API/projects/$ID/…" 도) ──
 // GitHub REST: PUT …/pulls/{n}/merge, 리뷰 승인 POST …/pulls/{n}/reviews(event=APPROVE), PR 없는 병합 POST …/merges
@@ -236,10 +238,10 @@ const directPush = (cmd, shell, root, repo, rules) => {
 export const selfMerge = {
   id: 'self-merge',
   on: 'shell',
-  check({ cmd, shell, root, repo, rules, t }) {
+  check({ cmd, shell, cwd, root, repo, rules, t }) {
     for (const seg of commandSegments(cmd, shell)) {
       const how = cliMerge(wordsOf(seg));
-      if (how) return t('selfMerge.cli', { how });
+      if (how) return t('selfMerge.cli', { how, pr: how.startsWith('glab') ? 'MR' : 'PR' });
     }
     for (const { words } of gitSegments(cmd, 'push', shell)) {
       const opt = pushOptions(words).find((o) => PUSH_AUTO_MERGE.test(o));
@@ -247,16 +249,19 @@ export const selfMerge = {
     }
     for (const c of apiCalls(cmd, shell)) {
       if (c.graphql) {
-        if (/\bmutation\b/i.test(c.text) && (MERGE_MUTATION.test(c.text) || APPROVE_REVIEW.test(c.text))) return t('selfMerge.api', { how: `${c.via} … graphql` });
+        if (/\bmutation\b/i.test(c.text) && (MERGE_MUTATION.test(c.text) || APPROVE_REVIEW.test(c.text))) return t('selfMerge.api', { how: `${c.via} … graphql`, pr: /mergeRequest/.test(c.text) ? 'MR' : 'PR' });
         continue;
       }
       if (!isWrite(c.method)) continue;
       const approve = GH_REVIEW_PATH.test(c.path) && (c.fields.some((f) => /^event=APPROVE$/i.test(f)) || /\bevent["']?\s*[:=]\s*["']?APPROVE\b/.test(c.text));
-      if (GH_MERGE_PATH.test(c.path) || GH_MERGES_PATH.test(c.path) || GL_MERGE_PATH.test(c.path) || approve) return t('selfMerge.api', { how: `${c.method} ${c.path}` });
+      if (GH_MERGE_PATH.test(c.path) || GH_MERGES_PATH.test(c.path) || GL_MERGE_PATH.test(c.path) || approve) return t('selfMerge.api', { how: `${c.method} ${c.path}`, pr: GL_MERGE_PATH.test(c.path) ? 'MR' : 'PR' });
     }
     // 로컬에서 합치고 보호 브랜치로 바로 올리면 병합과 같다(Git Flow 는 보호 브랜치 훅이 바로 올리기를 막지 않는다)
     const branch = directPush(cmd, shell, root, repo, rules);
-    if (branch) return t('selfMerge.directPush', { branch });
+    // 보호 브랜치 훅이 그 브랜치로 바로 올리기를 이미 막으면(GitHub Flow 의 noDirectPush) 같은 뜻의 막는 글을 두 번 내지 않는다(점검 2026-11-26)
+    const pb = rules?.['protect-branch'];
+    const pbBlocks = pb && typeof pb === 'object' && pb.noDirectPush && (Array.isArray(pb.branches) ? pb.branches : ['main', 'master']).includes(branch);
+    if (branch && !pbBlocks) return t('selfMerge.directPush', { branch, pr: prWordOf(root || cwd) });
     return null;
   },
 };
@@ -274,4 +279,68 @@ export const protectRules = {
   },
 };
 
-export default [selfMerge, protectRules];
+// ── push·PR·MR 올리기 전에 묻기(ask-publish, 물음) ──
+// 「개발해 줘」 하나로 커밋 → push → PR·MR 열기까지 가던 것(사용자 지적 2026-11-24: 「사용자가 확인하고 올려야 하는데 무작정 올린다」).
+// 올리는 것은 사용자가 바뀐 것을 본 뒤에. 막지 않고 물어서, 사용자가 올리라고 했으면 확인 창에서 허락하면 된다.
+// 보는 것: git push(--help·--dry-run 은 통과), gh pr create, glab mr create|new, PR·MR 을 만드는 API(POST …/pulls · …/merge_requests),
+// GraphQL createPullRequest·mergeRequestCreate. 보호 브랜치로 바로 올리는 push 는 self-merge 가 막는다(막음이 물음보다 앞선다).
+// /pulls 는 GitHub 에만 있다 — 앞이 변수("$REPO_API/pulls")여도 POST 면 PR 만들기. /merge_requests 는 GitLab
+const GH_CREATE_PATH = /(?:^|\/)pulls\/?(?:[?#]|$)/i;
+const GL_CREATE_PATH = /(?:^|\/)merge_requests\/?(?:[?#]|$)/i;
+const CREATE_MUTATION = /\b(?:createPullRequest|mergeRequestCreate)\b/;
+const short = (s) => (s.length > 80 ? `${s.slice(0, 77)}…` : s).trim();
+// push 를 시험 삼아(--dry-run·-n, -nv 같은 짧은 옵션 묶음 속 n 도) 하거나 도움말이면 묻지 않는다
+const dryPush = (words) => words.some((w) => HELP.test(w) || w === '--dry-run' || /^-[a-zA-Z]*n[a-zA-Z]*$/.test(w));
+
+// 명령으로 낱말이 정해지면 그것(gh·hub·/pulls 는 PR, glab·/merge_requests 는 MR), 아니면 저장소 위치로
+const cliOpen = (w) => {
+  const prog = w[0];
+  if (prog === 'hub' && w[1] === 'pull-request' && !w.slice(2).some((a) => HELP.test(a))) return { how: 'hub pull-request', word: 'PR' };
+  if (prog !== 'gh' && prog !== 'glab') return null;
+  const rest = w.slice(1).filter((a, i, all) => !/^(?:-R|--repo)$/.test(a) && !/^(?:-R|--repo)$/.test(all[i - 1] || '') && !/^--repo=/.test(a));
+  const [noun, verb, ...args] = rest;
+  if (args.some((a) => HELP.test(a) || a === '--dry-run')) return null;
+  if (prog === 'gh' && noun === 'pr' && (verb === 'create' || verb === 'new')) return { how: `gh pr ${verb}`, word: 'PR' };
+  if (prog === 'glab' && noun === 'mr' && (verb === 'create' || verb === 'new')) return { how: `glab mr ${verb}`, word: 'MR' };
+  return null;
+};
+
+export const askPublish = {
+  id: 'ask-publish',
+  ask: true,
+  on: 'shell',
+  check({ cmd, shell, root, repo, rules, opts, t }) {
+    for (const seg of commandSegments(cmd, shell)) {
+      const hit = cliOpen(wordsOf(seg));
+      if (hit) return t('askPublish.open', { how: hit.how, pr: hit.word });
+    }
+    for (const c of apiCalls(cmd, shell)) {
+      if (c.graphql) {
+        if (/\bmutation\b/i.test(c.text) && CREATE_MUTATION.test(c.text)) return t('askPublish.open', { how: `${c.via} … graphql`, pr: /mergeRequestCreate/.test(c.text) ? 'MR' : 'PR' });
+        continue;
+      }
+      if (c.method !== 'POST') continue;
+      if (GH_CREATE_PATH.test(c.path)) return t('askPublish.open', { how: `${c.method} ${c.path}`, pr: 'PR' });
+      if (GL_CREATE_PATH.test(c.path)) return t('askPublish.open', { how: `${c.method} ${c.path}`, pr: 'MR' });
+    }
+    // protectedOnly(트렁크 기반 — main 에 바로 합치는 방식): 보호 브랜치로 올리는 push 만 묻는다(점검 2026-11-26 — 팀이 트렁크면 묻지 않고 공용 main 에 올렸다)
+    const names = opts?.protectedOnly ? protectedNames(rules) : null;
+    const branchAt = names && root ? timelineOf(cmd, shell, root, repo || repoState(root)) : null;
+    // 저장소가 아닌 곳의 push 는 어차피 실패한다 — 묻지 않는다(git 이 없거나 저장소 밖일 때 확인 창만 뜨던 것)
+    for (const seg of root ? gitSegments(cmd, 'push', shell) : []) {
+      if (dryPush(seg.words)) continue;
+      if (names) {
+        if (!branchAt) continue;
+        const { targets, all, tagsOnly } = parsePush(seg.words, branchAt(seg.start));
+        const refs = all ? names : targets.length ? targets.map((x) => x.ref) : [branchAt(seg.start)];
+        if (tagsOnly || !refs.some((r) => r && names.includes(r))) continue;
+      }
+      // 확인 창에 보일 명령: 주석(# 뒤)은 뺀다 — bare 는 따옴표 속·주석을 비운 글이라 주석 자리를 거기서 찾는다
+      const shown = seg.raw.slice(0, seg.raw.length - (seg.bare.length - seg.bare.replace(/\s+$/, '').length));
+      return t('askPublish.push', { how: short(`git push ${shown}`.replace(/\s+/g, ' ')) });
+    }
+    return null;
+  },
+};
+
+export default [selfMerge, protectRules, askPublish];

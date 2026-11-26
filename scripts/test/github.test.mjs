@@ -99,14 +99,15 @@ test('켤 수 없는 까닭: GitHub 아님 · gh 없음 · 로그인 안 함 · 
   assert.equal(all.packs.flows.find((f) => f.id === 'none').github, undefined, '정하지 않음에는 GitHub 항목이 없다');
 });
 
-test('항목과 추천 값은 packs.json 에서: GitHub Flow 는 다 켜고, Git Flow 는 PR 요구만 끄고, 트렁크는 PR 항목이 없다', async () => {
+test('항목과 추천 값은 packs.json 에서: GitHub Flow 는 다 켜고, Git Flow 는 PR 요구·승인 1, 트렁크는 PR 항목이 없다', async () => {
   const gh = await itemsOf('github-flow');
   assert.deepEqual(gh.map((i) => i.id), ['squash', 'autodelete', 'pr:main', 'approvals:main', 'noforce:main', 'nodelete:main', 'admins:main']);
   assert.deepEqual(defaultChoice(gh), FLOW_DEFAULTS);
   assert.deepEqual(gh.find((i) => i.id === 'approvals:main').choices, [0, 1, 2]);
 
   const gf = await itemsOf('git-flow', { defaultBranch: 'master', branches: { master: null } });
-  assert.equal(gf.find((i) => i.id === 'pr:master').default, false, 'Git Flow 는 release·hotfix 를 로컬에서 합쳐 push 하므로 PR 요구는 기본 꺼짐');
+  assert.equal(gf.find((i) => i.id === 'pr:master').default, true, 'Git Flow 도 PR 로만 합친다 — 병합은 사람이(사용자 결정 2026-11-26)');
+  assert.equal(gf.find((i) => i.id === 'approvals:master').default, 1);
   assert.equal(gf.find((i) => i.id === 'noforce:master').default, true);
   assert.deepEqual(gf.find((i) => i.branch === 'develop'), { id: 'branch:develop', branch: 'develop', blocked: 'missing' });
   assert.ok(!gf.some((i) => i.id === 'squash'), 'Git Flow 는 합치기 방식을 건드리지 않는다');
@@ -291,4 +292,11 @@ test('보호 PUT 꼴: GET 의 사람·팀 객체를 이름 목록으로, 리뷰 
 test('고르기 화면: 승인 수 offerAll 도 같은 항목(서버·화면이 같은 계산)', async () => {
   const o = await offerAll('.', all.packs.flows, { run: fakeGh().run });
   assert.deepEqual(o.flows['github-flow'].map((i) => i.id), (await itemsOf('github-flow')).map((i) => i.id));
+});
+
+// 혼자 쓰는 저장소에 Git Flow(승인 1 추천)를 켜면 본인은 자기 PR 을 승인할 수 없어 아무것도 병합하지 못한다(검토 2026-11-26)
+test('혼자 쓰는 저장소는 필요한 승인 수 추천이 0, 팀이면 Git Flow 의 1', async () => {
+  const det = await detectGithub('.', [spec('git-flow')], { run: fakeGh({ defaultBranch: 'master', branches: { master: null } }).run });
+  assert.equal(itemsFor(spec('git-flow'), det, { solo: true }).find((i) => i.id === 'approvals:master').default, 0);
+  assert.equal(itemsFor(spec('git-flow'), det).find((i) => i.id === 'approvals:master').default, 1);
 });

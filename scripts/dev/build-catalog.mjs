@@ -59,8 +59,12 @@ const skillLicense = (repo, sha, dir) => {
   return null;
 };
 
+// 뺀 스킬(catalog/excluded.json — 까닭과 함께)은 조사에 다시 들어와도 넣지 않는다
+const excludedFile = path.join(ROOT, 'catalog', 'excluded.json');
+const excluded = fs.existsSync(excludedFile) ? JSON.parse(fs.readFileSync(excludedFile, 'utf8')).skills || {} : {};
 const skills = [];
 for (const s of research.skills) {
+  if (excluded[s.id]) continue;
   const file = path.join(dlDir, `${s.repo.replace('/', '_')}_${s.path.replace(/\//g, '_')}`);
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const fm = skillMeta(text, s.id);

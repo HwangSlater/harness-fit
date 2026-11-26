@@ -11,7 +11,6 @@ import { validValue, cleanHookOpts, optionValue, ownedKeys, parseList } from '..
 import { DEFAULT_MAX_LINES } from '../../hooks/rules/files.mjs';
 import { DEFAULT_MAX_SUBJECT } from '../../hooks/rules/message.mjs';
 import { DEFAULT_BRANCH_PATTERN, DEFAULT_PROTECTED } from '../../hooks/rules/git.mjs';
-import { DEFAULT_ANSWER_LANG, ANSWER_LANGS } from '../../hooks/lib/answer-lang.mjs';
 
 const all = loadAll();
 const cfg = pickerCfg;
@@ -59,8 +58,6 @@ test('옵션 기본값은 훅 코드의 기본값과 같다(화면이 「기본�
   assert.equal(opt('commit-msg', 'maxSubject').default, DEFAULT_MAX_SUBJECT);
   assert.equal(opt('branch-name', 'pattern').default, DEFAULT_BRANCH_PATTERN);
   assert.deepEqual(opt('protect-branch', 'branches').default, DEFAULT_PROTECTED);
-  assert.equal(opt('answer-lang', 'lang').default, DEFAULT_ANSWER_LANG);
-  assert.deepEqual(opt('answer-lang', 'lang').choices.map((c) => c.value), ANSWER_LANGS);
   assert.equal(opt('docs-check', 'dateLine').default, true);
 });
 

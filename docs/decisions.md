@@ -1,6 +1,6 @@
 # 결정
 
-> 최종 수정: 2026-11-23 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
+> 최종 수정: 2026-11-26 · 지금 유효한 결정 — 고르기 화면·CLAUDE.md 지침·스킬·GitHub·배포. 훅은 [decisions-hooks.md](decisions-hooks.md), 추천·감지는 [decisions-recommend.md](decisions-recommend.md), 옛 결정·원문은 [decisions-archive.md](decisions-archive.md)
 
 한 항목은 제목 줄 + 결정 · 이유 · 어디서. 「사용자 결정」·「사용자 승인」·「사용자 요청」 표시가 있는 것은 사용자가 정했으니 바꾸기 전에 묻는다. 긴 근거·측정값·옛 이름은 archive 의 원문에 있다. 훅 원칙과 훅별 결정은 [decisions-hooks.md](decisions-hooks.md), 저장소를 읽어 조합·스택·묻는 명령·보호 경로를 정하는 결정은 [decisions-recommend.md](decisions-recommend.md) 에 있다.
 
@@ -128,7 +128,7 @@
 ## CLAUDE.md 지침
 
 ### 줄마다 누가 맡는지 표시한다 (사용자 지적, 2026-11-05)
-- 결정: 지침 줄은 모두 `{{hook:id}}`·`{{!hook:id}}`·`{{!skill:id}}`·`{{judge}}` 중 하나를 단다. 「훅이 막는다」고 알리는 줄은 두지 않는다.
+- 결정: 지침 줄은 모두 `{{hook:id}}`·`{{!hook:id}}`·`{{!skill:id}}`·`{{judge}}` 중 하나를 단다. 「훅이 막는다」고 알리는 줄은 두지 않는다. 줄 속 `{{pr}}` 은 저장소 위치에 맞는 낱말 하나(GitHub PR · GitLab MR, 모르면 「PR(GitLab 은 MR)」 — claude-md.mjs prWord, 사용자 지적 2026-11-24: GitLab 저장소에도 「PR」이 섞여 들어갔다).
 - 이유: 정적 도구로 막을 수 있는 걸 글로 두면 놓친다. 훅이 막을 때 이유를 알려 주므로 매 대화 글로 또 적으면 겹친다.
 - 어디서: `scripts/test/rules.test.mjs`, 렌더 `scripts/lib/claude-md.mjs`
 
@@ -228,7 +228,7 @@
 
 ### 같은 일을 하는 스킬은 조합에 하나만 (사용자 요청, 2026-11-05)
 - 결정: `catalog/overlaps.json` 묶음마다 조합 기본값엔 하나만(꼼꼼하게에서 differential-review 를 뺐다 — find-bugs 와 같은 일). 화면에서 같은 묶음을 더하면 「비슷한 스킬이 이미 들어 있어요」(이름을 누르면 그 스킬로 — 위 「겹침 이름표」).
-- 이미 있는 스킬: 같은 이름은 스크립트가, 하는 일이 같은 다른 이름은 setup 때 Claude 가 `scripts/overlap.mjs` 를 보고 `--similar` 로.
+- 이미 있는 스킬: 같은 이름은 스크립트가, 하는 일이 같은 다른 이름은 setup 때 Claude 가 `scripts/overlap.mjs` 를 보고 `--similar` 로. 마지막 점검(사용자 결정 2026-11-26): iterate-pr·git-guardrails·careful·git-workflow-and-versioning 은 훅·지침과 충돌하거나 겹쳐 카탈로그에서 뺐다(`catalog/excluded.json` — 조사에 다시 들어와도 build-catalog 가 넣지 않는다). 작업 마무리(finishing-a-development-branch)·skill-scanner 는 조합 기본에서 뺐다(카탈로그에는 남음 — 지침 「커밋까지 하고 멈춘다」와 push·PR 묻기가 맡는다, skill-scanner 는 설치 때만 필요).
 
 ### 받은 스킬 이름은 카탈로그 id 로 (2026-11-06)
 - 결정: SKILL.md 의 `name` 만 카탈로그 id 로 바꾸고 원래 이름은 `.harness-source.json` 의 `renamedFrom`. id 가 예약 이름이면 받지 않는다.
@@ -286,7 +286,7 @@
 - 어디서: `hooks/rules/commit.mjs` protectedCommit, `hooks/rules/migration.mjs`, `hooks/lib/staged.mjs`, 시험 `hooks/test/strict-cases/write.mjs`·`migration.mjs`
 
 ### GitHub 저장소 설정은 사용자가 켤 때만, 항목마다 (사용자 결정, 2026-11-06)
-- 결정: 기본 꺼짐. 켜면 항목마다 고른다. Git Flow 의 PR 요구는 기본 꺼짐(release 를 로컬에서 병합해 푸시), 관리자에게도 적용은 기본 켜짐, 승인 수 0·1·2. 되돌리기는 이전 값으로.
+- 결정: 기본 꺼짐. 켜면 항목마다 고른다. Git Flow 의 PR 요구는 켜짐·승인 1(사용자 결정 2026-11-26 — 「PR·MR 로만 합치고 병합은 사람이」와 맞춤. 전에는 release 를 로컬에서 병합해 푸시한다고 보고 꺼 두었다) — 혼자 쓰는 저장소는 승인 추천 0(본인은 자기 PR 을 승인할 수 없다, 검토 2026-11-26), 관리자에게도 적용은 기본 켜짐, 승인 수 0·1·2. 되돌리기는 이전 값으로.
 - 이유: 웹 화면·`gh api`·다른 사람이 병합하는 길은 훅이 못 본다. 설정은 모두에게 영향을 준다.
 - 어디서: `catalog/packs.json` flows 의 `github`, `scripts/lib/github-settings.mjs`, `picker/github-plan.js`
 
@@ -302,7 +302,7 @@
 - 어디서: `catalog/packs.json` flows 의 `branch-name.pattern`
 
 ### pr-merge 는 브랜치 전략에 딸린 훅 (2026-11-06)
-- 결정: GitHub Flow 에만 있어 조합 목록이 아니라 브랜치 전략(`hooksOn`)으로 들어간다. 조합을 펼칠 때 그 조합의 브랜치 전략 hooksOn/hooksOff 도 맞춘다(화면 `defaultsFor` 와 같은 범위).
+- 결정: GitHub Flow 에만 있어 조합 목록이 아니라 브랜치 전략(`hooksOn`)으로 들어간다. 「PR·MR 병합은 사람이」(self-merge)가 켜져 있으면 쉰다 — 안내 글이 Claude 에게 병합하는 법을 가르쳤다(2026-11-24). 조합을 펼칠 때 그 조합의 브랜치 전략 hooksOn/hooksOff 도 맞춘다(화면 `defaultsFor` 와 같은 범위).
 - 어디서: `scripts/lib/catalog.mjs` 의 `expandCombo`
 
 ### 올린 커밋 다시 쓰기·스쿼시 안 한 푸시 (2026-11-06)
@@ -353,6 +353,9 @@
 - 어디서: `Downloads/find-your-skill-시안/`
 
 ## 바뀐 이력
+- v0.8.0 (2026-11-26, https://github.com/HwangSlater/harness-fit/releases/tag/v0.8.0): push·PR·MR 올리기 전에 묻기(ask-publish), 지침은 「커밋까지 하고 멈춘다」, PR·MR 낱말을 저장소에 맞게, Git Flow 의 GitHub 설정 PR 필수·승인 1, 마지막 점검(겹침·충돌 고치기, 훅 넷·스킬 넷 지움 — 훅 29개·스킬 77개).
+- 2026-11-26: 마지막 점검 — 스킬 넷 카탈로그에서 뺌(excluded.json), 작업 마무리·skill-scanner 조합 기본에서 뺌.
+- 2026-11-24·26: 사용자 지적 「확인 없이 PR·MR 을 올린다」 — 지침의 {{pr}}(저장소에 맞는 낱말), Git Flow 의 GitHub PR 요구 켜짐·승인 1, pr-merge 는 self-merge 가 켜지면 쉼.
 - v0.7.0 (2026-11-23, https://github.com/HwangSlater/harness-fit/releases/tag/v0.7.0): Git Flow·팀 저장소 보강 — PR·MR 은 사람이 병합(self-merge)·보호 설정 바꾸기 묻기(protect-rules)·develop 되돌려 합치기 알림(back-merge) 훅(32개), 오래 산 브랜치 알림을 Git Flow 에서도, 다른 폴더에서 연 세션도 닿는 저장소의 설정으로 검사, 적용 때 설치 범위·GitLab 요금제로 강제 못 하는 것 알리기, 시험 시간 433초 → 186초.
 - v0.6.0 (2026-11-19, https://github.com/HwangSlater/harness-fit/releases/tag/v0.6.0): 작업 폴더 — 저장소 여럿을 한 폴더에서 열어도 팀 저장소처럼 추천하고 검사한다.
 - v0.5.0 (2026-11-17, https://github.com/HwangSlater/harness-fit/releases/tag/v0.5.0): 끝낼 때 지우기(setup remove), 다시 적용 때 뺀 스킬·git 훅 지우기, 내 규칙과 반대면 묻고 기억하기, 커밋·PR 을 저장소 형식으로, Git Flow 합치기 방향·트렁크 오래 산 브랜치 훅(29개).
@@ -364,7 +367,6 @@
 - 2026-11-13: 화면 역할 평가 반영 — 제안 값 「+」 단추, 긴 까닭 목록 「외 N개」, 팀원 「아니요」에도 저장소 보호 경로 유지, 적용 실패 안내를 오류 종류별로.
 버전별 자세한 내용은 GitHub 릴리스(v0.3.0 부터)나 태그 메시지에 있다. 날짜별 옛 이력은 [decisions-archive.md](decisions-archive.md#바뀐-이력).
 
-- v0.3.0 (2026-11-06): 새 고르기 화면, 훅 23개, git 커밋 전 훅, GitHub 저장소 설정, 용어 통일 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.0)
 - v0.3.1 (2026-11-07): 스킬 목록 예산 경고, CLAUDE.md 지침 손질, 사용자 rules 도 겹침 견주기 — [릴리스](https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.1)
 - v0.3.2 (2026-11-09, https://github.com/HwangSlater/harness-fit/releases/tag/v0.3.2): 조합 기본값을 저장소에 맞춤, prefer-gh 알림, 확인 단계 알림 한 줄, 스킬·훅 쉬운 한 줄과 알아 둘 점, 지침 창, 겹침 이름표, git 그래프 그림, 훅 한 번 30~60ms 줄임·테스트 나누기, 용어(테스트·코드 검사·한도), README·결정 문서 줄이기.
 - 2026-11-09: 지금 유효한 결정만 분야별로 다시 정리, 옛 원문은 decisions-archive.md 로.

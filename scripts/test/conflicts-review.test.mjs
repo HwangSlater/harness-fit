@@ -11,7 +11,7 @@ import { cleanConflict, cleanConflicts, strictConflicts, resolveConflicts, withC
 import { normFile, MAX_READ } from '../lib/conflict-files.mjs';
 import { makeState } from '../lib/picker-state.mjs';
 import { ruleTexts, ruleDropped } from '../lib/claude-md.mjs';
-import { bulletLines, lineHash, lineByHash } from '../lib/rule-files.mjs';
+import { bulletLines, lineHash, lineByHash, TAG, PR_SLOT, prWord } from '../lib/rule-files.mjs';
 import { autoSelection } from '../recommend.mjs';
 import { overlapHooks } from '../overlap.mjs';
 import { detect, withHints } from '../detect.mjs';
@@ -22,7 +22,8 @@ const all = loadAll();
 const tmp = () => tmpDir('hf-conf-rev-');
 const USER_LINE = 'main 에 바로 커밋한다';
 const flow = (lang = 'ko') => bulletLines('github-flow', lang);
-const text = (l) => l.replace(/\s*\{\{.*$/, '').slice(2);
+// 줄 끝 표시를 떼고 {{pr}} 은 저장소 위치를 모를 때의 낱말로(CLAUDE.md 에 들어가는 꼴)
+const text = (l, lang = 'ko') => l.replace(TAG, '').replace(PR_SLOT, prWord(null, lang)).slice(2);
 const hookMine = { kind: 'hook', id: 'protect-branch', choice: 'mine', file: 'CLAUDE.md', userText: USER_LINE };
 const base = { lang: 'ko', combo: 'team', flow: 'github-flow', skills: [], hooks: ['secrets', 'protect-branch'], rules: [], explore: [], note: '', share: false };
 const noHints = { stack: [], similar: [], skip: {} };
@@ -40,8 +41,8 @@ test('규칙 기록은 줄 지문으로 다시 찾는다: 번호가 밀려도 �
   assert.ok(!out.includes(text(l2)), '고른 줄(4번)은 뺀다');
   assert.equal(ruleDropped(sel)['github-flow'].find((d) => d.by === 'conflict').line, 4);
   // 영어 화면에서도 같은 줄(두 언어 줄 차례가 같다)
-  assert.ok(!ruleTexts({ ...sel, lang: 'en' })['github-flow'].includes(text(flow('en')[3])));
-  assert.equal(conflictLines([c], 'en')[conflictKey(c)], text(flow('en')[3]), '창의 「harness-fit 이 넣으려던 것」도 지문으로 찾은 줄');
+  assert.ok(!ruleTexts({ ...sel, lang: 'en' })['github-flow'].includes(text(flow('en')[3], 'en')));
+  assert.equal(conflictLines([c], 'en')[conflictKey(c)], text(flow('en')[3], 'en'), '창의 「harness-fit 이 넣으려던 것」도 지문으로 찾은 줄');
   // 지문이 없어진 줄(바뀌었거나 지워짐): 버리고 다시 묻게 한다. 그 줄은 돌아온다
   const lost = { ...moved, hash: 'ffffffffffff' };
   const why = [];

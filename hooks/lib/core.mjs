@@ -60,8 +60,9 @@ export const hint = (context, message = '') => {
 
 // 막지 않고 사용자에게 확인을 받는다(Claude Code 가 확인 창을 띄운다 — 권한 건너뛰기 모드에서도). reason 은 사용자에게 보인다.
 // message: 함께 알릴 글(검사 오류·허용 주석 알림 — 묻기 때문에 사라지지 않게, 검토 2026-11-11)
-export const ask = (reason, message = '') => {
-  const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason } };
+// context: 같은 명령에서 나온 알림(notice 규칙 — back-merge·branch-age)을 Claude 문맥에 함께 — 묻기만 내보내면 알림이 버려졌다(점검 2026-11-26)
+export const ask = (reason, message = '', context = '') => {
+  const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason, ...(context ? { additionalContext: context } : {}) } };
   if (message) out.systemMessage = message;
   process.stdout.write(JSON.stringify(out));
   process.exit(0);

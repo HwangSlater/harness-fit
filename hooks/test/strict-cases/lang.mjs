@@ -1,4 +1,4 @@
-// 언어별 훅(swift-unsafe · python-unsafe)과 push 전 커밋 묶기(squash-push) 엄격 사례. 위험한 글은 이어 붙여 만든다.
+// 언어별 훅(swift-unsafe · python-unsafe) 엄격 사례. 위험한 글은 이어 붙여 만든다.
 import { S, B, P, W, E, stage, keyed } from './helpers.mjs';
 
 const EV = 'ev' + 'al';
@@ -18,43 +18,6 @@ const unpushed = (n, branch = 'feature/x') =>
   });
 
 export default {
-  'squash-push': {
-    block: [
-      S('git push origin feature/x', '원격에 없는 커밋 2개', { setup: unpushed(2) }),
-      S('git push', '인자 없는 push(지금 브랜치)', { setup: unpushed(2) }),
-      S('git push -u origin HEAD', 'HEAD 를 올림', { setup: unpushed(3) }),
-      S('git push origin +feature/x:feature/x', '+ 붙은 refspec', { setup: unpushed(2) }),
-      S('git push origin feature/x:refs/heads/other', '다른 이름으로 올림', { setup: unpushed(2) }),
-      S('git commit -m "feat: 둘째" ; git push', '같은 명령의 커밋까지 2개', { setup: unpushed(1) }),
-      B('git add src && git commit -m "feat: 둘째" && git push origin feature/x', 'bash && 로 이은 커밋 뒤 push', { setup: unpushed(1) }),
-      S('git push --all origin', '--all: 다른 브랜치에 커밋 2개', {
-        setup: (r) => {
-          unpushed(2, 'feature/y')(r);
-          r.git('switch', '-q', 'main');
-        },
-      }),
-      S('git -c push.default=current push', 'git -c 앞붙임', { setup: unpushed(2) }),
-      P('git push origin (git branch --show-current)', 'PowerShell 명령으로 구한 브랜치', { setup: unpushed(2) }),
-    ],
-    pass: [
-      S('git push origin feature/x', '원격에 없는 커밋 1개', { setup: unpushed(1) }),
-      S('git push -u origin main', '원격 기록이 하나도 없는 저장소(처음 올리기)', { setup: (r) => r.commit('src/a.js', 'export const a = 1;\n', 'feat: 둘') }),
-      S('git push --tags', '태그만', { setup: unpushed(2) }),
-      S('git push origin v1.0', '태그 하나', { setup: (r) => (unpushed(2)(r), r.git('tag', 'v1.0')) }),
-      S('git push origin --delete old', '원격 브랜치 지우기', { setup: unpushed(2) }),
-      S('git push origin :old', '빈 보내는 쪽(지우기)', { setup: unpushed(2) }),
-      S('git push --dry-run', '미리 보기', { setup: unpushed(2) }),
-      S('git commit --amend --no-edit ; git push', 'amend 는 커밋 수를 늘리지 않는다', { setup: unpushed(1) }),
-      S('git push', '이미 원격에 있는 커밋', {
-        setup: (r) => {
-          unpushed(2)(r);
-          r.git('update-ref', 'refs/remotes/origin/feature/x', 'HEAD');
-        },
-      }),
-      S('git status && git log -1', 'push 없음', { setup: unpushed(3) }),
-      S('git commit -m "feat: push 를 막는다"', '커밋 메시지 속 push', { setup: unpushed(2) }),
-    ],
-  },
   'swift-unsafe': {
     block: [
       W('Sources/App/Load.swift', `let d = ${TRY} load()\n`, 'try!'),

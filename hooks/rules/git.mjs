@@ -9,7 +9,7 @@ import { ADD_SUB, commitStagesAll } from '../lib/commit-args.mjs';
 import { branchCreated, worktreeCreated, parseSwitch, timelineOf, anyBranchExists } from '../lib/branches.mjs';
 import { commitMsg, commitMessage } from './message.mjs';
 import { noVerify } from './no-verify.mjs';
-import { findRepo } from '../lib/repo-files.mjs';
+import { onGitlab } from '../lib/forge.mjs';
 
 // 보호 브랜치 기본값(화면의 옵션 기본값과 같아야 한다 — scripts/test/hook-options.test.mjs)
 export const DEFAULT_PROTECTED = ['main', 'master'];
@@ -112,41 +112,26 @@ export const pickCommits = (root, sub, words) => {
   return true;
 };
 
-// GitLab 저장소인지(막는 글을 「PR」 대신 「MR」 로 쓰려고만 — 역할극 14 회차, 2026-11-13). scripts/detect.mjs hostOf 와 같은 기준:
-// origin 주소에 gitlab 이 들면, origin 이 없으면 .gitlab-ci.yml·.gitlab/ 이 있으면. .git/config 를 파일로 먼저 읽고, 애매하면 git config 한 번.
-// 막을 때만 부른다(통과하는 명령에는 들지 않는다)
-// 줄마다 읽는다: [remote "origin"] 아래 첫 url. [include]·[includeIf] 가 있으면 다른 파일이 바꿀 수 있어 git 에게 묻는다
-const urlInConfig = (text) => {
-  let inOrigin = false;
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    if (line.startsWith('[')) {
-      if (/^\[\s*include/i.test(line)) return null;
-      inOrigin = /^\[\s*remote\s+"origin"\s*\]$/i.test(line);
-    } else if (inOrigin && /^url\s*=/i.test(line)) return line.slice(line.indexOf('=') + 1).trim();
+// 막는 글에서 권할 브랜치 접두어: 브랜치 이름 규칙이 받는 것으로(Git Flow 에서 fix/ 를 권하면 그 규칙이 막았다 — 점검 2026-11-26).
+// 배포 브랜치(main 등)에서 고치는 것이면 hotfix/ 를 먼저. 규칙이 꺼져 있으면 기본값(want)
+const PROD_NAME = /^(?:main|master|production|prod|trunk|stable)$/i;
+const branchPrefix = (rules, branch, want) => {
+  const bn = rules?.['branch-name'];
+  if (!bn) return want;
+  let re;
+  try {
+    re = new RegExp(typeof bn === 'object' && typeof bn.pattern === 'string' ? bn.pattern : DEFAULT_BRANCH_PATTERN);
+  } catch {
+    return want;
   }
-  return '';
-};
-const originUrl = (root) => {
-  const repo = findRepo(root);
-  if (repo) {
-    try {
-      const url = urlInConfig(fs.readFileSync(path.join(repo.commonDir, 'config'), 'utf8').slice(0, 256 * 1024));
-      if (url !== null) return url;
-    } catch {}
-  }
-  return (git(root, ['config', '--get', 'remote.origin.url'], { okCodes: [1] }) || '').trim();
-};
-const onGitlab = (root) => {
-  const url = originUrl(root);
-  if (url) return /gitlab/i.test(url);
-  return ['.gitlab-ci.yml', '.gitlab'].some((f) => fs.existsSync(path.join(root, f)));
+  const order = PROD_NAME.test(branch) ? ['hotfix/', want, 'fix/', 'bugfix/', 'feature/'] : [want, 'feature/', 'bugfix/', 'fix/'];
+  return order.find((p) => re.test(`${p}x`)) || want;
 };
 
 export const protectBranch = {
   id: 'protect-branch',
   on: 'shell',
-  check({ cmd, shell, root, repo, opts, t }) {
+  check({ cmd, shell, root, repo, opts, rules, t }) {
     if (!root) return null;
     const branches = Array.isArray(opts.branches) ? opts.branches : DEFAULT_PROTECTED;
     const isProtected = (b) => branches.includes(b);
@@ -161,11 +146,11 @@ export const protectBranch = {
     if ((commits.length || picks.length) && state.hasHead()) {
       for (const c of commits) {
         const branch = branchAt(c.start);
-        if (isProtected(branch)) return t(onGitlab(root) ? 'git.protectedCommitMr' : 'git.protectedCommit', { branch });
+        if (isProtected(branch)) return t(onGitlab(root) ? 'git.protectedCommitMr' : 'git.protectedCommit', { branch, prefix: branchPrefix(rules, branch, 'feature/') });
       }
       for (const c of picks) {
         const branch = branchAt(c.start);
-        if (isProtected(branch) && pickCommits(root, c.sub, c.words)) return t('git.protectedPick', { branch, sub: c.sub });
+        if (isProtected(branch) && pickCommits(root, c.sub, c.words)) return t('git.protectedPick', { branch, sub: c.sub, prefix: branchPrefix(rules, branch, 'fix/') });
       }
     }
     for (const { words, start } of pushes) {

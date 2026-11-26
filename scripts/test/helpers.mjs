@@ -6,7 +6,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { PLUGIN_ROOT, pickerConfig } from '../lib/paths.mjs';
 import { TAG, ruleFileLines } from '../lib/rule-files.mjs';
-import { fillCmd } from '../lib/claude-md.mjs';
+import { fillCmd, prWord } from '../lib/claude-md.mjs';
 
 export { PLUGIN_ROOT };
 export const pickerCfg = pickerConfig();
@@ -94,4 +94,5 @@ export const ruleRawLine = (id, lang, tag) => {
   return line;
 };
 // 그 줄을 CLAUDE.md 에 들어가는 꼴로(줄 끝 표시는 떼고, 명령 자리는 cmds 로 채운다)
-export const ruleLine = (id, lang, tag, cmds = {}) => fillCmd(ruleRawLine(id, lang, tag).replace(TAG, ''), cmds);
+// {{pr}} 은 저장소 위치를 모를 때의 낱말로(renderRule 과 같게 — cmds.pr 를 주면 그것)
+export const ruleLine = (id, lang, tag, cmds = {}) => fillCmd(ruleRawLine(id, lang, tag).replace(TAG, ''), { pr: prWord(null, lang), ...cmds });

@@ -1,5 +1,5 @@
 ## Infrastructure as code
-- Before applying, run `terraform plan` (`kubectl diff` or `helm template` for Kubernetes, `--check --diff` for Ansible) and summarise in the PR description each resource that is destroyed or replaced (-/+) and why. {{judge}}
+- Before applying, run `terraform plan` (`kubectl diff` or `helm template` for Kubernetes, `--check --diff` for Ansible) and summarise in the {{pr}} description each resource that is destroyed or replaced (-/+) and why. {{judge}}
 - After changing `.tf` files, run `terraform fmt`, `terraform validate` and `tflint`. Pin provider, module and chart versions (`version` in `required_providers`, `?ref=` on modules). {{judge}} {{kind:terraform}}
 - After changing a chart, run `helm lint` and `helm template` with every environment's values file (dev and prod). {{judge}} {{kind:helm}}
 - Run apply, destroy or cluster changes only when the user asks for it. {{judge}}

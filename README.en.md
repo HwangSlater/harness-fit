@@ -11,8 +11,8 @@ It reads your repo and walks you through picking the skills, hooks and CLAUDE.md
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-%E2%89%A52.1.139-d97757.svg)](#claude-code)
-![Skills](https://img.shields.io/badge/skills-81%20from%2024%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
-![Hooks](https://img.shields.io/badge/hooks-32-555.svg)
+![Skills](https://img.shields.io/badge/skills-77%20from%2023%20repos%20%E2%98%85%E2%89%A51k-7b61ff.svg)
+![Hooks](https://img.shields.io/badge/hooks-29-555.svg)
 ![Languages](https://img.shields.io/badge/UI-KO%20%C2%B7%20EN-555.svg)
 [![Local first](https://img.shields.io/badge/runs-locally-555.svg)](#your-data-stays-on-your-machine)
 
@@ -28,7 +28,7 @@ It reads your repo (stack, team size, branches) and preselects a combo. Click "N
 
 ## Requirements
 
-- **Claude Code v2.1.139 or later** (the hooks use the exec form with `args`, added in that version). Tested on 2.1.330.
+- **Claude Code v2.1.139 or later** (the hooks use the exec form with `args`, added in that version). Tested on 2.1.331.
 - Node 18 or later (the hooks and the picker run on Node).
 
 ## Claude Code
@@ -63,7 +63,7 @@ To just look around without the plugin, run `npx github:HwangSlater/harness-fit`
 
 1. **How much should Claude help?** Pick Light · Solo · Team · Thorough and a branch strategy (GitHub Flow · Git Flow · Trunk-based · None), each drawn as a git graph. Stack-specific skills are added automatically.
 2. **Which skills should go in?** Click chips to turn skills on or off in each stage, from planning to shipping. "Details" gives each skill a plain one-line effect and a "Keep in mind" note.
-3. **Which mistakes should be blocked?** The 32 hooks in 6 groups. "Details" shows what each one blocks. Commit message format and branch naming are only on by default when the repo's history already follows them. Commands to confirm first (deploy or training scripts, …) and paths to protect that it finds in the repo are filled into the options, each with the reason it was found.
+3. **Which mistakes should be blocked?** The 29 hooks in 6 groups. "Details" shows what each one blocks. Commit message format and branch naming are only on by default when the repo's history already follows them. Commands to confirm first (deploy or training scripts, …) and paths to protect that it finds in the repo are filled into the options, each with the reason it was found.
 4. **Which instructions go into CLAUDE.md?** The exact text that will be written is previewed. A "Commit and PR format" read from your commit history and PR template is included too, so "commit this" or "open a PR" follows this repo's style. The top block, "Commands in this repo", holds the test, lint and build commands read from your repo. Click an instruction to see all of its lines in a small dialog.
 5. **Anything else?** Write "commit messages in English" and Claude applies it after setup.
 6. **Apply this?** See what gets added where and which hook options differ from the defaults, then press "Apply".
@@ -94,10 +94,10 @@ Skills keep only a name and one-line description until used. Hooks send Claude a
 
 | Combo | Skills · hooks · instructions | Per conversation |
 | --- | --- | --- |
-| Light | 0 · 4 · 3 | ~165 tokens (0.1%) |
-| Solo | 9 · 8 · 6 | ~1,111 tokens (0.6%) |
-| Team (recommended for this repo) | 12 · 16 · 8 | ~1,513 tokens (0.8%) |
-| Thorough | 15 · 19 · 8 | ~1,734 tokens (0.9%) |
+| Light | 0 · 4 · 3 | ~135 tokens (0.1%) |
+| Solo | 9 · 8 · 6 | ~1,081 tokens (0.5%) |
+| Team (recommended for this repo) | 11 · 16 · 8 | ~1,453 tokens (0.7%) |
+| Thorough | 13 · 19 · 8 | ~1,588 tokens (0.8%) |
 
 The percentage is the share of what Claude can hold at once (200k tokens). If you pick too many skills, the review step tells you ([skill listing limit](docs/guide.en.md#skill-listing-limit)).
 
@@ -131,7 +131,7 @@ If a folder that is not a git repo has two or more repos directly inside it, it 
 
 ## Learn more
 
-- [Mistakes it blocks — the 32 hooks](docs/guide.en.md#the-32-hooks)
+- [Mistakes it blocks — the 29 hooks](docs/guide.en.md#the-29-hooks)
 - [Hook options](docs/guide.en.md#hook-options)
 - [Git pre-commit hook](docs/guide.en.md#git-pre-commit-hook)
 - [Letting one line through (`lint:allow`)](docs/guide.en.md#letting-one-line-through)
